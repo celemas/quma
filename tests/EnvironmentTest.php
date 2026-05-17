@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Tests;
 
-use Celemas\Quma\Connection;
+use Celemas\Quma\Config;
 use Celemas\Quma\Environment;
 use Celemas\Quma\Tests\Util\FakeDatabase;
 use ReflectionProperty;
@@ -87,12 +87,11 @@ class EnvironmentTest extends TestCase
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
 		$connection = $this->connection(migrations: [$dir]);
-		$property = new ReflectionProperty(Connection::class, 'config');
-		$config = $property->getValue($connection);
-		$config->migrations = [
+		$property = new ReflectionProperty(Config::class, 'migrations');
+		$property->setValue($connection->config, [
 			0 => $dir,
 			'valid' => $dir,
-		];
+		]);
 
 		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $connection], []);
@@ -111,13 +110,12 @@ class EnvironmentTest extends TestCase
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
 		$connection = $this->connection(migrations: [$dir]);
-		$property = new ReflectionProperty(Connection::class, 'config');
-		$config = $property->getValue($connection);
-		$config->migrations = [
+		$property = new ReflectionProperty(Config::class, 'migrations');
+		$property->setValue($connection->config, [
 			'valid' => [$dir],
 			'invalidType' => 123,
 			'emptyDirs' => [''],
-		];
+		]);
 
 		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $connection], []);

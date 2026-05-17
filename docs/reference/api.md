@@ -32,7 +32,35 @@ new Connection(string $dsn, string|array $sql)
 - `noCache(): static` clears the query template cache directory
 - `addSql(array|string $sql): static` prepends SQL directories
 
-See [Connection reference](connection.md) for all accessors and configuration formats.
+Read resolved configuration through `$conn->config`. See [Connection reference](connection.md) for config properties and configuration formats.
+
+## `Celemas\Quma\Config`
+
+Read-only resolved connection configuration.
+
+Common properties:
+
+- `dsn: string`
+- `driver: string`
+- `sql: array`
+- `migrations: array`
+- `cacheDir: ?string`
+- `migrationsTable: string`
+- `migrationsColumnMigration: string`
+- `migrationsColumnApplied: string`
+- `pdo: PdoConfig`
+- `placeholders: ?Placeholders`
+
+## `Celemas\Quma\PdoConfig`
+
+Read-only resolved PDO configuration.
+
+Properties:
+
+- `username: ?string`
+- `password: ?string`
+- `options: array`
+- `fetchMode: int`
 
 ## `Celemas\Quma\Delimiters`
 

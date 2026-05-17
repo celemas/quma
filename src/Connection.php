@@ -8,12 +8,11 @@ namespace Celemas\Quma;
  * @api
  *
  * @psalm-import-type SqlConfig from Config
- * @psalm-import-type MigrationDirs from Config
  * @psalm-import-type PlaceholderConfig from Config
  */
 class Connection
 {
-	protected Config $config;
+	public readonly Config $config;
 
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(string $dsn, string|array $sql)
@@ -21,45 +20,12 @@ class Connection
 		$this->config = new Config($dsn, $sql);
 	}
 
-	public function dsn(): string
-	{
-		return $this->config->dsn;
-	}
-
-	/** @return non-empty-string */
-	public function driver(): string
-	{
-		return $this->config->driver;
-	}
-
-	public function username(): ?string
-	{
-		return $this->config->pdo->username;
-	}
-
-	public function password(): ?string
-	{
-		return $this->config->pdo->password;
-	}
-
-	/** @return array<array-key, mixed> */
-	public function pdoOptions(): array
-	{
-		return $this->config->pdo->options;
-	}
-
-	public function fetchMode(): int
-	{
-		return $this->config->pdo->fetchMode;
-	}
-
 	public function credentials(
 		string $username,
 		#[\SensitiveParameter]
 		?string $password = null,
 	): static {
-		$this->config->pdo->username = $username;
-		$this->config->pdo->password = $password;
+		$this->config->setCredentials($username, $password);
 
 		return $this;
 	}
@@ -67,21 +33,21 @@ class Connection
 	/** @param array<array-key, mixed> $options */
 	public function options(array $options): static
 	{
-		$this->config->pdo->options = $options;
+		$this->config->setPdoOptions($options);
 
 		return $this;
 	}
 
 	public function option(int $attribute, mixed $value): static
 	{
-		$this->config->pdo->options[$attribute] = $value;
+		$this->config->setPdoOption($attribute, $value);
 
 		return $this;
 	}
 
 	public function fetch(int $fetchMode): static
 	{
-		$this->config->pdo->fetchMode = $fetchMode;
+		$this->config->setFetchMode($fetchMode);
 
 		return $this;
 	}
@@ -92,17 +58,6 @@ class Connection
 		$this->config->setPlaceholders($delimiters, $placeholders);
 
 		return $this;
-	}
-
-	public function placeholderDelimiters(): ?Delimiters
-	{
-		return $this->config->placeholders?->delimiters();
-	}
-
-	/** @return array<string, string> */
-	public function placeholderValues(): array
-	{
-		return $this->config->placeholders?->values() ?? [];
 	}
 
 	public function applyPlaceholders(
@@ -132,12 +87,6 @@ class Connection
 		return $this;
 	}
 
-	/** @return non-empty-string|null */
-	public function cacheDir(): ?string
-	{
-		return $this->config->cacheDir;
-	}
-
 	public function migrationTable(string $table): static
 	{
 		$this->config->setMigrationsTable($table);
@@ -151,21 +100,6 @@ class Connection
 		$this->config->setMigrationsColumnApplied($applied);
 
 		return $this;
-	}
-
-	public function migrationsTable(): string
-	{
-		return $this->config->migrationsTable();
-	}
-
-	public function migrationsColumnMigration(): string
-	{
-		return $this->config->migrationsColumnMigration();
-	}
-
-	public function migrationsColumnApplied(): string
-	{
-		return $this->config->migrationsColumnApplied();
 	}
 
 	/** @psalm-param SqlConfig $migrations */
@@ -191,23 +125,11 @@ class Connection
 		return $this;
 	}
 
-	/** @psalm-return MigrationDirs */
-	public function migrationDirs(): array
-	{
-		return $this->config->migrations;
-	}
-
 	/** @psalm-param SqlConfig $sql */
 	public function addSql(array|string $sql): static
 	{
 		$this->config->addSqlDirs($sql);
 
 		return $this;
-	}
-
-	/** @return list<non-empty-string> */
-	public function sql(): array
-	{
-		return $this->config->sql;
 	}
 }

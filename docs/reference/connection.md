@@ -51,29 +51,34 @@ $conn = new Connection(
 
 Configure a connection before you create or connect a `Database`. PDO settings are read when `Database` opens the PDO connection. Debug output is controlled by environment variables, so you can enable it without changing connection code.
 
-## Basic accessors
+## Config access
 
-### `dsn(): string`
+`Connection` exposes its resolved configuration through the read-only `config` property.
 
-Returns the configured PDO DSN.
+```php
+$conn->config->dsn;
+$conn->config->driver;
+$conn->config->sql;
+$conn->config->cacheDir;
+$conn->config->migrations;
+$conn->config->migrationsTable;
+$conn->config->migrationsColumnMigration;
+$conn->config->migrationsColumnApplied;
+$conn->config->pdo->username;
+$conn->config->pdo->password;
+$conn->config->pdo->options;
+$conn->config->pdo->fetchMode;
+$conn->config->placeholders?->delimiters();
+$conn->config->placeholders?->values() ?? [];
+```
 
-### `driver(): string`
-
-Returns the detected PDO driver name.
+Application code can read these values directly. Use `Connection` methods to mutate values; config properties reject direct external assignment, and the mutator methods validate paths, table names, column names, placeholders, and cache directories.
 
 ## PDO configuration
 
 ### `credentials(?string $username, ?string $password = null): static`
 
 Sets the username and password passed to PDO.
-
-### `username(): ?string`
-
-Returns the configured PDO username.
-
-### `password(): ?string`
-
-Returns the configured PDO password.
 
 ### `options(array $options): static`
 
@@ -83,25 +88,13 @@ Replaces the PDO options array passed to PDO.
 
 Sets one PDO option.
 
-### `pdoOptions(): array`
-
-Returns the configured PDO options array.
-
 ### `fetch(int $fetchMode): static`
 
 Sets the default fetch mode for unmapped `Query::one()`, `Query::first()`, `Query::fetch()`, `Query::all()`, and `Query::lazy()` calls when you do not pass a fetch mode explicitly.
 
 The default is `PDO::FETCH_ASSOC`. Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
 
-### `fetchMode(): int`
-
-Returns the configured default fetch mode.
-
 ## SQL directory methods
-
-### `sql(): array`
-
-Returns the resolved SQL directory list.
 
 ### `addSql(array|string $sql): static`
 
@@ -129,10 +122,6 @@ Keep this directory outside the public web root. The files are generated PHP tem
 
 Clears the configured cache directory.
 
-### `cacheDir(): ?string`
-
-Returns the resolved cache directory, or `null` when no cache directory is configured.
-
 ## Static placeholder methods
 
 ### `placeholders(Delimiters $delimiters, array $placeholders): static`
@@ -155,14 +144,6 @@ The top-level `all` scope applies to every driver. A driver-specific scope such 
 
 Use `Delimiters::brackets()` for the legacy `[::name::]` style or `new Delimiters('[[', ']]')` for custom syntax. Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or template code.
 
-### `placeholderDelimiters(): ?Delimiters`
-
-Returns the configured static placeholder delimiters, or `null` when placeholders are disabled.
-
-### `placeholderValues(): array`
-
-Returns the static placeholder map resolved for the active driver. Returns an empty array when placeholders are disabled.
-
 ### `applyPlaceholders(string $source, string $path, bool $isTemplate = false): string`
 
 Applies static placeholders to SQL or template source. When placeholders are disabled, this returns the source unchanged. This method is used internally by file-based queries and migrations.
@@ -182,13 +163,6 @@ Sets the migration directories. Supported formats:
 - a namespaced map such as `['default' => '/path/to/migrations']`
 
 If the array is associative and not a driver map, Quma treats it as namespaced migration configuration.
-
-### `migrationDirs(): array`
-
-Returns either:
-
-- a flat list of directories
-- a namespaced map of directories
 
 ### `addMigration(string $migrations): static`
 
@@ -222,18 +196,6 @@ Validation rules:
 ### `migrationColumns(string $migration, string $applied = 'applied'): static`
 
 Sets the migration name column and applied-at column.
-
-### `migrationsTable(): string`
-
-Returns the validated migrations table name.
-
-### `migrationsColumnMigration(): string`
-
-Returns the validated migration name column.
-
-### `migrationsColumnApplied(): string`
-
-Returns the validated applied-at column.
 
 Quma uses these names when it creates the metadata table, checks applied migrations, and records newly applied migrations. For PostgreSQL, a schema-qualified table name such as `public.migrations` is supported.
 

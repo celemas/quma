@@ -9,7 +9,7 @@ use RuntimeException;
 use ValueError;
 
 /**
- * @internal
+ * @api
  *
  * @psalm-type SqlDirs = list<non-empty-string>
  * @psalm-type SqlAssoc = array<non-empty-string, non-empty-string|list<non-empty-string>>
@@ -27,20 +27,20 @@ final class Config
 	public readonly string $driver;
 
 	/** @psalm-var SqlDirs */
-	public array $sql;
+	public private(set) array $sql;
 
 	/** @psalm-var MigrationDirs */
-	public array $migrations = [];
+	public private(set) array $migrations = [];
 
-	public PdoConfig $pdo;
-	public ?Placeholders $placeholders = null;
+	public private(set) PdoConfig $pdo;
+	public private(set) ?Placeholders $placeholders = null;
 
 	/** @var non-empty-string|null */
-	public ?string $cacheDir = null;
+	public private(set) ?string $cacheDir = null;
 
-	public string $migrationsTable = 'migrations';
-	public string $migrationsColumnMigration = 'migration';
-	public string $migrationsColumnApplied = 'applied';
+	public private(set) string $migrationsTable = 'migrations';
+	public private(set) string $migrationsColumnMigration = 'migration';
+	public private(set) string $migrationsColumnApplied = 'applied';
 
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(
@@ -50,6 +50,30 @@ final class Config
 		$this->driver = $this->readDriver($this->dsn);
 		$this->sql = $this->readFlatDirs($sql);
 		$this->pdo = new PdoConfig();
+	}
+
+	public function setCredentials(
+		string $username,
+		#[\SensitiveParameter]
+		?string $password = null,
+	): void {
+		$this->pdo = $this->pdo->credentials($username, $password);
+	}
+
+	/** @param array<array-key, mixed> $options */
+	public function setPdoOptions(array $options): void
+	{
+		$this->pdo = $this->pdo->options($options);
+	}
+
+	public function setPdoOption(int $attribute, mixed $value): void
+	{
+		$this->pdo = $this->pdo->option($attribute, $value);
+	}
+
+	public function setFetchMode(int $fetchMode): void
+	{
+		$this->pdo = $this->pdo->fetch($fetchMode);
 	}
 
 	/** @psalm-param PlaceholderConfig $placeholders */
@@ -145,21 +169,6 @@ final class Config
 	public function setMigrationsColumnApplied(string $column): void
 	{
 		$this->migrationsColumnApplied = $this->getColumnName($column);
-	}
-
-	public function migrationsTable(): string
-	{
-		return $this->getMigrationsTableName($this->migrationsTable);
-	}
-
-	public function migrationsColumnMigration(): string
-	{
-		return $this->getColumnName($this->migrationsColumnMigration);
-	}
-
-	public function migrationsColumnApplied(): string
-	{
-		return $this->getColumnName($this->migrationsColumnApplied);
 	}
 
 	/** @return non-empty-string */

@@ -37,10 +37,10 @@ class Environment
 		$this->conn = $connections[$key];
 		$this->showStacktrace = $opts->has('--stacktrace');
 		$this->db = new Database($this->conn);
-		$this->driver = $this->conn->driver();
-		$this->table = $this->conn->migrationsTable();
-		$this->columnMigration = $this->conn->migrationsColumnMigration();
-		$this->columnApplied = $this->conn->migrationsColumnApplied();
+		$this->driver = $this->conn->config->driver;
+		$this->table = $this->conn->config->migrationsTable;
+		$this->columnMigration = $this->conn->config->migrationsColumnMigration;
+		$this->columnApplied = $this->conn->config->migrationsColumnApplied;
 	}
 
 	/**
@@ -49,7 +49,7 @@ class Environment
 	public function getMigrations(): array|false
 	{
 		$migrations = [];
-		$migrationDirs = $this->conn->migrationDirs();
+		$migrationDirs = $this->conn->config->migrations;
 
 		if (count($migrationDirs) === 0) {
 			echo "\033[1;31mNotice\033[0m: No migration directories defined in configuration\033[0m\n";

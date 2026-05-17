@@ -32,7 +32,7 @@ class Database
 
 		$exists = false;
 
-		foreach ($this->conn->sql() as $path) {
+		foreach ($this->conn->config->sql as $path) {
 			$exists = is_dir($path . DIRECTORY_SEPARATOR . $key);
 
 			if ($exists) {
@@ -49,7 +49,7 @@ class Database
 
 	public function getFetchMode(): int
 	{
-		return $this->conn->fetchMode();
+		return $this->conn->config->pdo->fetchMode;
 	}
 
 	public function connected(): bool
@@ -59,12 +59,12 @@ class Database
 
 	public function getPdoDriver(): string
 	{
-		return $this->conn->driver();
+		return $this->conn->config->driver;
 	}
 
 	public function getSqlDirs(): array
 	{
-		return $this->conn->sql();
+		return $this->conn->config->sql;
 	}
 
 	public function loadScript(string $path, bool $isTemplate): LoadedScript
@@ -96,7 +96,7 @@ class Database
 
 	protected function cacheTemplate(string $sourcePath, string $source): ?string
 	{
-		$cacheDir = $this->conn->cacheDir();
+		$cacheDir = $this->conn->config->cacheDir;
 
 		if ($cacheDir === null) {
 			return null;
@@ -126,9 +126,9 @@ class Database
 		$key = json_encode([
 			'version' => self::TEMPLATE_CACHE_VERSION,
 			'path' => $sourcePath,
-			'driver' => $this->conn->driver(),
-			'delimiters' => $this->conn->placeholderDelimiters()?->values(),
-			'placeholders' => $this->conn->placeholderValues(),
+			'driver' => $this->conn->config->driver,
+			'delimiters' => $this->conn->config->placeholders?->delimiters()->values(),
+			'placeholders' => $this->conn->config->placeholders?->values() ?? [],
 			'modifiedAt' => $modifiedAt,
 			'size' => $size,
 		], JSON_THROW_ON_ERROR);
@@ -184,10 +184,10 @@ class Database
 		$conn = $this->conn;
 
 		$pdo = new PDO(
-			$conn->dsn(),
-			$conn->username(),
-			$conn->password(),
-			$conn->pdoOptions(),
+			$conn->config->dsn,
+			$conn->config->pdo->username,
+			$conn->config->pdo->password,
+			$conn->config->pdo->options,
 		);
 
 		// Always throw an exception when an error occures

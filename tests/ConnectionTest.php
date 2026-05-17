@@ -23,10 +23,10 @@ class ConnectionTest extends TestCase
 		$sql = $this->getSqlDirs();
 		$conn = new Connection($dsn, $sql);
 
-		$this->assertSame($dsn, $conn->dsn());
-		$this->assertSame('sqlite', $conn->driver());
-		$this->assertSame(realpath($sql), realpath($conn->sql()[0]));
-		$this->assertSame(PDO::FETCH_ASSOC, $conn->fetchMode());
+		$this->assertSame($dsn, $conn->config->dsn);
+		$this->assertSame('sqlite', $conn->config->driver);
+		$this->assertSame(realpath($sql), realpath($conn->config->sql[0]));
+		$this->assertSame(PDO::FETCH_ASSOC, $conn->config->pdo->fetchMode);
 	}
 
 	public function testPdoConfiguration(): void
@@ -37,13 +37,13 @@ class ConnectionTest extends TestCase
 			->option(PDO::ATTR_PERSISTENT, true)
 			->fetch(PDO::FETCH_ASSOC);
 
-		$this->assertSame('quma', $conn->username());
-		$this->assertSame('secret', $conn->password());
+		$this->assertSame('quma', $conn->config->pdo->username);
+		$this->assertSame('secret', $conn->config->pdo->password);
 		$this->assertSame(
 			[PDO::ATTR_TIMEOUT => 2, PDO::ATTR_PERSISTENT => true],
-			$conn->pdoOptions(),
+			$conn->config->pdo->options,
 		);
-		$this->assertSame(PDO::FETCH_ASSOC, $conn->fetchMode());
+		$this->assertSame(PDO::FETCH_ASSOC, $conn->config->pdo->fetchMode);
 	}
 
 	public function testDriverSpecificDir(): void
@@ -57,7 +57,7 @@ class ConnectionTest extends TestCase
 			'ignored' => TestCase::root() . 'sql/ignored',
 		]);
 
-		$sql = $conn->sql();
+		$sql = $conn->config->sql;
 		$this->assertCount(3, $sql);
 		// Driver specific must come first
 		$this->assertStringEndsWith('/additional', $sql[0]);
@@ -75,8 +75,8 @@ class ConnectionTest extends TestCase
 			'sqlite' => ['prefix' => 'sqlite_'],
 		]);
 
-		$this->assertEquals(Delimiters::comments(), $conn->placeholderDelimiters());
-		$this->assertSame(['prefix' => 'sqlite_'], $conn->placeholderValues());
+		$this->assertEquals(Delimiters::comments(), $conn->config->placeholders?->delimiters());
+		$this->assertSame(['prefix' => 'sqlite_'], $conn->config->placeholders?->values() ?? []);
 		$this->assertSame(
 			'SELECT * FROM sqlite_nodes',
 			$conn->applyPlaceholders('SELECT * FROM /*:prefix:*/nodes', 'query.sql'),
@@ -87,8 +87,8 @@ class ConnectionTest extends TestCase
 	{
 		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
 
-		$this->assertNull($conn->placeholderDelimiters());
-		$this->assertSame([], $conn->placeholderValues());
+		$this->assertNull($conn->config->placeholders?->delimiters());
+		$this->assertSame([], $conn->config->placeholders?->values() ?? []);
 		$this->assertSame(
 			'SELECT * FROM [::prefix::]nodes',
 			$conn->applyPlaceholders('SELECT * FROM [::prefix::]nodes', 'query.sql'),
@@ -101,7 +101,7 @@ class ConnectionTest extends TestCase
 		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
 			->placeholders($delimiters, ['all' => ['prefix' => 'custom_']]);
 
-		$this->assertSame($delimiters, $conn->placeholderDelimiters());
+		$this->assertSame($delimiters, $conn->config->placeholders?->delimiters());
 		$this->assertSame(
 			'SELECT * FROM custom_nodes',
 			$conn->applyPlaceholders('SELECT * FROM [[prefix]]nodes', 'query.sql'),
@@ -115,11 +115,11 @@ class ConnectionTest extends TestCase
 		mkdir($dir, 0o700);
 
 		try {
-			$this->assertNull($conn->cacheDir());
+			$this->assertNull($conn->config->cacheDir);
 			$this->assertSame($conn, $conn->cache($dir));
-			$this->assertSame(realpath($dir), $conn->cacheDir());
+			$this->assertSame(realpath($dir), $conn->config->cacheDir);
 			$this->assertSame($conn, $conn->noCache());
-			$this->assertNull($conn->cacheDir());
+			$this->assertNull($conn->config->cacheDir);
 		} finally {
 			rmdir($dir);
 		}
@@ -162,7 +162,7 @@ class ConnectionTest extends TestCase
 			'ignored' => TestCase::root() . 'sql/ignored',
 		]);
 
-		$sql = $conn->sql();
+		$sql = $conn->config->sql;
 		$this->assertCount(2, $sql);
 		// Driver specific must come first
 		$this->assertStringEndsWith('/additional', $sql[0]);
@@ -183,7 +183,7 @@ class ConnectionTest extends TestCase
 			],
 		);
 
-		$sql = $conn->sql();
+		$sql = $conn->config->sql;
 		$this->assertCount(3, $sql);
 		$this->assertStringEndsWith('/members', $sql[0]);
 		$this->assertStringEndsWith('/additional', $sql[1]);
@@ -202,7 +202,7 @@ class ConnectionTest extends TestCase
 			],
 		);
 
-		$sql = $conn->sql();
+		$sql = $conn->config->sql;
 		$this->assertCount(2, $sql);
 		$this->assertStringEndsWith('/more', $sql[0]);
 		$this->assertStringEndsWith('/default', $sql[1]);
@@ -223,7 +223,7 @@ class ConnectionTest extends TestCase
 			],
 		);
 
-		$sql = $conn->sql();
+		$sql = $conn->config->sql;
 		$this->assertCount(3, $sql);
 		$this->assertStringEndsWith('/additional', $sql[0]);
 		$this->assertStringEndsWith('/default', $sql[1]);
@@ -236,7 +236,7 @@ class ConnectionTest extends TestCase
 			$this->getDsn(),
 			TestCase::root() . 'sql/default',
 		)->migrations([TestCase::root() . 'migrations', TestCase::root() . 'sql/additional']);
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 
 		$this->assertCount(2, $migrations);
 		$this->assertStringEndsWith('/additional', $migrations[0]);
@@ -252,7 +252,7 @@ class ConnectionTest extends TestCase
 			'default' => [TestCase::root() . 'migrations', TestCase::root() . 'sql/default'],
 			'install' => TestCase::root() . 'sql/additional',
 		]);
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 
 		$this->assertCount(2, $migrations);
 		$this->assertStringEndsWith('/migrations', $migrations['default'][0]);
@@ -273,7 +273,7 @@ class ConnectionTest extends TestCase
 				],
 			],
 		]);
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 
 		$this->assertCount(1, $migrations);
 		$this->assertArrayHasKey('valid', $migrations);
@@ -293,7 +293,7 @@ class ConnectionTest extends TestCase
 				],
 			],
 		]);
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 
 		$this->assertCount(1, $migrations);
 		$this->assertArrayHasKey('valid', $migrations);
@@ -309,7 +309,7 @@ class ConnectionTest extends TestCase
 		);
 		$conn->addMigration(TestCase::root() . 'migrations');
 		$conn->addMigration(TestCase::root() . 'sql/additional');
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 
 		$this->assertCount(2, $migrations);
 		$this->assertStringEndsWith('/additional', $migrations[0]);
@@ -339,7 +339,7 @@ class ConnectionTest extends TestCase
 			->migrationNamespace('default', [TestCase::root() . 'migrations'])
 			->migrationNamespace('install', TestCase::root() . 'sql/additional');
 
-		$migrations = $conn->migrationDirs();
+		$migrations = $conn->config->migrations;
 		$this->assertCount(2, $migrations);
 		$this->assertStringEndsWith('/migrations', $migrations['default'][0]);
 		$this->assertStringEndsWith('/additional', $migrations['install']);
@@ -439,16 +439,32 @@ class ConnectionTest extends TestCase
 	{
 		$conn = new Connection($this->getDsn(), $this->getSqlDirs());
 
-		$this->assertSame('migrations', $conn->migrationsTable());
-		$this->assertSame('migration', $conn->migrationsColumnMigration());
-		$this->assertSame('applied', $conn->migrationsColumnApplied());
+		$this->assertSame('migrations', $conn->config->migrationsTable);
+		$this->assertSame('migration', $conn->config->migrationsColumnMigration);
+		$this->assertSame('applied', $conn->config->migrationsColumnApplied);
 
 		$conn->migrationTable('newmigrations')
 			->migrationColumns('newmigration', 'newapplied');
 
-		$this->assertSame('newmigrations', $conn->migrationsTable());
-		$this->assertSame('newmigration', $conn->migrationsColumnMigration());
-		$this->assertSame('newapplied', $conn->migrationsColumnApplied());
+		$this->assertSame('newmigrations', $conn->config->migrationsTable);
+		$this->assertSame('newmigration', $conn->config->migrationsColumnMigration);
+		$this->assertSame('newapplied', $conn->config->migrationsColumnApplied);
+	}
+
+	public function testConfigPropertiesRejectExternalMutation(): void
+	{
+		$this->expectException(\Error::class);
+
+		$conn = new Connection($this->getDsn(), $this->getSqlDirs());
+		$conn->config->migrationsTable = 'changed';
+	}
+
+	public function testPdoConfigPropertiesRejectExternalMutation(): void
+	{
+		$this->expectException(\Error::class);
+
+		$conn = new Connection($this->getDsn(), $this->getSqlDirs());
+		$conn->config->pdo->options[PDO::ATTR_TIMEOUT] = 2;
 	}
 
 	public function testWrongMigrationsTableName(): void

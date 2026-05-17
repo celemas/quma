@@ -51,7 +51,7 @@ final class Add extends Command
 			}
 		}
 
-		$migrations = $env->conn->migrationDirs();
+		$migrations = $env->conn->config->migrations;
 
 		if (count($migrations) === 0) {
 			echo "No migration directories configured. Aborting.\n";
