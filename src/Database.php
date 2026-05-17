@@ -187,17 +187,8 @@ class Database
 			$conn->config->dsn,
 			$conn->config->pdo->username,
 			$conn->config->pdo->password,
-			$conn->config->pdo->options,
+			$conn->config->pdo->effectiveOptions(),
 		);
-
-		// Always throw an exception when an error occures
-		$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-		// Allow getting the number of rows
-		$pdo->setAttribute(PDO::ATTR_CURSOR, PDO::CURSOR_SCROLL);
-		// deactivate native prepared statements by default
-		$pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
-		// do not alter casing of the columns from sql
-		$pdo->setAttribute(PDO::ATTR_CASE, PDO::CASE_NATURAL);
 
 		$this->pdo = $pdo;
 		$this->markConnected();

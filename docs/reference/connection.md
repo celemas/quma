@@ -88,6 +88,14 @@ Replaces the PDO options array passed to PDO.
 
 Sets one PDO option.
 
+Quma merges these options with its PDO defaults when `Database` connects:
+
+- `PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL`
+- `PDO::ATTR_EMULATE_PREPARES => true`
+- `PDO::ATTR_CASE => PDO::CASE_NATURAL`
+
+Your options override these defaults. `PDO::ATTR_ERRMODE` is always forced to `PDO::ERRMODE_EXCEPTION` because Quma relies on exceptions for database failures.
+
 ### `fetch(int $fetchMode): static`
 
 Sets the default fetch mode for unmapped `Query::one()`, `Query::first()`, `Query::fetch()`, `Query::all()`, and `Query::lazy()` calls when you do not pass a fetch mode explicitly.

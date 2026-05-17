@@ -35,6 +35,22 @@ class DatabaseTest extends TestCase
 		$this->assertInstanceOf(PDO::class, $db->getConn());
 	}
 
+	public function testPdoOptionsCanOverrideDefaults(): void
+	{
+		$conn = $this->connection()->option(PDO::ATTR_CASE, PDO::CASE_UPPER);
+		$db = new Database($conn);
+
+		$this->assertSame(PDO::CASE_UPPER, $db->getConn()->getAttribute(PDO::ATTR_CASE));
+	}
+
+	public function testPdoErrmodeAlwaysUsesExceptions(): void
+	{
+		$conn = $this->connection()->option(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+		$db = new Database($conn);
+
+		$this->assertSame(PDO::ERRMODE_EXCEPTION, $db->getConn()->getAttribute(PDO::ATTR_ERRMODE));
+	}
+
 	public function testDatabaseTracksConnectionState(): void
 	{
 		$db = new InspectableDatabase($this->connection());

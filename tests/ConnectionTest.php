@@ -46,6 +46,24 @@ class ConnectionTest extends TestCase
 		$this->assertSame(PDO::FETCH_ASSOC, $conn->config->pdo->fetchMode);
 	}
 
+	public function testPdoEffectiveOptionsMergeDefaultsAndRequiredOptions(): void
+	{
+		$conn = new Connection($this->getDsn(), $this->getSqlDirs())
+			->options([
+				PDO::ATTR_TIMEOUT => 2,
+				PDO::ATTR_ERRMODE => PDO::ERRMODE_SILENT,
+				PDO::ATTR_EMULATE_PREPARES => false,
+			]);
+
+		$effective = $conn->config->pdo->effectiveOptions();
+
+		$this->assertSame(2, $effective[PDO::ATTR_TIMEOUT]);
+		$this->assertFalse($effective[PDO::ATTR_EMULATE_PREPARES]);
+		$this->assertSame(PDO::CURSOR_SCROLL, $effective[PDO::ATTR_CURSOR]);
+		$this->assertSame(PDO::CASE_NATURAL, $effective[PDO::ATTR_CASE]);
+		$this->assertSame(PDO::ERRMODE_EXCEPTION, $effective[PDO::ATTR_ERRMODE]);
+	}
+
 	public function testDriverSpecificDir(): void
 	{
 		$conn = new Connection($this->getDsn(), [

@@ -62,6 +62,10 @@ Properties:
 - `options: array`
 - `fetchMode: int`
 
+Methods:
+
+- `effectiveOptions(): array` returns PDO options with Quma defaults and required exception mode applied
+
 ## `Celemas\Quma\Delimiters`
 
 Configures static placeholder delimiters.

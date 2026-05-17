@@ -31,6 +31,7 @@
 
 ### Fixed
 
+- Fixed PDO option precedence so custom options override Quma defaults except for required exception error mode.
 - Fixed duplicate migration IDs to abort before running the migration batch.
 - Fixed array query parameters with invalid JSON input to fail instead of binding an empty string.
 - Fixed generated PHP migration stubs to use the current `MigrationInterface` signature.
