@@ -2,40 +2,40 @@
 
 ## [Unreleased](https://codeberg.org/celemas/quma/compare/0.1.1...HEAD)
 
-### Breaking Changes
+### Breaking
 
-- Rename package metadata, root namespace, repository URLs, homepage, and contact email to Celemas.
-- Changed `Connection` to require only DSN and SQL directories in the constructor. Optional PDO, migration, placeholder, cache, and fetch mode settings now use fluent methods.
+- Renamed the Composer package, root namespace, repository URLs, homepage, and contact email from Duon to Celemas.
+- Changed `Connection` setup to take only DSN and SQL directories in the constructor; credentials, PDO options, fetch mode, migrations, placeholders, cache, and migration metadata now use fluent methods.
+- Replaced direct `Connection` properties and getter methods with read-only `Connection::$config` for inspecting resolved configuration.
+- Required `ext-tokenizer` at runtime for template placeholder parsing.
 - Changed the default query fetch mode from `PDO::FETCH_BOTH` to `PDO::FETCH_ASSOC`.
 - Changed query terminal method signatures so the optional hydration map is the first argument and the per-call fetch mode is the second argument or `fetchMode` named argument.
-- Changed `Query::one()` to require exactly one result and throw `UnexpectedResultCountException` for empty or multi-row results.
+- Changed `Query::one()` to require exactly one row and throw `UnexpectedResultCountException` for empty or multi-row results.
 - Changed non-default migration namespaces to record applied migrations as `namespace:basename`.
-- Removed `Connection::print()`, `Connection::prints()`, and `Database::print()` in favor of `QUMA_DEBUG_PRINT`.
-
-### Changed
-
-- Changed MySQL migration dry runs to print a plan without mutating the database.
+- Removed `Connection::print()` and `Database::print()` in favor of `QUMA_DEBUG` and `QUMA_DEBUG_PRINT`.
 
 ### Added
 
-- Added driver-aware static placeholders with `[::name::]` syntax for trusted SQL configuration fragments such as table prefixes and schema names.
-- Added configurable static placeholder delimiters via `Delimiters` and `Connection::delimiters()`.
+- Added opt-in, driver-aware static placeholders for trusted SQL fragments through `Connection::placeholders(Delimiters, ...)`, including `/*:name:*/`, `[::name::]`, and custom delimiter support.
 - Added static placeholder support to `.sql` queries, `.tpql` query templates, `.sql` migrations, and `.tpql` migrations.
 - Added optional `.tpql` query template caching via `Connection::cache()`.
-- Added `QUMA_DEBUG`, `QUMA_DEBUG_PRINT`, `QUMA_DEBUG_TRANSLATED`, and `QUMA_DEBUG_INTERPOLATED` for environment-controlled SQL debugging. Boolean debug flags accept `1`, `true`, `yes`, and `on` case-insensitively. `QUMA_DEBUG_TRANSLATED` and `QUMA_DEBUG_INTERPOLATED` accept a directory path to write per-request SQL log files grouped by session. #10
-- Added explicit `Database` lifecycle helpers: `connected()`, `disconnect()`, `reconnect()`, `ping()`, and `reset()`.
+- Added environment-controlled SQL debugging with `QUMA_DEBUG`, `QUMA_DEBUG_PRINT`, `QUMA_DEBUG_TRANSLATED`, `QUMA_DEBUG_INTERPOLATED`, and `QUMA_DEBUG_SESSION`, including session-grouped translated and interpolated SQL files. #10
 - Added `Database::$debug` to expose whether debug handling was enabled when a database handle was created.
-- Added internal connection timestamp tracking in `Database` to support long-running PHP process integrations.
+- Added `Database` lifecycle helpers: `connected()`, `disconnect()`, `reconnect()`, `ping()`, and `reset()`.
 - Added `Query::first()` for stable first-row reads and `Query::fetch()` for cursor-style reads.
-- Added optional row hydration for `one()`, `first()`, `fetch()`, `all()`, and `lazy()` through class-string targets, resolver closures, `#[Column]`, `Hydratable`, and hydration-specific exceptions.
+- Added optional row hydration for `one()`, `first()`, `fetch()`, `all()`, and `lazy()` through class-string targets, resolver closures, `#[Column]`, `Hydratable`, and hydration-specific exceptions. #8
+
+### Changed
+
+- Changed MySQL migration dry runs to print a pending migration plan without creating tables or applying migrations unless `--apply` is used.
 
 ### Fixed
 
 - Fixed PDO option precedence so custom options override Quma defaults except for required exception error mode.
+- Fixed migration metadata handling to use configured table and column names consistently, including current-database table checks on MySQL.
 - Fixed duplicate migration IDs to abort before running the migration batch.
 - Fixed array query parameters with invalid JSON input to fail instead of binding an empty string.
 - Fixed generated PHP migration stubs to use the current `MigrationInterface` signature.
-- Fixed custom migration metadata table and column names when reading and recording applied migrations.
 - Fixed dynamic SQL folder and script resolution to reject invalid path segments.
 
 ## [0.1.1](https://codeberg.org/celemas/quma/src/tag/0.1.1) (2026-02-07)
