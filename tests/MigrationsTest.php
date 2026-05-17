@@ -227,7 +227,6 @@ class MigrationsTest extends TestCase
 
 		$this->assertStringContainsString('namespace Quma\\Migrations\\M', $content);
 		$this->assertStringContainsString('class Migration implements Contract\\Migration', $content);
-		$this->assertStringContainsString('// Migration name: TestMigration', $content);
 		$this->assertStringContainsString('run(Environment $env): void', $content);
 		$this->assertIsString($migrationClass);
 		$this->assertTrue(is_subclass_of($migrationClass, MigrationContract::class));

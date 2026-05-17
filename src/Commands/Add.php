@@ -120,7 +120,6 @@ use Celemas\\Quma\\Environment;
 
 class Migration implements Contract\\Migration
 {
-    // Migration name: {$name}
     public function run(Environment \$env): void
     {
         throw new \\LogicException('Implement migration {$name} before running it.');
