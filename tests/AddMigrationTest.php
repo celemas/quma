@@ -20,6 +20,14 @@ class AddMigrationTest extends TestCase
 		$this->assertNull($method->invoke($command, []));
 	}
 
+	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
+	{
+		$command = new Add($this->connection());
+		$method = new ReflectionMethod(Add::class, 'getPhpMigrationName');
+
+		$this->assertSame('Migration', $method->invoke($command, '---.php'));
+	}
+
 	public function testAddMigrationWithoutDirectories(): void
 	{
 		$_SERVER['argv'] = ['run', 'add-migration', '--file', 'test.sql'];
