@@ -8,6 +8,7 @@ use Celemas\Cli\Commands as BaseCommands;
 use Celemas\Quma\Commands\Add;
 use Celemas\Quma\Commands\CreateMigrationsTable;
 use Celemas\Quma\Commands\Migrations;
+use Celemas\Quma\Contract\MigrationFactory;
 
 /** @api */
 class Commands
@@ -16,11 +17,12 @@ class Commands
 	public static function get(
 		array|Connection $conn,
 		array $options = [],
+		?MigrationFactory $migrationFactory = null,
 	): BaseCommands {
 		return new BaseCommands([
 			new Add($conn, $options),
 			new CreateMigrationsTable($conn, $options),
-			new Migrations($conn, $options),
+			new Migrations($conn, $options, $migrationFactory),
 		]);
 	}
 }

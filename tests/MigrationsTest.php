@@ -15,9 +15,9 @@ namespace Celemas\Quma\Tests;
 
 use Celemas\Cli\Runner;
 use Celemas\Quma\Connection;
+use Celemas\Quma\Contract\Migration as MigrationContract;
 use Celemas\Quma\Database;
 use Celemas\Quma\Delimiters;
-use Celemas\Quma\MigrationInterface;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -218,17 +218,19 @@ class MigrationsTest extends TestCase
 		$this->assertStringNotContainsString('.sql', $migration);
 
 		$content = file_get_contents($migration);
-		$migrationObject = require $migration;
+		$migrationClass = require $migration;
 
 		if (is_file($migration)) {
 			unlink($migration);
 		}
 		$this->assertFileDoesNotExist($migration);
 
-		$this->assertStringContainsString('TestMigration_', $content);
-		$this->assertStringContainsString('implements MigrationInterface', $content);
+		$this->assertStringContainsString('namespace Quma\\Migrations\\M', $content);
+		$this->assertStringContainsString('class Migration implements Contract\\Migration', $content);
+		$this->assertStringContainsString('// Migration name: TestMigration', $content);
 		$this->assertStringContainsString('run(Environment $env): void', $content);
-		$this->assertInstanceOf(MigrationInterface::class, $migrationObject);
+		$this->assertIsString($migrationClass);
+		$this->assertTrue(is_subclass_of($migrationClass, MigrationContract::class));
 	}
 
 	public function testAddMigrationWithWrongFileExtension(): void

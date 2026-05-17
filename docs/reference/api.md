@@ -231,14 +231,28 @@ Provides the runtime context for migration commands and PHP migrations.
 - `checkIfMigrationsTableExists(Database $db): bool`
 - `getMigrationsTableDDL(): string|false`
 
-## `Celemas\Quma\MigrationInterface`
+## `Celemas\Quma\Contract\Migration`
 
 Implemented by PHP migrations.
 
 ```php
-interface MigrationInterface
+interface Migration
 {
     public function run(Environment $env): void;
+}
+```
+
+PHP migration files must return a class name that implements this contract.
+
+## `Celemas\Quma\Contract\MigrationFactory`
+
+Optional factory for constructing PHP migrations with custom constructors.
+
+```php
+interface MigrationFactory
+{
+    /** @param class-string<Migration> $class */
+    public function create(string $class, Environment $env): Migration;
 }
 ```
 
@@ -249,10 +263,14 @@ Factory for the bundled CLI commands.
 ### Static factory
 
 ```php
-Commands::get(array|Connection $conn, array $options = []): Celemas\Cli\Commands
+Commands::get(
+    array|Connection $conn,
+    array $options = [],
+    ?MigrationFactory $migrationFactory = null,
+): Celemas\Cli\Commands
 ```
 
-Pass either one `Connection` or an array of named connections.
+Pass either one `Connection` or an array of named connections. Pass a migration factory when PHP migrations need constructor dependency injection.
 
 ## Internal helper types you will see in the codebase
 

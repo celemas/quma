@@ -161,25 +161,30 @@ As with query templates, do not put static placeholders inside PHP code blocks o
 
 ## PHP migrations
 
-A `.php` migration must return an object that implements `Celemas\Quma\MigrationInterface`.
+A `.php` migration must return a class name that implements `Celemas\Quma\Contract\Migration`.
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-use Celemas\Quma\Environment;
-use Celemas\Quma\MigrationInterface;
+namespace Quma\Migrations\M250320_102000_CreateExample;
 
-return new class () implements MigrationInterface {
+use Celemas\Quma\Contract;
+use Celemas\Quma\Environment;
+
+class Migration implements Contract\Migration
+{
     public function run(Environment $env): void
     {
         $env->db->execute('CREATE TABLE example (id integer primary key)')->run();
     }
-};
+}
+
+return Migration::class;
 ```
 
-See [PHP migrations](php-migrations.md) for the full interface and environment details.
+See [PHP migrations](php-migrations.md) for the full interface, factory support, and environment details.
 
 ## Namespaces
 

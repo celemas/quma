@@ -4,11 +4,11 @@ title: PHP migrations
 
 # PHP migrations
 
-Use a PHP migration when SQL alone is not enough. A PHP migration can branch on the driver, run multiple queries, inspect results, and reuse application logic.
+Use a PHP migration when SQL alone is not enough. A PHP migration file must declare or reference a migration class and return that class name.
 
 ## Contract
 
-A PHP migration file must return an object that implements `Celemas\Quma\MigrationInterface`.
+A PHP migration file must return the class name of a class that implements `Celemas\Quma\Contract\Migration`.
 
 The interface is:
 
@@ -17,9 +17,11 @@ The interface is:
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Contract;
 
-interface MigrationInterface
+use Celemas\Quma\Environment;
+
+interface Migration
 {
     public function run(Environment $env): void;
 }
@@ -32,18 +34,103 @@ interface MigrationInterface
 
 declare(strict_types=1);
 
-use Celemas\Quma\Environment;
-use Celemas\Quma\MigrationInterface;
+namespace Quma\Migrations\M250320_102000_CreateUsers;
 
-return new class () implements MigrationInterface {
+use Celemas\Quma\Contract;
+use Celemas\Quma\Environment;
+
+class Migration implements Contract\Migration
+{
     public function run(Environment $env): void
     {
         $env->db->execute(
             'CREATE TABLE users (id integer primary key, email text not null)',
         )->run();
     }
-};
+}
+
+return Migration::class;
 ```
+
+The namespace keeps the default `Migration` class name unique across migration files. You can use another class name if you prefer.
+
+## Constructor dependency injection
+
+Without a migration factory, Quma instantiates the returned class with no constructor arguments.
+
+```php
+$migration = new $class();
+```
+
+If your migration has required constructor arguments, configure a `Celemas\Quma\Contract\MigrationFactory` when creating the Quma commands. Quma passes the returned class name and the active `Environment` to the factory.
+
+```php
+use Celemas\Quma\Contract\Migration;
+use Celemas\Quma\Environment;
+
+interface MigrationFactory
+{
+    /** @param class-string<Migration> $class */
+    public function create(string $class, Environment $env): Migration;
+}
+```
+
+Quma does not depend on a container package. Applications can use any factory implementation.
+
+### Wire example
+
+Install `celemas/wire` in the application if you want autowiring.
+
+```php
+use Celemas\Quma\Connection;
+use Celemas\Quma\Contract\Migration;
+use Celemas\Quma\Contract\MigrationFactory;
+use Celemas\Quma\Commands;
+use Celemas\Quma\Database;
+use Celemas\Quma\Environment;
+use Celemas\Wire\Wire;
+use Psr\Container\ContainerInterface;
+use RuntimeException;
+
+final class WireMigrationFactory implements MigrationFactory
+{
+    public function __construct(
+        private ?ContainerInterface $container = null,
+    ) {}
+
+    /** @param class-string<Migration> $class */
+    public function create(string $class, Environment $env): Migration
+    {
+        $migration = Wire::creator($this->container)->create(
+            $class,
+            predefinedTypes: [
+                Environment::class => $env,
+                Connection::class => $env->conn,
+                Database::class => $env->db,
+            ],
+        );
+
+        if (!$migration instanceof Migration) {
+            throw new RuntimeException("Migration {$class} must implement " . Migration::class);
+        }
+
+        return $migration;
+    }
+}
+
+$commands = Commands::get(
+    $conn,
+    migrationFactory: new WireMigrationFactory($container),
+);
+```
+
+`celemas/container` works with this example because it implements PSR-11 and uses Wire for autowiring.
+
+## Autoloading
+
+Quma loads the migration file before it asks the factory to create the migration. If the migration class is declared in that file, no Composer autoload entry is needed for the migration class itself.
+
+Constructor dependencies and migration classes that live outside the migration file must be autoloadable.
 
 ## Environment object
 
@@ -69,10 +156,13 @@ A PHP migration can branch on the current driver.
 
 declare(strict_types=1);
 
-use Celemas\Quma\Environment;
-use Celemas\Quma\MigrationInterface;
+namespace Quma\Migrations\M250320_103000_AddCreatedAt;
 
-return new class () implements MigrationInterface {
+use Celemas\Quma\Contract;
+use Celemas\Quma\Environment;
+
+class Migration implements Contract\Migration
+{
     public function run(Environment $env): void
     {
         switch ($env->driver) {
@@ -91,7 +181,9 @@ return new class () implements MigrationInterface {
                 break;
         }
     }
-};
+}
+
+return Migration::class;
 ```
 
 ## When to choose PHP over SQL or TPQL

@@ -13,6 +13,7 @@
 - Changed `Query::one()` to require exactly one row and throw `UnexpectedResultCountException` for empty or multi-row results.
 - Changed non-default migration namespaces to record applied migrations as `namespace:basename`.
 - Removed `Connection::print()` and `Database::print()` in favor of `QUMA_DEBUG` and `QUMA_DEBUG_PRINT`.
+- Changed PHP migrations to return class names implementing `Contract\Migration` and support optional `Contract\MigrationFactory` construction.
 
 ### Added
 
@@ -35,7 +36,7 @@
 - Fixed migration metadata handling to use configured table and column names consistently, including current-database table checks on MySQL.
 - Fixed duplicate migration IDs to abort before running the migration batch.
 - Fixed array query parameters with invalid JSON input to fail instead of binding an empty string.
-- Fixed generated PHP migration stubs to use the current `MigrationInterface` signature.
+- Fixed generated PHP migration stubs to use the current migration contract signature.
 - Fixed dynamic SQL folder and script resolution to reject invalid path segments.
 
 ## [0.1.1](https://codeberg.org/celemas/quma/src/tag/0.1.1) (2026-02-07)

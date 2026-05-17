@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Commands;
 
+use ArgumentCountError;
 use Celemas\Cli\Command;
 use Celemas\Cli\Opts;
 use Celemas\Quma\Connection;
+use Celemas\Quma\Contract;
 use Celemas\Quma\Database;
 use Celemas\Quma\Environment;
-use Celemas\Quma\MigrationInterface;
 use Override;
 use RuntimeException;
 use Throwable;
@@ -21,20 +22,29 @@ final class Migrations extends Command
 	protected const string WARNING = 'warning';
 	protected const string SUCCESS = 'success';
 
+	/** @var array<string, class-string<Contract\Migration>> */
+	private static array $phpMigrationClasses = [];
+
 	protected readonly Environment $env;
+	protected readonly ?Contract\MigrationFactory $migrationFactory;
 	protected string $name = 'migrations';
 	protected string $group = 'Database';
 	protected string $prefix = 'db';
 	protected string $description = 'Apply missing database migrations';
 
 	/** @param array<non-empty-string, Connection>|Connection $conn */
-	public function __construct(array|Connection $conn, array $options = [])
-	{
+	public function __construct(
+		array|Connection $conn,
+		array $options = [],
+		?Contract\MigrationFactory $migrationFactory = null,
+	) {
 		if (is_array($conn)) {
 			$this->env = new Environment($conn, $options);
 		} else {
 			$this->env = new Environment(['default' => $conn], $options);
 		}
+
+		$this->migrationFactory = $migrationFactory;
 	}
 
 	#[Override]
@@ -594,19 +604,58 @@ final class Migrations extends Command
 		}
 	}
 
-	protected function loadPhpMigration(string $migration): MigrationInterface
+	protected function loadPhpMigration(string $migration): Contract\Migration
 	{
 		if (!is_file($migration)) {
 			throw new RuntimeException('Could not read migration file');
 		}
 
-		$migrationObject = require $migration;
+		$class = self::$phpMigrationClasses[$migration] ?? null;
 
-		if (!$migrationObject instanceof MigrationInterface) {
-			throw new RuntimeException('Invalid migration file. Expected MigrationInterface instance');
+		if ($class === null) {
+			$class = $this->loadPhpMigrationClass($migration);
+			self::$phpMigrationClasses[$migration] = $class;
 		}
 
-		return $migrationObject;
+		if ($this->migrationFactory !== null) {
+			return $this->migrationFactory->create($class, $this->env);
+		}
+
+		try {
+			return new $class();
+		} catch (ArgumentCountError $e) {
+			throw new RuntimeException(
+				"Migration {$class} requires constructor arguments, but no migration factory is configured.",
+				previous: $e,
+			);
+		}
+	}
+
+	/** @return class-string< Contract\Migration> */
+	protected function loadPhpMigrationClass(string $migration): string
+	{
+		if (!is_file($migration)) {
+			throw new RuntimeException('Could not read migration file'); // @codeCoverageIgnore
+		}
+
+		$class = require $migration;
+
+		if (!is_string($class) || $class === '') {
+			throw new RuntimeException('Invalid migration file. Expected migration class name');
+		}
+
+		if (!class_exists($class)) {
+			throw new RuntimeException("Invalid migration file. Migration class '{$class}' does not exist");
+		}
+
+		if (!is_subclass_of($class, Contract\Migration::class)) {
+			throw new RuntimeException(
+				"Invalid migration file. Migration class '{$class}' must implement "
+				. Contract\Migration::class,
+			);
+		}
+
+		return $class;
 	}
 
 	protected function logMigration(Database $db, string $namespace, string $migration): void

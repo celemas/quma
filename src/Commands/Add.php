@@ -106,37 +106,49 @@ final class Add extends Command
 
 	protected function getPhpContent(string $fileName, string $timestamp): string
 	{
-		// Translates what-is-up.sql into WhatIsUp
-		$className =
-			implode(
-				'',
-				explode(
-					'-',
-					explode(
-						'.',
-						ucwords($fileName, '-'),
-					)[0],
-				),
-			)
-			. '_'
-			. str_replace('-', '_', $timestamp);
+		$name = $this->getPhpMigrationName($fileName);
+		$namespace = 'Quma\\Migrations\\M' . str_replace('-', '_', $timestamp) . '_' . $name;
 
 		return "<?php
 
 declare(strict_types=1);
 
-use Celemas\\Quma\\Environment;
-use Celemas\\Quma\\MigrationInterface;
+namespace {$namespace};
 
-class {$className} implements MigrationInterface
+use Celemas\\Quma\\Contract;
+use Celemas\\Quma\\Environment;
+
+class Migration implements Contract\\Migration
 {
+    // Migration name: {$name}
     public function run(Environment \$env): void
     {
-        throw new \\LogicException('Implement migration {$className} before running it.');
+        throw new \\LogicException('Implement migration {$name} before running it.');
     }
 }
 
-return new {$className}();";
+return Migration::class;";
+	}
+
+	protected function getPhpMigrationName(string $fileName): string
+	{
+		$parts = preg_split(
+			'/[^a-zA-Z0-9]+/',
+			pathinfo($fileName, PATHINFO_FILENAME),
+			-1,
+			PREG_SPLIT_NO_EMPTY,
+		);
+
+		if ($parts === false || count($parts) === 0) {
+			return 'Migration';
+		}
+
+		$words = array_map(
+			static fn(string $part): string => ucfirst(strtolower($part)),
+			$parts,
+		);
+
+		return implode('', $words);
 	}
 
 	protected function getTpqlContent(): string

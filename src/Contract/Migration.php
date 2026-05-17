@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Contract;
+
+use Celemas\Quma\Environment;
 
 /** @api */
-interface MigrationInterface
+interface Migration
 {
 	public function run(Environment $env): void;
 }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Tests\Util;
 
+use Celemas\Quma\Contract\Migration;
 use Celemas\Quma\Environment;
-use Celemas\Quma\MigrationInterface;
 use PDO;
 
-final class TestMigration1 implements MigrationInterface
+final class TestMigration1 implements Migration
 {
 	public function run(Environment $env): void
 	{
