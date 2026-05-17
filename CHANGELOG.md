@@ -31,6 +31,7 @@
 
 ### Fixed
 
+- Fixed duplicate migration IDs to abort before running the migration batch.
 - Fixed array query parameters with invalid JSON input to fail instead of binding an empty string.
 - Fixed generated PHP migration stubs to use the current `MigrationInterface` signature.
 - Fixed custom migration metadata table and column names when reading and recording applied migrations.

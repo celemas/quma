@@ -109,7 +109,9 @@ final class Migrations extends Command
 				return false;
 			}
 
-			return $migrationNamespaces[$namespace];
+			$migrations = $migrationNamespaces[$namespace];
+
+			return $this->migrationIdsAreUnique($namespace, $migrations) ? $migrations : false;
 		}
 
 		if (!array_key_exists('default', $migrationNamespaces)) {
@@ -123,7 +125,43 @@ final class Migrations extends Command
 			return false;
 		}
 
-		return $migrationNamespaces['default'];
+		$migrations = $migrationNamespaces['default'];
+
+		return $this->migrationIdsAreUnique('default', $migrations) ? $migrations : false;
+	}
+
+	/** @param list<string> $migrations */
+	protected function migrationIdsAreUnique(string $namespace, array $migrations): bool
+	{
+		/** @var array<string, list<string>> $pathsById */
+		$pathsById = [];
+
+		foreach ($migrations as $migration) {
+			assert($migration !== '', 'Migration path must be a non-empty string.');
+
+			if (!$this->supportedByDriver($migration)) {
+				continue;
+			}
+
+			$pathsById[$this->migrationId($namespace, $migration)][] = $migration;
+		}
+
+		$foundDuplicate = false;
+
+		foreach ($pathsById as $id => $paths) {
+			if (count($paths) < 2) {
+				continue;
+			}
+
+			$foundDuplicate = true;
+			$this->error("Duplicate migration id '{$id}' in namespace '{$namespace}'");
+
+			foreach ($paths as $path) {
+				echo "  - {$path}\n";
+			}
+		}
+
+		return !$foundDuplicate;
 	}
 
 	protected function runMigrations(

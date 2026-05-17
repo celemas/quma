@@ -500,6 +500,53 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testRunMigrationsRejectsDuplicateMigrationIdsBeforeSideEffects(): void
+	{
+		$firstDir = $this->createMigrationDir('duplicate-first');
+		$secondDir = $this->createMigrationDir('duplicate-second');
+		$firstMigration = $firstDir . '/000001-duplicate.sql';
+		$secondMigration = $secondDir . '/000001-duplicate.sql';
+		file_put_contents($firstMigration, 'CREATE TABLE duplicate_migration_first (id integer);');
+		file_put_contents($secondMigration, 'CREATE TABLE duplicate_migration_second (id integer);');
+
+		$conn = $this->connection(migrations: [$firstDir, $secondDir]);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+
+			ob_start();
+			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$db = new Database($conn);
+			$metadataTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$firstTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='duplicate_migration_first';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$secondTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='duplicate_migration_second';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString(
+				"Duplicate migration id '000001-duplicate.sql' in namespace 'default'",
+				$content,
+			);
+			$this->assertStringContainsString($firstMigration, $content);
+			$this->assertStringContainsString($secondMigration, $content);
+			$this->assertStringNotContainsString("Created table 'migrations'", $content);
+			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
+			$this->assertSame(0, (int) ($firstTable['available'] ?? 0));
+			$this->assertSame(0, (int) ($secondTable['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($firstDir);
+			$this->removeMigrationDir($secondDir);
+		}
+	}
+
 	public function testRunMigrationsUsesCustomPlaceholderDelimiters(): void
 	{
 		$dir = $this->createMigrationDir('custom-delimiters');
