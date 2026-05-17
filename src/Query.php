@@ -8,6 +8,7 @@ use Celemas\Quma\Hydration\Hydrator;
 use Closure;
 use Generator;
 use InvalidArgumentException;
+use JsonException;
 use PDO;
 use PDOStatement;
 
@@ -319,7 +320,16 @@ class Query
 				break;
 
 			case 'array':
-				$this->stmt->bindValue($arg, json_encode($value), PDO::PARAM_STR);
+				try {
+					$json = json_encode($value, JSON_THROW_ON_ERROR);
+				} catch (JsonException $e) {
+					throw new InvalidArgumentException(
+						'Array parameters must be JSON-encodable.',
+						previous: $e,
+					);
+				}
+
+				$this->stmt->bindValue($arg, $json, PDO::PARAM_STR);
 
 				break;
 

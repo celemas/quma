@@ -381,6 +381,17 @@ class DatabaseTest extends TestCase
 		$this->assertSame("SELECT * FROM typetest WHERE val = '[1,2,3]';\n", (string) $query);
 	}
 
+	public function testQueryWithInvalidArrayParameters(): void
+	{
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('Array parameters must be JSON-encodable.');
+
+		$db = $this->getDb();
+		$db->types->test([
+			'val' => ["\xB1\x31"],
+		]);
+	}
+
 	public function testQueryWithInvalidTypeParameters(): void
 	{
 		$this->expectException(InvalidArgumentException::class);
