@@ -420,25 +420,33 @@ final class Migrations extends Command
 		bool $showStacktrace,
 	): string {
 		try {
-			$db = $this->env->db;
 			$script = $this->env->conn->applyPlaceholders($script, $migration);
 
-			if (trim($script) === '') {
-				$this->showEmptyMessage($migration);
-
-				return self::WARNING;
-			}
-
-			$db->execute($script)->run();
-			$this->logMigration($db, $namespace, $migration);
-			$this->showMessage($migration);
-
-			return self::SUCCESS;
+			return $this->migrateCompiledSQL($namespace, $migration, $script);
 		} catch (Throwable $e) {
 			$this->showMessage($migration, $e, $showStacktrace);
 
 			return self::ERROR;
 		}
+	}
+
+	protected function migrateCompiledSQL(
+		string $namespace,
+		string $migration,
+		string $script,
+	): string {
+		if (trim($script) === '') {
+			$this->showEmptyMessage($migration);
+
+			return self::WARNING;
+		}
+
+		$db = $this->env->db;
+		$db->execute($script)->run();
+		$this->logMigration($db, $namespace, $migration);
+		$this->showMessage($migration);
+
+		return self::SUCCESS;
 	}
 
 	protected function migrateTPQL(
@@ -500,7 +508,7 @@ final class Migrations extends Command
 
 			$conn->assertNoTemplatePlaceholders($script, $migration);
 
-			return $this->migrateSQL($namespace, $migration, $script, $showStacktrace);
+			return $this->migrateCompiledSQL($namespace, $migration, $script);
 		} catch (Throwable $e) {
 			$this->showMessage($migration, $e, $showStacktrace);
 

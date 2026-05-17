@@ -638,6 +638,37 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testTpqlMigrationDoesNotReapplyPlaceholdersAfterRendering(): void
+	{
+		$dir = $this->createMigrationDir('rendered-placeholder-marker');
+		file_put_contents(
+			$dir . '/000001-marker.tpql',
+			<<<'TPQL'
+				CREATE TABLE rendered_placeholder_marker (value text DEFAULT '<?= '[::' ?>');
+				TPQL,
+		);
+
+		$conn = $this->connection(migrations: $dir);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+
+			ob_start();
+			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			ob_end_clean();
+
+			$db = new Database($conn);
+			$table = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='rendered_placeholder_marker';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(0, $result);
+			$this->assertSame(1, (int) ($table['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
 	public function testMysqlDryRunDoesNotMutateDatabase(): void
 	{
 		$dsn = $this->mysqlDsn();
