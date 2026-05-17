@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased](https://github.com/celemas/quma/compare/0.1.1...HEAD)
+## [Unreleased](https://codeberg.org/celemas/quma/compare/0.1.1...HEAD)
 
 ### Breaking Changes
 
@@ -34,7 +34,7 @@
 - Fixed custom migration metadata table and column names when reading and recording applied migrations.
 - Fixed dynamic SQL folder and script resolution to reject invalid path segments.
 
-## [0.1.1](https://github.com/celemas/quma/releases/tag/0.1.1) (2026-02-07)
+## [0.1.1](https://codeberg.org/celemas/quma/src/tag/0.1.1) (2026-02-07)
 
 ### Changed
 
@@ -47,7 +47,7 @@
 - Added stricter migration loading validation with clearer failures for missing files and invalid migration objects.
 - Added a defensive runtime guard when reading the PDO connection before initialization.
 
-## [0.1.0](https://github.com/celemas/quma/releases/tag/0.1.0) (2026-01-31)
+## [0.1.0](https://codeberg.org/celemas/quma/src/tag/0.1.0) (2026-01-31)
 
 Initial release.
 
