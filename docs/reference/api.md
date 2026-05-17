@@ -27,8 +27,7 @@ new Connection(string $dsn, string|array $sql)
 - `migrationNamespace(string $namespace, string|array $dirs): static` sets one namespaced migration entry
 - `migrationTable(string $table): static` sets the migration metadata table
 - `migrationColumns(string $migration, string $applied = 'applied'): static` sets migration metadata columns
-- `placeholders(array $placeholders): static` sets static placeholder replacements
-- `delimiters(Delimiters $delimiters): static` sets static placeholder delimiters
+- `placeholders(Delimiters $delimiters, array $placeholders): static` sets static placeholder delimiters and replacements
 - `cache(string $cacheDir): static` sets the `.tpql` query template cache directory
 - `noCache(): static` clears the query template cache directory
 - `addSql(array|string $sql): static` prepends SQL directories
@@ -37,13 +36,15 @@ See [Connection reference](connection.md) for all accessors and configuration fo
 
 ## `Celemas\Quma\Delimiters`
 
-Configures static placeholder delimiters. The default is `[::name::]`.
+Configures static placeholder delimiters.
 
 ```php
-new Delimiters(string $open = '[::', string $close = '::]')
+Delimiters::comments() // /*:name:*/
+Delimiters::brackets() // [::name::]
+new Delimiters(string $open, string $close)
 ```
 
-Delimiter strings must not be empty and must not contain NUL bytes.
+Delimiter strings must not be empty and must not contain NUL bytes. Use `Delimiters::comments()` for SQL-friendly comment placeholders.
 
 ## `Celemas\Quma\Database`
 

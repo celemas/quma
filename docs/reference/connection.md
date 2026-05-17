@@ -33,6 +33,7 @@ All configured paths must already exist. Otherwise Quma throws `ValueError`.
 
 ```php
 use Celemas\Quma\Connection;
+use Celemas\Quma\Delimiters;
 use PDO;
 
 $conn = new Connection(
@@ -41,7 +42,7 @@ $conn = new Connection(
 )
     ->migrations(__DIR__ . '/migrations')
     ->fetch(PDO::FETCH_ASSOC)
-    ->placeholders([
+    ->placeholders(Delimiters::comments(), [
         'all' => ['prefix' => ''],
         'pgsql' => ['prefix' => 'cms.'],
         'mysql' => ['prefix' => 'cms_'],
@@ -122,7 +123,7 @@ The directory must already exist, must be a directory, and must be writable. Qum
 
 When configured, Quma writes compiled `.tpql` query templates to this directory and reuses them on later invocations. The cache does not apply to `.sql` files, migrations, or direct SQL passed to `Database::execute()`.
 
-Keep this directory outside the public web root. The files are generated PHP templates and can be deleted safely; Quma regenerates them when needed. Cache file names include the source file metadata, active driver, static placeholder delimiters, and resolved static placeholder map, so source or configuration changes create a new cache file.
+Keep this directory outside the public web root. The files are generated PHP templates and can be deleted safely; Quma regenerates them when needed. Cache file names include the source file metadata, active driver, and static placeholder configuration when enabled, so source or configuration changes create a new cache file.
 
 ### `noCache(): static`
 
@@ -134,47 +135,41 @@ Returns the resolved cache directory, or `null` when no cache directory is confi
 
 ## Static placeholder methods
 
-### `placeholders(array $placeholders): static`
+### `placeholders(Delimiters $delimiters, array $placeholders): static`
 
-Defines static `[::name::]` placeholder replacements. The top-level `all` scope applies to every driver. A driver-specific scope such as `sqlite`, `mysql`, or `pgsql` overrides `all` for that driver.
+Enables static placeholders with explicit delimiters and replacements. If you do not call this method, Quma skips placeholder translation completely.
+
+The recommended delimiter preset is `Delimiters::comments()`, which finds SQL comment tokens such as `/*:prefix:*/`. This keeps unprocessed SQL syntactically valid for database tools.
 
 ```php
-$conn->placeholders([
+use Celemas\Quma\Delimiters;
+
+$conn->placeholders(Delimiters::comments(), [
     'all' => ['prefix' => ''],
     'pgsql' => ['prefix' => 'cms.'],
     'mysql' => ['prefix' => 'cms_'],
 ]);
 ```
 
-Static placeholder names must match `[A-Za-z_][A-Za-z0-9_.:-]*`. Values must be strings and are inserted as raw SQL text. Quma does not quote or escape them.
+The top-level `all` scope applies to every driver. A driver-specific scope such as `sqlite`, `mysql`, or `pgsql` overrides `all` for that driver. Static placeholder names must match `[A-Za-z_][A-Za-z0-9_.:-]*`. Values must be strings and are inserted as raw SQL text. Quma does not quote or escape them.
 
-### `delimiters(Delimiters $delimiters): static`
+Use `Delimiters::brackets()` for the legacy `[::name::]` style or `new Delimiters('[[', ']]')` for custom syntax. Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or template code.
 
-Sets the delimiters used to find static placeholders. The default delimiters are `[::` and `::]`.
+### `placeholderDelimiters(): ?Delimiters`
 
-```php
-use Celemas\Quma\Delimiters;
-
-$conn->delimiters(new Delimiters('[[', ']]'));
-```
-
-With this configuration, write placeholders as `[[prefix]]`. Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or template code. You can call `delimiters()` before or after `placeholders()`.
-
-### `placeholderDelimiters(): Delimiters`
-
-Returns the configured static placeholder delimiters.
+Returns the configured static placeholder delimiters, or `null` when placeholders are disabled.
 
 ### `placeholderValues(): array`
 
-Returns the static placeholder map resolved for the active driver.
+Returns the static placeholder map resolved for the active driver. Returns an empty array when placeholders are disabled.
 
 ### `applyPlaceholders(string $source, string $path, bool $isTemplate = false): string`
 
-Applies static placeholders to SQL or template source. This method is used internally by file-based queries and migrations.
+Applies static placeholders to SQL or template source. When placeholders are disabled, this returns the source unchanged. This method is used internally by file-based queries and migrations.
 
 ### `assertNoTemplatePlaceholders(string $source, string $path): void`
 
-Throws when rendered template output still contains a configured static placeholder token. This catches unsupported static placeholders generated from PHP code blocks.
+Throws when rendered template output still contains a configured static placeholder token. This catches unsupported static placeholders generated from PHP code blocks. When placeholders are disabled, this method is a no-op.
 
 ## Migration directory methods
 

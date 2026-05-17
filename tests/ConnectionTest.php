@@ -70,38 +70,38 @@ class ConnectionTest extends TestCase
 		$conn = new Connection(
 			$this->getDsn(),
 			TestCase::root() . 'sql/default',
-		)->placeholders([
+		)->placeholders(Delimiters::comments(), [
 			'all' => ['prefix' => 'all_'],
 			'sqlite' => ['prefix' => 'sqlite_'],
 		]);
 
+		$this->assertEquals(Delimiters::comments(), $conn->placeholderDelimiters());
 		$this->assertSame(['prefix' => 'sqlite_'], $conn->placeholderValues());
 		$this->assertSame(
 			'SELECT * FROM sqlite_nodes',
+			$conn->applyPlaceholders('SELECT * FROM /*:prefix:*/nodes', 'query.sql'),
+		);
+	}
+
+	public function testPlaceholdersAreSkippedWhenNotConfigured(): void
+	{
+		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
+
+		$this->assertNull($conn->placeholderDelimiters());
+		$this->assertSame([], $conn->placeholderValues());
+		$this->assertSame(
+			'SELECT * FROM [::prefix::]nodes',
 			$conn->applyPlaceholders('SELECT * FROM [::prefix::]nodes', 'query.sql'),
 		);
 	}
 
-	public function testPlaceholderDelimitersCanBeConfiguredBeforePlaceholders(): void
+	public function testCustomPlaceholderDelimitersAreConfiguredWithPlaceholders(): void
 	{
 		$delimiters = new Delimiters('[[', ']]');
 		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
-			->delimiters($delimiters)
-			->placeholders(['all' => ['prefix' => 'custom_']]);
+			->placeholders($delimiters, ['all' => ['prefix' => 'custom_']]);
 
 		$this->assertSame($delimiters, $conn->placeholderDelimiters());
-		$this->assertSame(
-			'SELECT * FROM custom_nodes',
-			$conn->applyPlaceholders('SELECT * FROM [[prefix]]nodes', 'query.sql'),
-		);
-	}
-
-	public function testPlaceholderDelimitersCanBeConfiguredAfterPlaceholders(): void
-	{
-		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
-			->placeholders(['all' => ['prefix' => 'custom_']])
-			->delimiters(new Delimiters('[[', ']]'));
-
 		$this->assertSame(
 			'SELECT * FROM custom_nodes',
 			$conn->applyPlaceholders('SELECT * FROM [[prefix]]nodes', 'query.sql'),

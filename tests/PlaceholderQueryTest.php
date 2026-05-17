@@ -42,7 +42,7 @@ class PlaceholderQueryTest extends TestCase
 			'SELECT name FROM [::table::] WHERE member = :member;',
 		);
 
-		$db = new Database(new Connection($this->getDsn(), $dir)->placeholders([
+		$db = new Database(new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), [
 			'all' => ['table' => 'albums'],
 			'sqlite' => ['table' => 'members'],
 		]));
@@ -62,8 +62,7 @@ class PlaceholderQueryTest extends TestCase
 
 		$db = new Database(
 			new Connection($this->getDsn(), $dir)
-				->delimiters(new Delimiters('[[', ']]'))
-				->placeholders(['all' => ['table' => 'members']]),
+				->placeholders(new Delimiters('[[', ']]'), ['all' => ['table' => 'members']]),
 		);
 
 		$result = $db->music->byMemberCustom(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
@@ -81,7 +80,9 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$db = $this->debugDb(
-			new Connection($this->getDsn(), $dir)->placeholders(['all' => ['table' => 'members']]),
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
 		);
 
 		$this->withEnv('QUMA_DEBUG_TRANSLATED', $debugDir, static function () use ($db): void {
@@ -366,7 +367,9 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$db = new Database(
-			new Connection($this->getDsn(), $dir)->placeholders(['all' => ['table' => 'members']]),
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
 		);
 
 		$this->assertSame('before', $db->music->cached()->one(fetchMode: PDO::FETCH_ASSOC)['value']);
@@ -395,7 +398,9 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$db = new Database(
-			new Connection($this->getDsn(), $dir)->placeholders(['all' => ['table' => 'members']]),
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
 		);
 
 		$result = $db->music->dynamic([
@@ -420,8 +425,7 @@ class PlaceholderQueryTest extends TestCase
 
 		$db = new Database(
 			new Connection($this->getDsn(), $dir)
-				->delimiters(new Delimiters('[[', ']]'))
-				->placeholders(['all' => ['table' => 'members']]),
+				->placeholders(new Delimiters('[[', ']]'), ['all' => ['table' => 'members']]),
 		);
 
 		$result = $db->music->custom(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
@@ -439,7 +443,7 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(['all' => ['value' => 'cached']])
+			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'cached']])
 			->cache($cacheDir);
 		$db = new Database($conn);
 
@@ -509,7 +513,7 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(['all' => ['value' => 'first']])
+			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'first']])
 			->cache($cacheDir);
 		$this->assertSame(
 			'first',
@@ -519,7 +523,7 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(['all' => ['value' => 'second']])
+			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'second']])
 			->cache($cacheDir);
 		$this->assertSame(
 			'second',
@@ -543,7 +547,7 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(['all' => ['value' => 'cached']])
+			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'cached']])
 			->cache($cacheDir);
 		$this->assertSame(
 			'[[value]]',
@@ -553,8 +557,7 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$conn = new Connection($this->getDsn(), $dir)
-			->delimiters(new Delimiters('[[', ']]'))
-			->placeholders(['all' => ['value' => 'cached']])
+			->placeholders(new Delimiters('[[', ']]'), ['all' => ['value' => 'cached']])
 			->cache($cacheDir);
 		$this->assertSame(
 			'cached',
@@ -582,7 +585,9 @@ class PlaceholderQueryTest extends TestCase
 		);
 
 		$db = new Database(
-			new Connection($this->getDsn(), $dir)->placeholders(['all' => ['table' => 'members']]),
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
 		);
 
 		$db->music->bad(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
@@ -603,8 +608,7 @@ class PlaceholderQueryTest extends TestCase
 
 		$db = new Database(
 			new Connection($this->getDsn(), $dir)
-				->delimiters(new Delimiters('[[', ']]'))
-				->placeholders(['all' => ['table' => 'members']]),
+				->placeholders(new Delimiters('[[', ']]'), ['all' => ['table' => 'members']]),
 		);
 
 		$db->music->{'bad-custom'}(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);

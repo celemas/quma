@@ -33,7 +33,7 @@ final class Config
 	public array $migrations = [];
 
 	public PdoConfig $pdo;
-	public Placeholders $placeholders;
+	public ?Placeholders $placeholders = null;
 
 	/** @var non-empty-string|null */
 	public ?string $cacheDir = null;
@@ -50,20 +50,12 @@ final class Config
 		$this->driver = $this->readDriver($this->dsn);
 		$this->sql = $this->readFlatDirs($sql);
 		$this->pdo = new PdoConfig();
-		$this->placeholders = new Placeholders($this->driver, []);
 	}
 
 	/** @psalm-param PlaceholderConfig $placeholders */
-	public function setPlaceholders(array $placeholders): void
+	public function setPlaceholders(Delimiters $delimiters, array $placeholders): void
 	{
-		$compiled = new Placeholders($this->driver, $placeholders, $this->placeholders->delimiters());
-		$this->placeholders = $compiled;
-	}
-
-	public function setDelimiters(Delimiters $delimiters): void
-	{
-		$compiled = new Placeholders($this->driver, $this->placeholders->config(), $delimiters);
-		$this->placeholders = $compiled;
+		$this->placeholders = new Placeholders($this->driver, $placeholders, $delimiters);
 	}
 
 	public function setCacheDir(string $cacheDir): void

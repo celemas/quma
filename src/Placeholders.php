@@ -17,9 +17,6 @@ final class Placeholders
 	/** @var non-empty-string */
 	private readonly string $tokenStartPattern;
 
-	/** @var array<string, array<string, string>> */
-	private readonly array $config;
-
 	/** @var array<string, string> */
 	private readonly array $values;
 
@@ -27,24 +24,18 @@ final class Placeholders
 	public function __construct(
 		private readonly string $driver,
 		array $config,
-		private readonly Delimiters $delimiters = new Delimiters(),
+		private readonly Delimiters $delimiters,
 	) {
 		$open = preg_quote($this->delimiters->open, '/');
 		$close = preg_quote($this->delimiters->close, '/');
 		$this->tokenPattern = '/' . $open . '(' . self::NAME_PATTERN . ')' . $close . '/';
 		$this->tokenStartPattern = '/^' . $open . '(' . self::NAME_PATTERN . ')' . $close . '/';
 
-		$this->config = $this->normalizeConfig($config);
+		$normalized = $this->normalizeConfig($config);
 		$this->values = array_replace(
-			$this->config['all'] ?? [],
-			$this->config[$this->driver] ?? [],
+			$normalized['all'] ?? [],
+			$normalized[$this->driver] ?? [],
 		);
-	}
-
-	/** @return array<string, array<string, string>> */
-	public function config(): array
-	{
-		return $this->config;
 	}
 
 	public function delimiters(): Delimiters

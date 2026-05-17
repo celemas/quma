@@ -466,7 +466,7 @@ class MigrationsTest extends TestCase
 			TestCase::root() . 'sql/default',
 		)
 			->migrations($dir)
-			->placeholders([
+			->placeholders(Delimiters::brackets(), [
 				'all' => [
 					'table.sql' => 'static_sql_migration',
 					'table-tpql' => 'static_tpql_migration',
@@ -516,8 +516,7 @@ class MigrationsTest extends TestCase
 			TestCase::root() . 'sql/default',
 		)
 			->migrations($dir)
-			->delimiters(new Delimiters('[[', ']]'))
-			->placeholders([
+			->placeholders(new Delimiters('[[', ']]'), [
 				'all' => [
 					'table.sql' => 'custom_delimiter_sql_migration',
 					'table-tpql' => 'custom_delimiter_tpql_migration',
@@ -556,7 +555,7 @@ class MigrationsTest extends TestCase
 			TestCase::root() . 'sql/default',
 		)
 			->migrations($dir)
-			->placeholders(['all' => ['empty' => '']]);
+			->placeholders(Delimiters::brackets(), ['all' => ['empty' => '']]);
 
 		try {
 			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
@@ -618,7 +617,7 @@ class MigrationsTest extends TestCase
 			TestCase::root() . 'sql/default',
 		)
 			->migrations($dir)
-			->placeholders(['all' => ['table' => 'bad_static_migration']]);
+			->placeholders(Delimiters::brackets(), ['all' => ['table' => 'bad_static_migration']]);
 
 		try {
 			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
@@ -648,7 +647,8 @@ class MigrationsTest extends TestCase
 				TPQL,
 		);
 
-		$conn = $this->connection(migrations: $dir);
+		$conn = $this->connection(migrations: $dir)
+			->placeholders(Delimiters::brackets(), ['all' => ['unused' => 'unused']]);
 
 		try {
 			$_SERVER['argv'] = ['run', 'migrations', '--apply'];

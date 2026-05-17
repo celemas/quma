@@ -44,40 +44,36 @@ Use static placeholders when a query needs trusted configuration fragments such 
 
 ```sql
 SELECT COUNT(*)
-FROM [::prefix::]nodes
+FROM /*:prefix:*/nodes
 WHERE published = :published;
 ```
 
-Configure replacements on `Connection` with `placeholders()`.
+Configure replacements and delimiters explicitly on `Connection` with `placeholders()`.
 
 ```php
+use Celemas\Quma\Delimiters;
+
 $conn = new Connection(
     'pgsql:host=localhost;dbname=app',
     __DIR__ . '/sql',
-)->placeholders([
+)->placeholders(Delimiters::comments(), [
     'all' => ['prefix' => ''],
     'pgsql' => ['prefix' => 'cms.'],
     'mysql' => ['prefix' => 'cms_'],
 ]);
 ```
 
-Quma resolves static placeholders from `all` and then overlays the active PDO driver. Driver-specific values override `all`, including empty strings.
+Quma resolves static placeholders from `all` and then overlays the active PDO driver. Driver-specific values override `all`, including empty strings. If you do not configure placeholders, Quma leaves SQL and template source unchanged.
 
-The default delimiters are `[::` and `::]`. Configure different delimiters with `Delimiters` when the default syntax conflicts with your tooling.
+`Delimiters::comments()` uses `/*:name:*/` tokens. Database tools parse those tokens as block comments, so unprocessed SQL stays syntactically valid. Use `Delimiters::brackets()` for `[::name::]` tokens or `new Delimiters('[[', ']]')` for custom syntax.
 
-```php
-use Celemas\Quma\Delimiters;
-
-$conn->delimiters(new Delimiters('[[', ']]'));
-```
-
-With this configuration, write `[[prefix]]nodes` instead of `[::prefix::]nodes`. Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or your template code.
+Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or your template code.
 
 Static placeholders are raw SQL text. Quma does not quote or escape them. Use them only for trusted configuration, never for request or user input. Keep runtime values in PDO placeholders such as `:published` or `?`.
 
 Static placeholder names must match `[A-Za-z_][A-Za-z0-9_.:-]*`, so names such as `prefix`, `schema.name`, `tenant-prefix`, and `cms:prefix` are valid. Unknown or malformed static placeholders throw an exception that includes the source file, line, column, and active driver.
 
-Quma substitutes static placeholders when a file is first loaded by a `Database` instance and caches the compiled source for that instance. Direct SQL passed to `Database::execute()` is not processed. Set `QUMA_DEBUG` to a true flag value and `QUMA_DEBUG_TRANSLATED` to a writable directory to materialize runtime SQL before parameter interpolation. **Never enable these variables in production** — see the debug warning in [Parameters and results](parameters-and-results.md). For `.tpql` files, translated debug output is written after template rendering, so different input values can produce different files under the session directory. For hot `.tpql` query files, you can also configure a persistent template cache with `Connection::cache()`. The persistent cache key includes the configured delimiters.
+Quma substitutes static placeholders when a file is first loaded by a `Database` instance and caches the compiled source for that instance. Direct SQL passed to `Database::execute()` is not processed. Set `QUMA_DEBUG` to a true flag value and `QUMA_DEBUG_TRANSLATED` to a writable directory to materialize runtime SQL before parameter interpolation. **Never enable these variables in production** — see the debug warning in [Parameters and results](parameters-and-results.md). For `.tpql` files, translated debug output is written after template rendering, so different input values can produce different files under the session directory. For hot `.tpql` query files, you can also configure a persistent template cache with `Connection::cache()`. The persistent cache key includes the placeholder configuration when enabled.
 
 ## Configure SQL directories
 

@@ -9,15 +9,27 @@ use InvalidArgumentException;
 /** @api */
 final class Delimiters
 {
-	public const string DEFAULT_OPEN = '[::';
-	public const string DEFAULT_CLOSE = '::]';
+	public const string COMMENT_OPEN = '/*:';
+	public const string COMMENT_CLOSE = ':*/';
+	public const string BRACKET_OPEN = '[::';
+	public const string BRACKET_CLOSE = '::]';
 
 	public function __construct(
-		public readonly string $open = self::DEFAULT_OPEN,
-		public readonly string $close = self::DEFAULT_CLOSE,
+		public readonly string $open,
+		public readonly string $close,
 	) {
 		$this->validate('opening', $this->open);
 		$this->validate('closing', $this->close);
+	}
+
+	public static function comments(): self
+	{
+		return new self(self::COMMENT_OPEN, self::COMMENT_CLOSE);
+	}
+
+	public static function brackets(): self
+	{
+		return new self(self::BRACKET_OPEN, self::BRACKET_CLOSE);
 	}
 
 	/** @return array{open: string, close: string} */

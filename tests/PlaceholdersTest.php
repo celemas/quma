@@ -16,7 +16,7 @@ class PlaceholdersTest extends TestCase
 {
 	public function testResolvesAllAndDriverPlaceholders(): void
 	{
-		$placeholders = new Placeholders('sqlite', [
+		$placeholders = $this->placeholders([
 			'all' => [
 				'prefix' => 'cms_',
 				'table' => 'fallback',
@@ -41,7 +41,7 @@ class PlaceholdersTest extends TestCase
 
 	public function testAllowsPlaceholderNamesWithSeparators(): void
 	{
-		$placeholders = new Placeholders('sqlite', [
+		$placeholders = $this->placeholders([
 			'all' => [
 				'schema.name' => 'main.',
 				'cms:prefix' => 'cms_',
@@ -58,10 +58,28 @@ class PlaceholdersTest extends TestCase
 		);
 	}
 
+	public function testDelimiterFactories(): void
+	{
+		$this->assertSame('/*:name:*/', Delimiters::comments()->token('name'));
+		$this->assertSame('[::name::]', Delimiters::brackets()->token('name'));
+	}
+
+	public function testUsesCommentDelimiters(): void
+	{
+		$placeholders = $this->placeholders(
+			['all' => ['table' => 'members']],
+			Delimiters::comments(),
+		);
+
+		$this->assertSame(
+			'SELECT * FROM members',
+			$placeholders->compileSql('SELECT * FROM /*:table:*/', 'query.sql'),
+		);
+	}
+
 	public function testUsesCustomDelimiters(): void
 	{
-		$placeholders = new Placeholders(
-			'sqlite',
+		$placeholders = $this->placeholders(
 			['all' => ['table' => 'members']],
 			new Delimiters('[[', ']]'),
 		);
@@ -79,13 +97,13 @@ class PlaceholdersTest extends TestCase
 		$this->expectExceptionMessage('Expected [[name]]');
 		$this->expectExceptionMessage('[[tenant-prefix]]');
 
-		$placeholders = new Placeholders('sqlite', [], new Delimiters('[[', ']]'));
+		$placeholders = $this->placeholders([], new Delimiters('[[', ']]'));
 		$placeholders->compileSql('SELECT * FROM [[table name]]', 'query.sql');
 	}
 
 	public function testTemplateCompilationSkipsPhpBlocks(): void
 	{
-		$placeholders = new Placeholders('sqlite', [
+		$placeholders = $this->placeholders([
 			'all' => ['table' => 'members'],
 		]);
 		$template = "SELECT * FROM [::table::]\n<?php echo '[::table::]'; ?>";
@@ -103,13 +121,13 @@ class PlaceholdersTest extends TestCase
 			'Static placeholders inside PHP blocks or generated template output are not supported',
 		);
 
-		$placeholders = new Placeholders('sqlite', []);
+		$placeholders = $this->placeholders();
 		$placeholders->assertNoTemplatePlaceholders('SELECT * FROM [::table::]', 'query.tpql');
 	}
 
 	public function testRenderedTemplateAllowsIncompletePlaceholderMarker(): void
 	{
-		$placeholders = new Placeholders('sqlite', []);
+		$placeholders = $this->placeholders();
 		$placeholders->assertNoTemplatePlaceholders("SELECT '[::' AS marker", 'query.tpql');
 
 		$this->assertTrue(true);
@@ -125,7 +143,7 @@ class PlaceholdersTest extends TestCase
 			"Add placeholders['all']['table'] or placeholders['sqlite']['table']",
 		);
 
-		$placeholders = new Placeholders('sqlite', []);
+		$placeholders = $this->placeholders();
 		$placeholders->compileSql('SELECT * FROM [::table::]', 'query.sql');
 	}
 
@@ -135,7 +153,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectExceptionMessage('Malformed static placeholder in query.sql:1:15');
 		$this->expectExceptionMessage('Expected [::name::]');
 
-		$placeholders = new Placeholders('sqlite', []);
+		$placeholders = $this->placeholders();
 		$placeholders->compileSql('SELECT * FROM [::table name::]', 'query.sql');
 	}
 
@@ -144,7 +162,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(RuntimeException::class);
 		$this->expectExceptionMessage('Unknown static placeholder [::table::] in query.sql:2:6');
 
-		$placeholders = new Placeholders('sqlite', []);
+		$placeholders = $this->placeholders();
 		$placeholders->compileSql("SELECT 1\nFROM [::table::]", 'query.sql');
 	}
 
@@ -153,7 +171,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage("Replace placeholders['default'] with placeholders['all']");
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'default' => ['prefix' => 'cms_'],
 		]);
 	}
@@ -179,7 +197,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage('Static placeholder scopes must be non-empty strings');
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'' => ['prefix' => 'cms_'],
 		]);
 	}
@@ -189,7 +207,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage('Static placeholder scopes must be non-empty strings');
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			['prefix' => 'cms_'],
 		]);
 	}
@@ -201,7 +219,7 @@ class PlaceholdersTest extends TestCase
 			"Static placeholders for scope 'prefix' must be an array of string values",
 		);
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'prefix' => 'cms_',
 		]);
 	}
@@ -211,7 +229,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage('Invalid static placeholder name');
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'all' => ['table name' => 'members'],
 		]);
 	}
@@ -221,7 +239,7 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage("Static placeholder 'prefix' in scope 'all' must be a string");
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'all' => ['prefix' => 123],
 		]);
 	}
@@ -231,8 +249,14 @@ class PlaceholdersTest extends TestCase
 		$this->expectException(InvalidArgumentException::class);
 		$this->expectExceptionMessage('must not contain another static placeholder');
 
-		new Placeholders('sqlite', [
+		$this->placeholders([
 			'all' => ['prefix' => '[::schema::].'],
 		]);
+	}
+
+	/** @param array<array-key, mixed> $config */
+	private function placeholders(array $config = [], ?Delimiters $delimiters = null): Placeholders
+	{
+		return new Placeholders('sqlite', $config, $delimiters ?? Delimiters::brackets());
 	}
 }

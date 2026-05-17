@@ -87,29 +87,22 @@ class Connection
 	}
 
 	/** @psalm-param PlaceholderConfig $placeholders */
-	public function placeholders(array $placeholders): static
+	public function placeholders(Delimiters $delimiters, array $placeholders): static
 	{
-		$this->config->setPlaceholders($placeholders);
+		$this->config->setPlaceholders($delimiters, $placeholders);
 
 		return $this;
 	}
 
-	public function delimiters(Delimiters $delimiters): static
+	public function placeholderDelimiters(): ?Delimiters
 	{
-		$this->config->setDelimiters($delimiters);
-
-		return $this;
-	}
-
-	public function placeholderDelimiters(): Delimiters
-	{
-		return $this->config->placeholders->delimiters();
+		return $this->config->placeholders?->delimiters();
 	}
 
 	/** @return array<string, string> */
 	public function placeholderValues(): array
 	{
-		return $this->config->placeholders->values();
+		return $this->config->placeholders?->values() ?? [];
 	}
 
 	public function applyPlaceholders(
@@ -117,12 +110,12 @@ class Connection
 		string $path,
 		bool $isTemplate = false,
 	): string {
-		return $this->config->placeholders->compile($source, $path, $isTemplate);
+		return $this->config->placeholders?->compile($source, $path, $isTemplate) ?? $source;
 	}
 
 	public function assertNoTemplatePlaceholders(string $source, string $path): void
 	{
-		$this->config->placeholders->assertNoTemplatePlaceholders($source, $path);
+		$this->config->placeholders?->assertNoTemplatePlaceholders($source, $path);
 	}
 
 	public function cache(string $cacheDir): static

@@ -57,7 +57,7 @@ Start here, then move from the guides into the reference pages.
 Quma currently supports:
 
 - static SQL files with positional or named parameters
-- static `[::name::]` placeholders for trusted driver-aware configuration fragments
+- explicit static `/*:name:*/` placeholders for trusted driver-aware configuration fragments
 - PHP-rendered SQL templates in `.tpql` files
 - multiple SQL directories with driver-specific overrides
 - direct execution of ad-hoc SQL through `Database::execute()`

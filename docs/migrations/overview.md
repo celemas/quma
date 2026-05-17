@@ -39,7 +39,7 @@ Quma loads these migration types:
 - `.tpql` for PHP-rendered SQL
 - `.php` for custom migration logic
 
-Static placeholders are supported in `.sql` and `.tpql` migrations, including custom delimiters configured through `Connection::delimiters()`. They are not processed in `.php` migrations.
+Static placeholders are supported in `.sql` and `.tpql` migrations when configured through `Connection::placeholders()`. They are not processed in `.php` migrations.
 
 ## Naming and ordering
 
@@ -131,7 +131,7 @@ If a migration file exists but renders or contains only whitespace, Quma skips i
 A `.sql` migration is executed directly after static placeholders have been substituted.
 
 ```sql
-CREATE TABLE [::prefix::]users (
+CREATE TABLE /*:prefix:*/users (
     id integer primary key,
     email text not null
 );
