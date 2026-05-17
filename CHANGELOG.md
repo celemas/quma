@@ -31,6 +31,7 @@
 
 ### Fixed
 
+- Fixed generated PHP migration stubs to use the current `MigrationInterface` signature.
 - Fixed custom migration metadata table and column names when reading and recording applied migrations.
 - Fixed dynamic SQL folder and script resolution to reject invalid path segments.
 

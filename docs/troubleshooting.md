@@ -117,15 +117,3 @@ Move your migrations into an application-owned directory.
 The target migration directory exists but is not writable by the current process.
 
 Fix the filesystem permissions or choose another directory.
-
-## Generated PHP migration stub needs review
-
-`db:add-migration --file something.php` currently generates a PHP stub that does not match the current `MigrationInterface` signature.
-
-The interface requires:
-
-```php
-public function run(Environment $env): void
-```
-
-Review generated PHP migration files before using them.

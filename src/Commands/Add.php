@@ -125,20 +125,14 @@ final class Add extends Command
 
 declare(strict_types=1);
 
-use \\PDO;
-use Celemas\\Quma\\Connection;
-use Celemas\\Quma\\Database;
+use Celemas\\Quma\\Environment;
 use Celemas\\Quma\\MigrationInterface;
-
 
 class {$className} implements MigrationInterface
 {
-    public function run(Database \$db): bool
+    public function run(Environment \$env): void
     {
-        \$db->execute('')->run();
-        \$result = \$db->execute('')->all(fetchMode: PDO::FETCH_ASSOC);
-
-        return true;
+        throw new \\LogicException('Implement migration {$className} before running it.');
     }
 }
 

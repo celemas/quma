@@ -17,6 +17,7 @@ use Celemas\Cli\Runner;
 use Celemas\Quma\Connection;
 use Celemas\Quma\Database;
 use Celemas\Quma\Delimiters;
+use Celemas\Quma\MigrationInterface;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -217,13 +218,17 @@ class MigrationsTest extends TestCase
 		$this->assertStringNotContainsString('.sql', $migration);
 
 		$content = file_get_contents($migration);
+		$migrationObject = require $migration;
 
 		if (is_file($migration)) {
 			unlink($migration);
 		}
 		$this->assertFileDoesNotExist($migration);
+
 		$this->assertStringContainsString('TestMigration_', $content);
 		$this->assertStringContainsString('implements MigrationInterface', $content);
+		$this->assertStringContainsString('run(Environment $env): void', $content);
+		$this->assertInstanceOf(MigrationInterface::class, $migrationObject);
 	}
 
 	public function testAddMigrationWithWrongFileExtension(): void
