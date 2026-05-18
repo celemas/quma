@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/github/celemas/quma/graph/badge.svg?token=B83CGA4O40)](https://codecov.io/github/celemas/quma)
 [![psalm coverage](https://shepherd.dev/github/celemas/quma/coverage.svg?)](https://shepherd.dev/github/celemas/quma)
 [![psalm level](https://shepherd.dev/github/celemas/quma/level.svg?)](https://shepherd.dev/github/celemas/quma)
-[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE.md)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](../LICENSE.md)
 <!-- prettier-ignore-end -->
 
 ## ⚠️ This repository is a mirror!
