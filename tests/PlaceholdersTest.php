@@ -27,13 +27,6 @@ class PlaceholdersTest extends TestCase
 		]);
 
 		$this->assertSame(
-			[
-				'prefix' => 'cms_',
-				'table' => 'members',
-			],
-			$placeholders->values(),
-		);
-		$this->assertSame(
 			'SELECT * FROM cms_members',
 			$placeholders->compileSql('SELECT * FROM [::prefix::][::table::]', 'query.sql'),
 		);
@@ -99,38 +92,6 @@ class PlaceholdersTest extends TestCase
 
 		$placeholders = $this->placeholders([], new Delimiters('[[', ']]'));
 		$placeholders->compileSql('SELECT * FROM [[table name]]', 'query.sql');
-	}
-
-	public function testTemplateCompilationSkipsPhpBlocks(): void
-	{
-		$placeholders = $this->placeholders([
-			'all' => ['table' => 'members'],
-		]);
-		$template = "SELECT * FROM [::table::]\n<?php echo '[::table::]'; ?>";
-
-		$compiled = $placeholders->compileTemplate($template, 'query.tpql');
-
-		$this->assertStringContainsString('SELECT * FROM members', $compiled);
-		$this->assertStringContainsString("echo '[::table::]'", $compiled);
-	}
-
-	public function testRenderedTemplatePlaceholdersThrowClearException(): void
-	{
-		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage(
-			'Static placeholders inside PHP blocks or generated template output are not supported',
-		);
-
-		$placeholders = $this->placeholders();
-		$placeholders->assertNoTemplatePlaceholders('SELECT * FROM [::table::]', 'query.tpql');
-	}
-
-	public function testRenderedTemplateAllowsIncompletePlaceholderMarker(): void
-	{
-		$placeholders = $this->placeholders();
-		$placeholders->assertNoTemplatePlaceholders("SELECT '[::' AS marker", 'query.tpql');
-
-		$this->assertTrue(true);
 	}
 
 	public function testUnknownPlaceholderThrowsHelpfulException(): void

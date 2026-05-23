@@ -38,75 +38,9 @@ final class Placeholders
 		);
 	}
 
-	public function delimiters(): Delimiters
-	{
-		return $this->delimiters;
-	}
-
-	/** @return array<string, string> */
-	public function values(): array
-	{
-		return $this->values;
-	}
-
-	public function compile(string $source, string $path, bool $isTemplate): string
-	{
-		if ($isTemplate) {
-			return $this->compileTemplate($source, $path);
-		}
-
-		return $this->compileSql($source, $path);
-	}
-
 	public function compileSql(string $source, string $path): string
 	{
 		return $this->substituteFragment($source, $path, $source, 0);
-	}
-
-	public function compileTemplate(string $source, string $path): string
-	{
-		$tokens = token_get_all($source);
-		$compiled = '';
-		$offset = 0;
-
-		foreach ($tokens as $token) {
-			$text = is_array($token) ? $token[1] : $token;
-
-			if (is_array($token) && $token[0] === T_INLINE_HTML) {
-				$compiled .= $this->substituteFragment($text, $path, $source, $offset);
-			} else {
-				$compiled .= $text;
-			}
-
-			$offset += strlen($text);
-		}
-
-		return $compiled;
-	}
-
-	public function assertNoTemplatePlaceholders(string $source, string $path): void
-	{
-		if (!str_contains($source, $this->delimiters->open)) {
-			return;
-		}
-
-		$matches = [];
-
-		if (preg_match($this->tokenPattern, $source, $matches, PREG_OFFSET_CAPTURE) !== 1) {
-			return;
-		}
-
-		/** @var array{0: string, 1: int} $match */
-		$match = $matches[0];
-		$placeholder = $match[0];
-		$offset = $match[1];
-		[$line, $column] = $this->location($source, $offset);
-
-		throw new RuntimeException(
-			"Static placeholder {$placeholder} remained after rendering template {$path}:{$line}:{$column}. "
-			. 'Static placeholders inside PHP blocks or generated template output are not supported. '
-			. 'Move static placeholders into the literal SQL portion of the .tpql file.',
-		);
 	}
 
 	/**

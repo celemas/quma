@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma;
 
+use Closure;
 use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
@@ -16,19 +17,20 @@ class Script
 	protected bool $isTemplate;
 	protected ?string $sourcePath;
 	protected ?string $cachePath;
+	/** @var (Closure(string, string): string)|null */
+	protected ?Closure $compile;
 
 	public function __construct(
 		Database $db,
-		string $script,
+		LoadedScript $script,
 		bool $isTemplate,
-		?string $sourcePath = null,
-		?string $cachePath = null,
 	) {
 		$this->db = $db;
-		$this->script = $script;
+		$this->script = $script->source;
 		$this->isTemplate = $isTemplate;
-		$this->sourcePath = $sourcePath;
-		$this->cachePath = $cachePath;
+		$this->sourcePath = $script->sourcePath;
+		$this->cachePath = $script->cachePath;
+		$this->compile = $script->compile;
 	}
 
 	public function __invoke(mixed ...$args): Query
@@ -48,7 +50,10 @@ class Script
 			}
 
 			$script = $this->evaluateTemplate($this->script, $args);
-			$this->db->assertNoTemplatePlaceholders($script, $this->sourcePath ?? $this->script);
+
+			if ($this->compile !== null) {
+				$script = ($this->compile)($script, $this->sourcePath ?? $this->script);
+			}
 
 			// We need to wrap the result of the prepare call in an array
 			// to get back to the format of ...$argsArray.
@@ -74,6 +79,14 @@ class Script
 			}
 
 			return $this->renderTemplateFile($template, $context);
+		}
+
+		if ($template === $this->sourcePath) {
+			if (!is_file($this->sourcePath)) {
+				return '';
+			}
+
+			return $this->renderTemplateFile($this->sourcePath, $context);
 		}
 
 		return $this->renderTemplateSource($template, $context);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma;
 
+use Closure;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -11,8 +12,6 @@ use Throwable;
 /** @api */
 class Database
 {
-	protected const int TEMPLATE_CACHE_VERSION = 1;
-
 	public readonly bool $debug;
 	protected ?PDO $pdo = null;
 	protected ?int $connectedAt = null;
@@ -75,104 +74,39 @@ class Database
 			return $this->compiledScripts[$key];
 		}
 
+		if ($isTemplate) {
+			if (!is_readable($path)) {
+				throw new RuntimeException('Could not read SQL script: ' . $path);
+			}
+
+			$script = new LoadedScript($path, $path, compile: $this->placeholderCompiler());
+			$this->compiledScripts[$key] = $script;
+
+			return $script;
+		}
+
 		$source = file_get_contents($path);
 
 		if ($source === false) {
 			throw new RuntimeException('Could not read SQL script: ' . $path);
 		}
 
-		$compiled = $this->conn->applyPlaceholders($source, $path, $isTemplate);
-		$cachePath = $isTemplate ? $this->cacheTemplate($path, $compiled) : null;
-		$script = new LoadedScript($compiled, $path, $cachePath);
+		$compiled = $this->compilePlaceholders($source, $path);
+		$script = new LoadedScript($compiled, $path);
 		$this->compiledScripts[$key] = $script;
 
 		return $script;
 	}
 
-	public function assertNoTemplatePlaceholders(string $source, string $path): void
+	/** @return Closure(string, string): string */
+	private function placeholderCompiler(): Closure
 	{
-		$this->conn->assertNoTemplatePlaceholders($source, $path);
+		return $this->compilePlaceholders(...);
 	}
 
-	protected function cacheTemplate(string $sourcePath, string $source): ?string
+	private function compilePlaceholders(string $source, string $path): string
 	{
-		$cacheDir = $this->conn->config->cacheDir;
-
-		if ($cacheDir === null) {
-			return null;
-		}
-
-		$cachePath = $this->templateCachePath($sourcePath, $cacheDir);
-
-		if (is_file($cachePath)) {
-			return $cachePath;
-		}
-
-		$this->writeTemplateCache($sourcePath, $source, $cacheDir, $cachePath);
-
-		return $cachePath;
-	}
-
-	/** @param non-empty-string $cacheDir */
-	protected function templateCachePath(string $sourcePath, string $cacheDir): string
-	{
-		$modifiedAt = filemtime($sourcePath);
-		$size = filesize($sourcePath);
-
-		if ($modifiedAt === false || $size === false) {
-			throw new RuntimeException('Could not read SQL template metadata: ' . $sourcePath); // @codeCoverageIgnore
-		}
-
-		$key = json_encode([
-			'version' => self::TEMPLATE_CACHE_VERSION,
-			'path' => $sourcePath,
-			'driver' => $this->conn->config->driver,
-			'delimiters' => $this->conn->config->placeholders?->delimiters()->values(),
-			'placeholders' => $this->conn->config->placeholders?->values() ?? [],
-			'modifiedAt' => $modifiedAt,
-			'size' => $size,
-		], JSON_THROW_ON_ERROR);
-
-		return $cacheDir . DIRECTORY_SEPARATOR . 'tpql-' . hash('xxh128', $key) . '.php';
-	}
-
-	/**
-	 * @codeCoverageIgnore
-	 * @param non-empty-string $cacheDir
-	 **/
-	protected function writeTemplateCache(
-		string $sourcePath,
-		string $source,
-		string $cacheDir,
-		string $cachePath,
-	): void {
-		$tmp = tempnam($cacheDir, 'tpql-');
-
-		if ($tmp === false) {
-			throw new RuntimeException('Could not create compiled TPQL cache file in ' . $cacheDir);
-		}
-
-		try {
-			if (file_put_contents($tmp, $source, LOCK_EX) === false) {
-				throw new RuntimeException(
-					"Could not write compiled TPQL cache file for {$sourcePath} to {$cachePath}",
-				);
-			}
-
-			if (is_file($cachePath)) {
-				return;
-			}
-
-			if (!rename($tmp, $cachePath) && !is_file($cachePath)) {
-				throw new RuntimeException(
-					"Could not write compiled TPQL cache file for {$sourcePath} to {$cachePath}",
-				);
-			}
-		} finally {
-			if (is_file($tmp)) {
-				unlink($tmp);
-			}
-		}
+		return $this->conn->config->placeholders?->compileSql($source, $path) ?? $source;
 	}
 
 	public function connect(): static

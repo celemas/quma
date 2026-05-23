@@ -468,7 +468,7 @@ final class Migrations extends Command
 		bool $showStacktrace,
 	): string {
 		try {
-			$script = $this->env->conn->applyPlaceholders($script, $migration);
+			$script = $this->env->conn->config->placeholders?->compileSql($script, $migration) ?? $script;
 
 			return $this->migrateCompiledSQL($namespace, $migration, $script);
 		} catch (Throwable $e) {
@@ -521,40 +521,31 @@ final class Migrations extends Command
 				require $templatePath;
 			};
 
-			if (!is_file($migration)) {
+			if (!is_file($migration) || !is_readable($migration)) {
 				throw new RuntimeException('Could not read migration file');
 			}
-
-			$template = file_get_contents($migration);
-
-			if ($template === false) {
-				throw new RuntimeException('Could not read migration file'); // @codeCoverageIgnore
-			}
-
-			$template = $conn->applyPlaceholders($template, $migration, true);
-			$templatePath = $this->writeTemplateCache($template);
 
 			ob_start();
 			$script = '';
 
 			try {
-				$executeTemplate($templatePath, $context);
+				$executeTemplate($migration, $context);
 				$script = ob_get_contents();
 			} finally {
 				ob_end_clean();
-
-				if (is_file($templatePath)) {
-					unlink($templatePath);
-				}
 			}
 
-			if (!is_string($script) || trim($script) === '') {
+			if (!is_string($script)) {
+				$script = '';
+			}
+
+			$script = $conn->config->placeholders?->compileSql($script, $migration) ?? $script;
+
+			if (trim($script) === '') {
 				$this->showEmptyMessage($migration);
 
 				return self::WARNING;
 			}
-
-			$conn->assertNoTemplatePlaceholders($script, $migration);
 
 			return $this->migrateCompiledSQL($namespace, $migration, $script);
 		} catch (Throwable $e) {
@@ -562,26 +553,6 @@ final class Migrations extends Command
 
 			return self::ERROR;
 		}
-	}
-
-	protected function writeTemplateCache(string $template): string
-	{
-		$templatePath = tempnam(sys_get_temp_dir(), 'quma-mig-');
-
-		if ($templatePath === false) {
-			throw new RuntimeException('Could not create migration template cache file'); // @codeCoverageIgnore
-		}
-
-		if (file_put_contents($templatePath, $template) === false) {
-			// @codeCoverageIgnoreStart
-			if (is_file($templatePath)) {
-				unlink($templatePath);
-			}
-
-			throw new RuntimeException('Could not write migration template cache file');
-		} // @codeCoverageIgnoreEnd
-
-		return $templatePath;
 	}
 
 	protected function migratePHP(

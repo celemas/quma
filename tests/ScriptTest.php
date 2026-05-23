@@ -6,6 +6,7 @@ namespace Celemas\Quma\Tests;
 
 use Celemas\Quma\Args;
 use Celemas\Quma\Database;
+use Celemas\Quma\LoadedScript;
 use Celemas\Quma\Tests\Util\TestableScript;
 use RuntimeException;
 
@@ -21,7 +22,11 @@ class ScriptTest extends TestCase
 		file_put_contents($template, 'Hello <?= $name ?> from <?= $pdodriver ?>');
 
 		try {
-			$script = new TestableScript(new Database($this->connection()), '', true);
+			$script = new TestableScript(
+				new Database($this->connection()),
+				new LoadedScript($template, $template),
+				true,
+			);
 			$result = $script->evaluateTemplatePublic($template, new Args([['name' => 'Chuck']]));
 
 			$this->assertSame('Hello Chuck from sqlite', $result);
@@ -43,7 +48,11 @@ class ScriptTest extends TestCase
 			$this->expectException(RuntimeException::class);
 			$this->expectExceptionMessage('template failed');
 
-			$script = new TestableScript(new Database($this->connection()), '', true);
+			$script = new TestableScript(
+				new Database($this->connection()),
+				new LoadedScript($template, $template),
+				true,
+			);
 			$script->evaluateTemplatePublic($template, new Args([]));
 		} finally {
 			$this->assertSame($level, ob_get_level());
@@ -62,7 +71,11 @@ class ScriptTest extends TestCase
 			unlink($missingFile);
 		}
 
-		$script = new TestableScript(new Database($this->connection()), '', true);
+		$script = new TestableScript(
+			new Database($this->connection()),
+			new LoadedScript($missingFile, $missingFile),
+			true,
+		);
 
 		$this->assertSame('', $script->evaluateTemplatePublic($missingFile, new Args([])));
 	}

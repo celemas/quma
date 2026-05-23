@@ -93,11 +93,9 @@ class ConnectionTest extends TestCase
 			'sqlite' => ['prefix' => 'sqlite_'],
 		]);
 
-		$this->assertEquals(Delimiters::comments(), $conn->config->placeholders?->delimiters());
-		$this->assertSame(['prefix' => 'sqlite_'], $conn->config->placeholders?->values() ?? []);
 		$this->assertSame(
 			'SELECT * FROM sqlite_nodes',
-			$conn->applyPlaceholders('SELECT * FROM /*:prefix:*/nodes', 'query.sql'),
+			$conn->config->placeholders?->compileSql('SELECT * FROM /*:prefix:*/nodes', 'query.sql'),
 		);
 	}
 
@@ -105,11 +103,12 @@ class ConnectionTest extends TestCase
 	{
 		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
 
-		$this->assertNull($conn->config->placeholders?->delimiters());
-		$this->assertSame([], $conn->config->placeholders?->values() ?? []);
+		$source = 'SELECT * FROM [::prefix::]nodes';
+
+		$this->assertNull($conn->config->placeholders);
 		$this->assertSame(
-			'SELECT * FROM [::prefix::]nodes',
-			$conn->applyPlaceholders('SELECT * FROM [::prefix::]nodes', 'query.sql'),
+			$source,
+			$conn->config->placeholders?->compileSql($source, 'query.sql') ?? $source,
 		);
 	}
 
@@ -119,10 +118,9 @@ class ConnectionTest extends TestCase
 		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
 			->placeholders($delimiters, ['all' => ['prefix' => 'custom_']]);
 
-		$this->assertSame($delimiters, $conn->config->placeholders?->delimiters());
 		$this->assertSame(
 			'SELECT * FROM custom_nodes',
-			$conn->applyPlaceholders('SELECT * FROM [[prefix]]nodes', 'query.sql'),
+			$conn->config->placeholders?->compileSql('SELECT * FROM [[prefix]]nodes', 'query.sql'),
 		);
 	}
 

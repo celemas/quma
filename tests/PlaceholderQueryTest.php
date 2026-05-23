@@ -382,7 +382,7 @@ class PlaceholderQueryTest extends TestCase
 		$this->assertSame('before', $db->music->cached()->one(fetchMode: PDO::FETCH_ASSOC)['value']);
 	}
 
-	public function testTemplateFileUsesPlaceholdersBeforeRendering(): void
+	public function testTemplateFileUsesPlaceholdersAfterRendering(): void
 	{
 		$dir = $this->createSqlDir();
 		file_put_contents(
@@ -411,7 +411,7 @@ class PlaceholderQueryTest extends TestCase
 		$this->assertSame('Chuck Schuldiner', $result['name']);
 	}
 
-	public function testTemplateFileUsesCustomDelimitersBeforeRendering(): void
+	public function testTemplateFileUsesCustomDelimitersAfterRendering(): void
 	{
 		$dir = $this->createSqlDir();
 		file_put_contents(
@@ -433,7 +433,7 @@ class PlaceholderQueryTest extends TestCase
 		$this->assertSame('Chuck Schuldiner', $result['name']);
 	}
 
-	public function testTemplateQueryUsesConfiguredCacheDir(): void
+	public function testTemplateQueryDoesNotWriteConfiguredCacheFiles(): void
 	{
 		$dir = $this->createSqlDir();
 		$cacheDir = $this->createTempDir('quma-cache-');
@@ -451,15 +451,7 @@ class PlaceholderQueryTest extends TestCase
 			'cached',
 			$db->music->cached(['unused' => true])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
 		);
-		$cacheFiles = glob($cacheDir . '/tpql-*.php');
-		$this->assertIsArray($cacheFiles);
-		$this->assertCount(1, $cacheFiles);
-
-		$this->assertSame(
-			'cached',
-			$db->music->cached(['unused' => true])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-		$this->assertSame($cacheFiles, glob($cacheDir . '/tpql-*.php'));
+		$this->assertSame([], glob($cacheDir . '/tpql-*.php'));
 
 		$this->assertSame(
 			'cached',
@@ -467,120 +459,14 @@ class PlaceholderQueryTest extends TestCase
 				'unused' => true,
 			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
 		);
-		$this->assertSame($cacheFiles, glob($cacheDir . '/tpql-*.php'));
+		$this->assertSame([], glob($cacheDir . '/tpql-*.php'));
 	}
 
-	public function testTemplateCacheKeyChangesWithSourceMetadata(): void
+	public function testTemplateGeneratedPlaceholdersAreSupported(): void
 	{
-		$dir = $this->createSqlDir();
-		$cacheDir = $this->createTempDir('quma-cache-');
-		$file = $dir . '/music/cached.tpql';
-		file_put_contents($file, "SELECT 'before' AS value;");
-
-		$conn = new Connection($this->getDsn(), $dir)->cache($cacheDir);
-		$this->assertSame(
-			'before',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-		$cacheFiles = glob($cacheDir . '/tpql-*.php');
-		$this->assertIsArray($cacheFiles);
-		$this->assertCount(1, $cacheFiles);
-
-		file_put_contents($file, "SELECT 'after changed' AS value;");
-		touch($file, time() + 2);
-		clearstatcache(true, $file);
-
-		$this->assertSame(
-			'after changed',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-		$cacheFiles = glob($cacheDir . '/tpql-*.php');
-		$this->assertIsArray($cacheFiles);
-		$this->assertCount(2, $cacheFiles);
-	}
-
-	public function testTemplateCacheKeyChangesWithPlaceholders(): void
-	{
-		$dir = $this->createSqlDir();
-		$cacheDir = $this->createTempDir('quma-cache-');
-		file_put_contents(
-			$dir . '/music/cached.tpql',
-			"SELECT '[::value::]' AS value;",
-		);
-
-		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'first']])
-			->cache($cacheDir);
-		$this->assertSame(
-			'first',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-
-		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'second']])
-			->cache($cacheDir);
-		$this->assertSame(
-			'second',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-
-		$cacheFiles = glob($cacheDir . '/tpql-*.php');
-		$this->assertIsArray($cacheFiles);
-		$this->assertCount(2, $cacheFiles);
-	}
-
-	public function testTemplateCacheKeyChangesWithDelimiters(): void
-	{
-		$dir = $this->createSqlDir();
-		$cacheDir = $this->createTempDir('quma-cache-');
-		file_put_contents(
-			$dir . '/music/cached.tpql',
-			"SELECT '[[value]]' AS value;",
-		);
-
-		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'cached']])
-			->cache($cacheDir);
-		$this->assertSame(
-			'[[value]]',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-
-		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(new Delimiters('[[', ']]'), ['all' => ['value' => 'cached']])
-			->cache($cacheDir);
-		$this->assertSame(
-			'cached',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-
-		$cacheFiles = glob($cacheDir . '/tpql-*.php');
-		$this->assertIsArray($cacheFiles);
-		$this->assertCount(2, $cacheFiles);
-	}
-
-	public function testTemplateGeneratedPlaceholdersThrowClearException(): void
-	{
-		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage(
-			'Static placeholders inside PHP blocks or generated template output are not supported',
-		);
-
 		$dir = $this->createSqlDir();
 		file_put_contents(
-			$dir . '/music/bad.tpql',
+			$dir . '/music/generated.tpql',
 			"SELECT name FROM <?= '[::table::]' ?> WHERE member = :member;",
 		);
 
@@ -590,19 +476,16 @@ class PlaceholderQueryTest extends TestCase
 			]]),
 		);
 
-		$db->music->bad(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
+		$result = $db->music->generated(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
+
+		$this->assertSame('Chuck Schuldiner', $result['name']);
 	}
 
-	public function testTemplateGeneratedCustomPlaceholdersThrowClearException(): void
+	public function testTemplateGeneratedCustomPlaceholdersAreSupported(): void
 	{
-		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage(
-			'Static placeholders inside PHP blocks or generated template output are not supported',
-		);
-
 		$dir = $this->createSqlDir();
 		file_put_contents(
-			$dir . '/music/bad-custom.tpql',
+			$dir . '/music/generated-custom.tpql',
 			"SELECT name FROM <?= '[[table]]' ?> WHERE member = :member;",
 		);
 
@@ -611,7 +494,63 @@ class PlaceholderQueryTest extends TestCase
 				->placeholders(new Delimiters('[[', ']]'), ['all' => ['table' => 'members']]),
 		);
 
-		$db->music->{'bad-custom'}(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
+		$result = $db->music->{'generated-custom'}(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
+
+		$this->assertSame('Chuck Schuldiner', $result['name']);
+	}
+
+	public function testTemplateUnknownPlaceholderInInactiveBranchIsIgnored(): void
+	{
+		$dir = $this->createSqlDir();
+		file_put_contents(
+			$dir . '/music/branch.tpql',
+			<<<'TPQL'
+				<?php if (($includeMissing ?? false) === true) : ?>
+				SELECT name FROM [::missing::] WHERE member = :member;
+				<?php else : ?>
+				SELECT name FROM [::table::] WHERE member = :member;
+				<?php endif ?>
+				TPQL,
+		);
+
+		$db = new Database(
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
+		);
+
+		$result = $db->music->branch(['member' => 1])->one(fetchMode: PDO::FETCH_ASSOC);
+
+		$this->assertSame('Chuck Schuldiner', $result['name']);
+	}
+
+	public function testTemplateUnknownPlaceholderInActiveBranchThrows(): void
+	{
+		$dir = $this->createSqlDir();
+		file_put_contents(
+			$dir . '/music/branch-bad.tpql',
+			<<<'TPQL'
+				<?php if (($includeMissing ?? false) === true) : ?>
+				SELECT name FROM [::missing::] WHERE member = :member;
+				<?php else : ?>
+				SELECT name FROM [::table::] WHERE member = :member;
+				<?php endif ?>
+				TPQL,
+		);
+
+		$db = new Database(
+			new Connection($this->getDsn(), $dir)->placeholders(Delimiters::brackets(), ['all' => [
+				'table' => 'members',
+			]]),
+		);
+
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Unknown static placeholder [::missing::]');
+
+		$db->music->{'branch-bad'}([
+			'member' => 1,
+			'includeMissing' => true,
+		])->one(fetchMode: PDO::FETCH_ASSOC);
 	}
 
 	private function debugDb(Connection $conn): Database

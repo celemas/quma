@@ -57,7 +57,7 @@ class Folder
 		if (is_string($script)) {
 			$loaded = $this->db->loadScript($script, false);
 
-			return new Script($this->db, $loaded->source, false, $loaded->sourcePath);
+			return new Script($this->db, $loaded, false);
 		}
 
 		$dynStmt = $this->scriptPath($key, true);
@@ -65,7 +65,7 @@ class Folder
 		if (is_string($dynStmt)) {
 			$loaded = $this->db->loadScript($dynStmt, true);
 
-			return new Script($this->db, $loaded->source, true, $loaded->sourcePath, $loaded->cachePath);
+			return new Script($this->db, $loaded, true);
 		}
 
 		throw new RuntimeException('SQL script does not exist');

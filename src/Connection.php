@@ -60,19 +60,6 @@ class Connection
 		return $this;
 	}
 
-	public function applyPlaceholders(
-		string $source,
-		string $path,
-		bool $isTemplate = false,
-	): string {
-		return $this->config->placeholders?->compile($source, $path, $isTemplate) ?? $source;
-	}
-
-	public function assertNoTemplatePlaceholders(string $source, string $path): void
-	{
-		$this->config->placeholders?->assertNoTemplatePlaceholders($source, $path);
-	}
-
 	public function cache(string $cacheDir): static
 	{
 		$this->config->setCacheDir($cacheDir);

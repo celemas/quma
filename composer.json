@@ -30,7 +30,6 @@
 		"ext-json": "*",
 		"ext-pdo": "*",
 		"ext-readline": "*",
-		"ext-tokenizer": "*",
 		"celemas/cli": "^0.2"
 	},
 	"require-dev": {

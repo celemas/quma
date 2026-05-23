@@ -657,11 +657,11 @@ class MigrationsTest extends TestCase
 		}
 	}
 
-	public function testTpqlMigrationRejectsGeneratedPlaceholders(): void
+	public function testTpqlMigrationSupportsGeneratedPlaceholders(): void
 	{
 		$dir = $this->createMigrationDir('generated-static-placeholder');
 		file_put_contents(
-			$dir . '/000001-bad.tpql',
+			$dir . '/000001-generated.tpql',
 			"CREATE TABLE <?= '[::table::]' ?> (id integer);",
 		);
 
@@ -670,33 +670,38 @@ class MigrationsTest extends TestCase
 			TestCase::root() . 'sql/default',
 		)
 			->migrations($dir)
-			->placeholders(Delimiters::brackets(), ['all' => ['table' => 'bad_static_migration']]);
+			->placeholders(Delimiters::brackets(), ['all' => ['table' => 'generated_static_migration']]);
 
 		try {
 			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
 
 			ob_start();
 			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
-			$content = ob_get_contents();
 			ob_end_clean();
 
-			$this->assertSame(1, $result);
-			$this->assertStringContainsString(
-				'Static placeholders inside PHP blocks or generated template output are not supported',
-				$content,
-			);
+			$db = new Database($conn);
+			$table = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='generated_static_migration';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(0, $result);
+			$this->assertSame(1, (int) ($table['available'] ?? 0));
 		} finally {
 			$this->removeMigrationDir($dir);
 		}
 	}
 
-	public function testTpqlMigrationDoesNotReapplyPlaceholdersAfterRendering(): void
+	public function testTpqlMigrationIgnoresUnknownPlaceholderInInactiveBranch(): void
 	{
-		$dir = $this->createMigrationDir('rendered-placeholder-marker');
+		$dir = $this->createMigrationDir('inactive-static-placeholder');
 		file_put_contents(
-			$dir . '/000001-marker.tpql',
+			$dir . '/000001-inactive.tpql',
 			<<<'TPQL'
-				CREATE TABLE rendered_placeholder_marker (value text DEFAULT '<?= '[::' ?>');
+				<?php if ($driver === 'pgsql') : ?>
+				CREATE TABLE [::missing::] (id integer);
+				<?php else : ?>
+				CREATE TABLE inactive_static_placeholder_migration (id integer);
+				<?php endif ?>
 				TPQL,
 		);
 
@@ -712,7 +717,7 @@ class MigrationsTest extends TestCase
 
 			$db = new Database($conn);
 			$table = $db->execute(
-				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='rendered_placeholder_marker';",
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='inactive_static_placeholder_migration';",
 			)->one(fetchMode: PDO::FETCH_ASSOC);
 
 			$this->assertSame(0, $result);
