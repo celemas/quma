@@ -15,8 +15,7 @@ class Script
 	protected Database $db;
 	protected string $script;
 	protected bool $isTemplate;
-	protected ?string $sourcePath;
-	protected ?string $cachePath;
+	protected string $sourcePath;
 	/** @var (Closure(string, string): string)|null */
 	protected ?Closure $compile;
 
@@ -29,7 +28,6 @@ class Script
 		$this->script = $script->source;
 		$this->isTemplate = $isTemplate;
 		$this->sourcePath = $script->sourcePath;
-		$this->cachePath = $script->cachePath;
 		$this->compile = $script->compile;
 	}
 
@@ -52,7 +50,7 @@ class Script
 			$script = $this->evaluateTemplate($this->script, $args);
 
 			if ($this->compile !== null) {
-				$script = ($this->compile)($script, $this->sourcePath ?? $this->script);
+				$script = ($this->compile)($script, $this->sourcePath);
 			}
 
 			// We need to wrap the result of the prepare call in an array
@@ -68,18 +66,6 @@ class Script
 	protected function evaluateTemplate(string $template, Args $args): string
 	{
 		$context = $this->buildTemplateContext($args);
-
-		if ($this->cachePath !== null) {
-			return $this->renderTemplateFile($this->cachePath, $context);
-		}
-
-		if ($this->sourcePath === null) {
-			if (!is_file($template)) {
-				return '';
-			}
-
-			return $this->renderTemplateFile($template, $context);
-		}
 
 		if ($template === $this->sourcePath) {
 			if (!is_file($this->sourcePath)) {
@@ -137,11 +123,13 @@ class Script
 		$templatePath = tempnam(sys_get_temp_dir(), 'quma-tpql-');
 
 		if ($templatePath === false) {
+			// tempnam() failure depends on system temp-dir failure and is not usefully reproducible.
 			throw new RuntimeException('Could not create temporary template file'); // @codeCoverageIgnore
 		}
 
 		try {
 			if (file_put_contents($templatePath, $template) === false) {
+				// This would require making the just-created temp file unwritable between calls.
 				throw new RuntimeException('Could not write temporary template file'); // @codeCoverageIgnore
 			}
 

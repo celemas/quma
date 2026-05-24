@@ -37,6 +37,22 @@ class ScriptTest extends TestCase
 		}
 	}
 
+	public function testEvaluateTemplateRendersLoadedSource(): void
+	{
+		$script = new TestableScript(
+			new Database($this->connection()),
+			new LoadedScript('Hello <?= $name ?> from <?= $pdodriver ?>', 'inline.tpql'),
+			true,
+		);
+
+		$result = $script->evaluateTemplatePublic(
+			'Hello <?= $name ?> from <?= $pdodriver ?>',
+			new Args([['name' => 'Chuck']]),
+		);
+
+		$this->assertSame('Hello Chuck from sqlite', $result);
+	}
+
 	public function testEvaluateTemplateCleansBufferWhenTemplateThrows(): void
 	{
 		$template = tempnam(sys_get_temp_dir(), 'quma-template-');
