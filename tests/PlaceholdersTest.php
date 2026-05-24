@@ -55,6 +55,10 @@ class PlaceholdersTest extends TestCase
 	{
 		$this->assertSame('/*:name:*/', Delimiters::comments()->token('name'));
 		$this->assertSame('[::name::]', Delimiters::brackets()->token('name'));
+		$this->assertSame(
+			['open' => '[[', 'close' => ']]'],
+			new Delimiters('[[', ']]')->values(),
+		);
 	}
 
 	public function testUsesCommentDelimiters(): void

@@ -66,6 +66,7 @@ final class Migrations extends Command
 			$result = $this->createMigrationsTable();
 
 			if ($result !== 0) {
+				// Requires simulating a failing CreateMigrationsTable command without a test seam.
 				return $result; // @codeCoverageIgnore
 			}
 
@@ -536,7 +537,8 @@ final class Migrations extends Command
 			}
 
 			if (!is_string($script)) {
-				$script = '';
+				// Defensive guard for an impossible false from ob_get_contents() after ob_start().
+				$script = ''; // @codeCoverageIgnore
 			}
 
 			$script = $conn->config->placeholders?->compileSql($script, $migration) ?? $script;

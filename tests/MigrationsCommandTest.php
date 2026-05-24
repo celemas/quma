@@ -11,7 +11,9 @@ use Celemas\Quma\Contract\MigrationFactory;
 use Celemas\Quma\Database;
 use Celemas\Quma\Environment;
 use PDO;
+use ReflectionClass;
 use ReflectionMethod;
+use ReflectionProperty;
 use RuntimeException;
 
 /**
@@ -274,6 +276,78 @@ class MigrationsCommandTest extends TestCase
 		$this->assertStringContainsString('MySQL migrations are not executed during dry runs', $output);
 	}
 
+	public function testRunPlansMysqlDryRunWithoutConnecting(): void
+	{
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-mysql-run-plan-' . uniqid();
+		mkdir($dir, 0o700, true);
+		file_put_contents(
+			$dir . '/000001-run-plan.sql',
+			'CREATE TABLE mysql_run_plan_should_not_run (id integer);',
+		);
+
+		$_SERVER['argv'] = ['run', 'migrations'];
+		$conn = $this->connection(migrations: $dir);
+		$command = $this->commandWithEnv($this->fakeEnv($conn, 'mysql', false));
+
+		try {
+			ob_start();
+			$result = $command->run();
+			$output = ob_get_contents();
+			ob_end_clean();
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+
+		$this->assertSame(0, $result);
+		$this->assertStringContainsString("Would create migrations table 'migrations'", (string) $output);
+		$this->assertStringContainsString('Would apply 1 migration', (string) $output);
+		$this->assertStringContainsString(
+			'MySQL migrations are not executed during dry runs',
+			(string) $output,
+		);
+	}
+
+	public function testRunCreatesMetadataBeforeMysqlApply(): void
+	{
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-mysql-run-apply-' . uniqid();
+		mkdir($dir, 0o700, true);
+		file_put_contents(
+			$dir . '/000001-run-apply.sql',
+			'CREATE TABLE mysql_run_apply_precreate (id integer);',
+		);
+
+		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+		$conn = $this->connection(migrations: $dir);
+		$db = new Database($conn);
+		$db->execute('DROP TABLE IF EXISTS migrations')->run();
+		$db->execute('DROP TABLE IF EXISTS mysql_run_apply_precreate')->run();
+		$command = $this->commandWithEnv($this->fakeEnv($conn, 'mysql', false));
+
+		try {
+			ob_start();
+			$result = $command->run();
+			ob_end_clean();
+
+			$this->assertSame(0, $result);
+			$this->assertSame(
+				1,
+				$db->execute(
+					"SELECT count(*) AS available FROM sqlite_master WHERE type = 'table' AND name = 'migrations'",
+				)->one(fetchMode: PDO::FETCH_ASSOC)['available'],
+			);
+			$this->assertSame(
+				1,
+				$db->execute(
+					"SELECT count(*) AS available FROM sqlite_master WHERE type = 'table' AND name = 'mysql_run_apply_precreate'",
+				)->one(fetchMode: PDO::FETCH_ASSOC)['available'],
+			);
+		} finally {
+			$db->execute('DROP TABLE IF EXISTS mysql_run_apply_precreate')->run();
+			$db->execute('DROP TABLE IF EXISTS migrations')->run();
+			$this->removeMigrationDir($dir);
+		}
+	}
+
 	public function testPendingMigrationsSkipsAppliedAndUnsupportedDriverFiles(): void
 	{
 		$_SERVER['argv'] = ['run'];
@@ -399,6 +473,46 @@ class MigrationsCommandTest extends TestCase
 			PHP);
 
 		return $migration;
+	}
+
+	private function commandWithEnv(Environment $env): Migrations
+	{
+		$command = new ReflectionClass(Migrations::class)->newInstanceWithoutConstructor();
+		assert($command instanceof Migrations, 'Reflection must create a Migrations command.');
+
+		new ReflectionProperty(Migrations::class, 'env')->setValue($command, $env);
+
+		return $command;
+	}
+
+	private function fakeEnv(Connection $conn, string $driver, bool $tableExists): Environment
+	{
+		$env = new class($tableExists) extends Environment {
+			public function __construct(
+				private readonly bool $tableExists,
+			) {}
+
+			public function checkIfMigrationsTableExists(Database $db): bool
+			{
+				return $this->tableExists;
+			}
+		};
+
+		$this->setEnvProperty($env, 'conn', $conn);
+		$this->setEnvProperty($env, 'driver', $driver);
+		$this->setEnvProperty($env, 'showStacktrace', false);
+		$this->setEnvProperty($env, 'table', $conn->config->migrationsTable);
+		$this->setEnvProperty($env, 'columnMigration', $conn->config->migrationsColumnMigration);
+		$this->setEnvProperty($env, 'columnApplied', $conn->config->migrationsColumnApplied);
+		$this->setEnvProperty($env, 'db', new Database($conn));
+		$this->setEnvProperty($env, 'options', []);
+
+		return $env;
+	}
+
+	private function setEnvProperty(Environment $env, string $name, mixed $value): void
+	{
+		new ReflectionProperty(Environment::class, $name)->setValue($env, $value);
 	}
 
 	private function removeMigrationDir(string $dir): void

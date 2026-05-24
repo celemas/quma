@@ -588,6 +588,15 @@ class DatabaseTest extends TestCase
 		}
 	}
 
+	public function testLoadTemplateScriptThrowsWhenFileIsMissing(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Could not read SQL script');
+
+		$db = new Database($this->connection());
+		$db->loadScript(sys_get_temp_dir() . '/quma-missing-script-' . uniqid() . '.tpql', true);
+	}
+
 	public function testDatabaseExecute(): void
 	{
 		$db = new Database($this->connection());
