@@ -433,35 +433,6 @@ class PlaceholderQueryTest extends TestCase
 		$this->assertSame('Chuck Schuldiner', $result['name']);
 	}
 
-	public function testTemplateQueryDoesNotWriteConfiguredCacheFiles(): void
-	{
-		$dir = $this->createSqlDir();
-		$cacheDir = $this->createTempDir('quma-cache-');
-		file_put_contents(
-			$dir . '/music/cached.tpql',
-			"SELECT '[::value::]' AS value;",
-		);
-
-		$conn = new Connection($this->getDsn(), $dir)
-			->placeholders(Delimiters::brackets(), ['all' => ['value' => 'cached']])
-			->cache($cacheDir);
-		$db = new Database($conn);
-
-		$this->assertSame(
-			'cached',
-			$db->music->cached(['unused' => true])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-		$this->assertSame([], glob($cacheDir . '/tpql-*.php'));
-
-		$this->assertSame(
-			'cached',
-			new Database($conn)->music->cached([
-				'unused' => true,
-			])->one(fetchMode: PDO::FETCH_ASSOC)['value'],
-		);
-		$this->assertSame([], glob($cacheDir . '/tpql-*.php'));
-	}
-
 	public function testTemplateGeneratedPlaceholdersAreSupported(): void
 	{
 		$dir = $this->createSqlDir();

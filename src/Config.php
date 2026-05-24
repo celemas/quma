@@ -35,9 +35,6 @@ final class Config
 	public private(set) PdoConfig $pdo;
 	public private(set) ?Placeholders $placeholders = null;
 
-	/** @var non-empty-string|null */
-	public private(set) ?string $cacheDir = null;
-
 	public private(set) string $migrationsTable = 'migrations';
 	public private(set) string $migrationsColumnMigration = 'migration';
 	public private(set) string $migrationsColumnApplied = 'applied';
@@ -80,34 +77,6 @@ final class Config
 	public function setPlaceholders(Delimiters $delimiters, array $placeholders): void
 	{
 		$this->placeholders = new Placeholders($this->driver, $placeholders, $delimiters);
-	}
-
-	public function setCacheDir(string $cacheDir): void
-	{
-		if (!file_exists($cacheDir)) {
-			throw new ValueError('Cache directory does not exist: ' . $cacheDir);
-		}
-
-		if (!is_dir($cacheDir)) {
-			throw new ValueError('Cache path is not a directory: ' . $cacheDir);
-		}
-
-		if (!is_writable($cacheDir)) {
-			throw new ValueError('Cache directory is not writable: ' . $cacheDir); // @codeCoverageIgnore
-		}
-
-		$path = realpath($cacheDir);
-
-		if ($path === false || $path === '') {
-			throw new ValueError('Cache directory does not exist: ' . $cacheDir); // @codeCoverageIgnore
-		}
-
-		$this->cacheDir = $path;
-	}
-
-	public function clearCacheDir(): void
-	{
-		$this->cacheDir = null;
 	}
 
 	/** @psalm-param SqlConfig $sql */

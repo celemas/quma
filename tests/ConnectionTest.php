@@ -124,48 +124,6 @@ class ConnectionTest extends TestCase
 		);
 	}
 
-	public function testCacheDirConfiguration(): void
-	{
-		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
-		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-cache-' . uniqid();
-		mkdir($dir, 0o700);
-
-		try {
-			$this->assertNull($conn->config->cacheDir);
-			$this->assertSame($conn, $conn->cache($dir));
-			$this->assertSame(realpath($dir), $conn->config->cacheDir);
-			$this->assertSame($conn, $conn->noCache());
-			$this->assertNull($conn->config->cacheDir);
-		} finally {
-			rmdir($dir);
-		}
-	}
-
-	public function testCacheDirRejectsMissingPath(): void
-	{
-		$this->expectException(ValueError::class);
-		$this->expectExceptionMessage('Cache directory does not exist');
-
-		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
-		$conn->cache(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-cache-missing-' . uniqid());
-	}
-
-	public function testCacheDirRejectsFilePath(): void
-	{
-		$this->expectException(ValueError::class);
-		$this->expectExceptionMessage('Cache path is not a directory');
-
-		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
-		$file = tempnam(sys_get_temp_dir(), 'quma-cache-file-');
-		assert(is_string($file), 'Temporary cache file path must be available.');
-
-		try {
-			$conn->cache($file);
-		} finally {
-			unlink($file);
-		}
-	}
-
 	public function testAddSqlDirsLater(): void
 	{
 		$conn = new Connection(

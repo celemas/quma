@@ -60,20 +60,6 @@ class Connection
 		return $this;
 	}
 
-	public function cache(string $cacheDir): static
-	{
-		$this->config->setCacheDir($cacheDir);
-
-		return $this;
-	}
-
-	public function noCache(): static
-	{
-		$this->config->clearCacheDir();
-
-		return $this;
-	}
-
 	public function migrationTable(string $table): static
 	{
 		$this->config->setMigrationsTable($table);
