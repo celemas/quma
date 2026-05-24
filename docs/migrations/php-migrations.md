@@ -201,4 +201,6 @@ If you only need to include or exclude a few SQL fragments, a `.tpql` migration 
 
 If a PHP migration throws, the migration run stops.
 
-For SQLite and PostgreSQL, Quma rolls back the surrounding transaction. For MySQL, already applied migrations remain applied because the migration runner does not wrap MySQL migrations in the same transaction flow.
+For SQLite and PostgreSQL, Quma rolls back the surrounding database transaction. That rollback only covers database work in the active transaction. Non-database side effects from PHP code, such as file writes, HTTP calls, queue jobs, emails, logs, and cache writes, are not undone. This also applies to no-`--apply` test runs because Quma still requires and runs PHP migrations before rolling the database transaction back.
+
+For MySQL, already applied migrations remain applied because the migration runner does not wrap MySQL migrations in the same transaction flow.

@@ -69,16 +69,18 @@ Quma only applies the file that matches the current driver.
 
 Quma exposes a `migrations` command through `Celemas\Quma\Commands::get()`.
 
-Without `--apply`, the command never mutates the database. SQLite and PostgreSQL run the batch inside a transaction and roll it back. MySQL shows a plan only because Quma cannot safely roll back a full MySQL migration batch.
+Without `--apply`, behavior depends on the driver. SQLite and PostgreSQL run a transactional test run and roll it back. MySQL shows a plan only because Quma cannot safely roll back a full MySQL migration batch.
+
+A no-`--apply` run is not side-effect-free for SQLite and PostgreSQL. Quma still executes `.sql` migrations, renders `.tpql` migrations, and requires/runs `.php` migrations before the rollback. Database changes from transactional statements are undone, but external effects from migration code are not.
 
 ```bash
-php your-cli-entry.php db:migrations
+php run db:migrations
 ```
 
 To actually commit the changes, add `--apply`.
 
 ```bash
-php your-cli-entry.php db:migrations --apply
+php run db:migrations --apply
 ```
 
 ## Migrations table
@@ -107,18 +109,29 @@ For flat migrations and the `default` namespace, Quma records the migration file
 
 Transaction behavior depends on the driver.
 
-- SQLite: transactional
-- PostgreSQL: transactional
-- MySQL: non-transactional in Quma's migration runner
+- SQLite: transactional in Quma's test run
+- PostgreSQL: transactional in Quma's test run
+- MySQL: plan-only without `--apply`; non-transactional in Quma's migration runner with `--apply`
 
 For SQLite and PostgreSQL:
 
-- running `migrations` without `--apply` shows what would happen and rolls back
+- running `migrations` without `--apply` executes pending migrations inside a transaction and rolls back at the end
 - an error rolls back the whole batch
+- `.sql` migrations are sent to the database during the test run
+- `.tpql` migrations are rendered, so any PHP code in the template runs
+- `.php` migrations are required and their `run()` method is called
+- rollback does not undo file writes, HTTP calls, queue jobs, emails, logs, cache writes, or other non-database side effects
+
+Examples:
+
+- `CREATE TABLE users (...)` is normally rolled back on SQLite and PostgreSQL when the no-`--apply` run finishes.
+- A `.php` migration that writes `var/export.csv`, calls an API, or dispatches a job does that even without `--apply`.
+- Some PostgreSQL statements cannot run inside a transaction, for example `CREATE INDEX CONCURRENTLY`, `CREATE DATABASE`, or `VACUUM`. Such migrations may fail during the no-`--apply` test run because Quma wraps the batch in a transaction.
 
 For MySQL:
 
 - running `migrations` without `--apply` lists the pending migrations and does not execute, render, require, create a metadata table, or record anything
+- Quma uses plan-only behavior here because many MySQL DDL statements, for example `CREATE TABLE`, `ALTER TABLE`, and `DROP TABLE`, cause implicit commits and cannot be safely rolled back
 - running `migrations --apply` applies migrations directly because there is no rollback path in the migration runner
 - successful migrations remain applied before a later error
 

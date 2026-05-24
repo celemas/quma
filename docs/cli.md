@@ -46,7 +46,7 @@ Quma registers these commands:
 Applies missing migrations from the configured migration directories.
 
 ```bash
-php your-cli-entry.php db:migrations --apply
+php run db:migrations --apply
 ```
 
 Options:
@@ -56,17 +56,17 @@ Options:
 - `--stacktrace` prints stack traces for migration failures
 - `--conn <name>` selects one named connection when you registered multiple connections
 
-Without `--apply`, `db:migrations` never mutates the database:
+Without `--apply`, behavior depends on the driver. It is not side-effect-free for every driver:
 
-- SQLite and PostgreSQL execute the batch inside a transaction and roll it back at the end.
-- MySQL lists the pending migrations and a rollback warning without executing, rendering, requiring, creating a metadata table, or recording anything.
+- SQLite and PostgreSQL execute the batch inside a transaction and roll it back at the end. SQL changes from transactional statements are undone, but migration code still runs. A `.tpql` template is rendered and a `.php` migration is required and executed, so file writes, HTTP calls, queue jobs, emails, logs, and other external effects are not rolled back.
+- MySQL lists the pending migrations and a rollback warning without executing, rendering, requiring, creating a metadata table, or recording anything. Quma uses plan-only behavior for MySQL because many DDL statements cause implicit commits and cannot be safely rolled back.
 
 ## `db:create-migrations-table`
 
 Creates the migrations table explicitly.
 
 ```bash
-php your-cli-entry.php db:create-migrations-table
+php run db:create-migrations-table
 ```
 
 The `db:migrations` command already creates the table automatically when possible, so you only need this command when you want to set it up ahead of time.
@@ -81,7 +81,7 @@ Options:
 Creates a new migration file in the first configured migration directory.
 
 ```bash
-php your-cli-entry.php db:add-migration --file create-users.sql
+php run db:add-migration --file create-users.sql
 ```
 
 Options:
@@ -113,7 +113,7 @@ $commands = Commands::get([
 Select one at runtime:
 
 ```bash
-php your-cli-entry.php db:migrations --conn reporting --apply
+php run db:migrations --conn reporting --apply
 ```
 
 If the selected connection does not exist, Quma throws a runtime error.
