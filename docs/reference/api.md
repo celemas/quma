@@ -8,7 +8,7 @@ This page summarizes the main public types that application code works with dire
 
 ## `Celemas\Quma\Connection`
 
-Stores DSN, SQL directory, migration, placeholder, delimiter, PDO, and cache configuration.
+Stores DSN, SQL directory, migration, placeholder, delimiter, and PDO configuration.
 
 ### Constructor
 
@@ -28,8 +28,6 @@ new Connection(string $dsn, string|array $sql)
 - `migrationTable(string $table): static` sets the migration metadata table
 - `migrationColumns(string $migration, string $applied = 'applied'): static` sets migration metadata columns
 - `placeholders(Delimiters $delimiters, array $placeholders): static` sets static placeholder delimiters and replacements
-- `cache(string $cacheDir): static` sets the `.tpql` query template cache directory
-- `noCache(): static` clears the query template cache directory
 - `addSql(array|string $sql): static` prepends SQL directories
 
 Read resolved configuration through `$conn->config`. See [Connection reference](connection.md) for config properties and configuration formats.
@@ -44,7 +42,6 @@ Common properties:
 - `driver: string`
 - `sql: array`
 - `migrations: array`
-- `cacheDir: ?string`
 - `migrationsTable: string`
 - `migrationsColumnMigration: string`
 - `migrationsColumnApplied: string`

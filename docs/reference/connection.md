@@ -59,7 +59,6 @@ Configure a connection before you create or connect a `Database`. PDO settings a
 $conn->config->dsn;
 $conn->config->driver;
 $conn->config->sql;
-$conn->config->cacheDir;
 $conn->config->migrations;
 $conn->config->migrationsTable;
 $conn->config->migrationsColumnMigration;
@@ -68,11 +67,10 @@ $conn->config->pdo->username;
 $conn->config->pdo->password;
 $conn->config->pdo->options;
 $conn->config->pdo->fetchMode;
-$conn->config->placeholders?->delimiters();
-$conn->config->placeholders?->values() ?? [];
+$conn->config->placeholders;
 ```
 
-Application code can read these values directly. Use `Connection` methods to mutate values; config properties reject direct external assignment, and the mutator methods validate paths, table names, column names, placeholders, and cache directories.
+Application code can read these values directly. Use `Connection` methods to mutate values; config properties reject direct external assignment, and the mutator methods validate paths, table names, column names, and placeholders.
 
 ## PDO configuration
 
@@ -110,26 +108,6 @@ Prepends more SQL directories to the existing list.
 
 This method supports the same input formats as the constructor.
 
-## Query cache methods
-
-### `cache(string $cacheDir): static`
-
-Sets the cache directory for compiled `.tpql` query templates.
-
-```php
-$conn->cache(__DIR__ . '/var/cache/quma');
-```
-
-The directory must already exist, must be a directory, and must be writable. Quma does not create it automatically.
-
-When configured, Quma writes compiled `.tpql` query templates to this directory and reuses them on later invocations. The cache does not apply to `.sql` files, migrations, or direct SQL passed to `Database::execute()`.
-
-Keep this directory outside the public web root. The files are generated PHP templates and can be deleted safely; Quma regenerates them when needed. Cache file names include the source file metadata, active driver, and static placeholder configuration when enabled, so source or configuration changes create a new cache file.
-
-### `noCache(): static`
-
-Clears the configured cache directory.
-
 ## Static placeholder methods
 
 ### `placeholders(Delimiters $delimiters, array $placeholders): static`
@@ -152,13 +130,13 @@ The top-level `all` scope applies to every driver. A driver-specific scope such 
 
 Use `Delimiters::brackets()` for the legacy `[::name::]` style or `new Delimiters('[[', ']]')` for custom syntax. Delimiter strings must not be empty and must not contain NUL bytes. Choose delimiters that do not collide with SQL syntax, PDO parameters, or template code.
 
-### `applyPlaceholders(string $source, string $path, bool $isTemplate = false): string`
+Quma applies configured placeholders internally:
 
-Applies static placeholders to SQL or template source. When placeholders are disabled, this returns the source unchanged. This method is used internally by file-based queries and migrations.
+- `.sql` queries and migrations are substituted before execution
+- `.tpql` queries and migrations are rendered first, then substituted
+- direct SQL passed to `Database::execute()` is not substituted
 
-### `assertNoTemplatePlaceholders(string $source, string $path): void`
-
-Throws when rendered template output still contains a configured static placeholder token. This catches unsupported static placeholders generated from PHP code blocks. When placeholders are disabled, this method is a no-op.
+Generated placeholder tokens in rendered `.tpql` output are allowed when they come from trusted template logic. Keep request and user input in PDO parameters.
 
 ## Migration directory methods
 

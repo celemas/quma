@@ -139,7 +139,7 @@ CREATE TABLE /*:prefix:*/users (
 
 ## Template migrations
 
-A `.tpql` migration is a PHP template that must render SQL. Quma substitutes static placeholders in the literal SQL part before rendering the PHP template, using the configured delimiters. The query template cache configured with `Connection::cache()` does not apply to migrations.
+A `.tpql` migration is a PHP template that must render SQL. Quma renders the template first and then substitutes static placeholders in the rendered SQL, using the configured delimiters.
 
 Inside migration templates, Quma makes these variables available:
 
@@ -157,7 +157,7 @@ ALTER TABLE users ADD COLUMN created_at text;
 <?php endif ?>
 ```
 
-As with query templates, do not put static placeholders inside PHP code blocks or generate them from PHP output.
+As with query templates, generated placeholder tokens are allowed when they come from trusted migration logic. Keep runtime or external values out of rendered SQL text.
 
 ## PHP migrations
 
