@@ -239,7 +239,7 @@ class MigrationsCommandTest extends TestCase
 		$this->assertTrue($factory->called);
 	}
 
-	public function testMysqlDryRunPlansPendingMigrationsWithoutRunningThem(): void
+	public function testMysqlPlanListsPendingMigrationsWithoutRunningThem(): void
 	{
 		if (!in_array('mysql', PDO::getAvailableDrivers(), strict: true)) {
 			$this->markTestSkipped('PDO MySQL is not available.');
@@ -270,13 +270,14 @@ class MigrationsCommandTest extends TestCase
 		}
 
 		$this->assertSame(0, $result);
+		$this->assertStringContainsString('Plan only', $output);
 		$this->assertStringContainsString("Would create migrations table 'migrations'", $output);
 		$this->assertStringContainsString('Would apply 1 migration', $output);
 		$this->assertStringContainsString('000001-plan.sql', $output);
-		$this->assertStringContainsString('MySQL migrations are not executed during dry runs', $output);
+		$this->assertStringContainsString('MySQL migrations are plan-only without --apply', $output);
 	}
 
-	public function testRunPlansMysqlDryRunWithoutConnecting(): void
+	public function testRunPlansMysqlMigrationsWithoutConnecting(): void
 	{
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-mysql-run-plan-' . uniqid();
 		mkdir($dir, 0o700, true);
@@ -299,12 +300,40 @@ class MigrationsCommandTest extends TestCase
 		}
 
 		$this->assertSame(0, $result);
+		$this->assertStringContainsString('Plan only', (string) $output);
 		$this->assertStringContainsString("Would create migrations table 'migrations'", (string) $output);
 		$this->assertStringContainsString('Would apply 1 migration', (string) $output);
 		$this->assertStringContainsString(
-			'MySQL migrations are not executed during dry runs',
+			'MySQL migrations are plan-only without --apply',
 			(string) $output,
 		);
+	}
+
+	public function testRunRefusesMysqlTestRun(): void
+	{
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-mysql-test-run-' . uniqid();
+		mkdir($dir, 0o700, true);
+		file_put_contents(
+			$dir . '/000001-test-run.sql',
+			'CREATE TABLE mysql_test_run_should_not_run (id integer);',
+		);
+
+		$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
+		$conn = $this->connection(migrations: $dir);
+		$command = $this->commandWithEnv($this->fakeEnv($conn, 'mysql', false));
+
+		try {
+			ob_start();
+			$result = $command->run();
+			$output = ob_get_contents();
+			ob_end_clean();
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString('Test runs are only supported', (string) $output);
+		$this->assertStringContainsString('implicit commits', (string) $output);
 	}
 
 	public function testRunCreatesMetadataBeforeMysqlApply(): void

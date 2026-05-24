@@ -55,10 +55,30 @@ final class Migrations extends Command
 		$namespace = $opts->get('--namespace', '');
 		$showStacktrace = $opts->has('--stacktrace');
 		$apply = $opts->has('--apply');
+		$testRun = $opts->has('--test-run');
+		$yes = $opts->has('--yes');
 		$driverSupported = in_array($env->driver, ['sqlite', 'mysql', 'pgsql'], strict: true);
+
+		if ($apply && $testRun) {
+			echo "\033[1;31mError\033[0m: Options --apply and --test-run cannot be used together.\n";
+
+			return 1;
+		}
+
+		if ($testRun && (!$driverSupported || !$this->supportsTransactions())) {
+			echo
+				"\033[1;31mError\033[0m: Test runs are only supported for transactional drivers: sqlite and pgsql.\n"
+			;
+			echo
+				"MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.\n"
+			;
+
+			return 1;
+		}
+
 		$tableExists = $driverSupported && $env->checkIfMigrationsTableExists($env->db);
 
-		if (!$apply && $env->driver === 'mysql') {
+		if (!$apply && !$testRun) {
 			return $this->planMigrations($namespace, $tableExists);
 		}
 
@@ -77,6 +97,7 @@ final class Migrations extends Command
 			$namespace,
 			$showStacktrace,
 			$apply,
+			$yes,
 			$tableExists,
 		);
 	}
@@ -85,6 +106,7 @@ final class Migrations extends Command
 		string $namespace,
 		bool $showStacktrace,
 		bool $apply,
+		bool $yes,
 		bool $tableExists,
 	): int {
 		$migrations = $this->migrationsForNamespace($namespace);
@@ -93,13 +115,84 @@ final class Migrations extends Command
 			return 1;
 		}
 
+		$migrationNamespace = $namespace !== '' ? $namespace : 'default';
+
+		if (
+			!$apply && !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
+		) {
+			return 1;
+		}
+
 		return $this->runMigrations(
-			$namespace !== '' ? $namespace : 'default',
+			$migrationNamespace,
 			$migrations,
 			$showStacktrace,
 			$apply,
 			$tableExists,
 		);
+	}
+
+	/**
+	 * @param list<string> $migrations
+	 */
+	protected function confirmTestRunForPending(
+		string $namespace,
+		array $migrations,
+		bool $tableExists,
+		bool $yes,
+	): bool {
+		$appliedMigrations = $tableExists ? $this->getAppliedMigrations($this->env->db) : [];
+		$pendingMigrations = $this->pendingMigrations($namespace, $migrations, $appliedMigrations);
+
+		if (count($pendingMigrations) === 0) {
+			return true;
+		}
+
+		return $this->confirmTestRun($yes);
+	}
+
+	protected function confirmTestRun(bool $yes): bool
+	{
+		$this->showTestRunWarning();
+
+		if ($yes) {
+			return true;
+		}
+
+		if (!$this->inputIsInteractive()) {
+			echo "\nUse --yes to confirm test-run execution in non-interactive shells.\n";
+
+			return false;
+		}
+
+		$answer = readline('Continue? [y/N] ');
+
+		if (!is_string($answer) || !in_array(strtolower(trim($answer)), ['y', 'yes'], true)) {
+			echo "Aborted.\n";
+
+			return false;
+		}
+
+		return true;
+	}
+
+	protected function showTestRunWarning(): void
+	{
+		echo
+			"\n\033[1;31mWarning\033[0m: --test-run executes migrations before rolling the database transaction back.\n"
+		;
+		echo "SQL migrations are sent to the database.\n";
+		echo "TPQL migrations are rendered, so PHP template code runs.\n";
+		echo "PHP migrations are required and executed.\n";
+		echo "Rollback only covers database changes in the transaction.\n";
+		echo
+			"File writes, HTTP calls, queues, emails, logs, cache writes, and other external side effects are not undone.\n"
+		;
+	}
+
+	private function inputIsInteractive(): bool
+	{
+		return defined('STDIN') && function_exists('stream_isatty') && stream_isatty(STDIN);
 	}
 
 	/**
@@ -307,8 +400,8 @@ final class Migrations extends Command
 				return 0;
 			}
 			echo "\n\033[1;31mNotice\033[0m: Test run only\033[0m";
-			echo "\nWould apply {$numApplied} migration{$plural}. ";
-			echo "Use the switch --apply to make it happen\n";
+			echo "\nRolled back {$numApplied} migration{$plural}. ";
+			echo "Use --apply to commit them\n";
 			$db->rollback();
 
 			return 0;
@@ -379,14 +472,14 @@ final class Migrations extends Command
 		$numPending = count($pendingMigrations);
 		$plural = $numPending > 1 ? 's' : '';
 
-		echo "\n\033[1;31mNotice\033[0m: Test run only\033[0m\n";
+		echo "\n\033[1;31mNotice\033[0m: Plan only\033[0m\n";
 
 		if (!$tableExists) {
 			echo "Would create migrations table '{$this->env->table}'\n";
 		}
 
 		if ($numPending === 0) {
-			echo "\nNo migrations applied\n"; // @codeCoverageIgnore
+			echo "\nNo pending migrations\n";
 		} else {
 			echo "Would apply {$numPending} migration{$plural}:\n";
 
@@ -395,8 +488,16 @@ final class Migrations extends Command
 			}
 		}
 
-		echo "\nMySQL migrations are not executed during dry runs because Quma cannot safely ";
-		echo "roll back the full migration batch on this driver. Use --apply to run them.\n";
+		echo "\nNo migrations were executed. ";
+
+		if ($this->env->driver === 'mysql') {
+			echo
+				"MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.\n"
+			;
+			echo "Use --apply to run them.\n";
+		} else {
+			echo "Use --test-run --yes to execute inside a rollback transaction, or --apply to commit.\n";
+		}
 
 		return 0;
 	}

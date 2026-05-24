@@ -69,12 +69,16 @@ Quma only applies the file that matches the current driver.
 
 Quma exposes a `migrations` command through `Celemas\Quma\Commands::get()`.
 
-Without `--apply`, behavior depends on the driver. SQLite and PostgreSQL run a transactional test run and roll it back. MySQL shows a plan only because Quma cannot safely roll back a full MySQL migration batch.
-
-A no-`--apply` run is not side-effect-free for SQLite and PostgreSQL. Quma still executes `.sql` migrations, renders `.tpql` migrations, and requires/runs `.php` migrations before the rollback. Database changes from transactional statements are undone, but external effects from migration code are not.
+Without `--apply` or `--test-run`, the command is plan-only for every driver. It lists pending migrations and exits without executing SQL migrations, rendering `.tpql` migrations, requiring `.php` migrations, creating the metadata table, or recording anything.
 
 ```bash
 php run db:migrations
+```
+
+To run the migrations inside a rollback transaction on SQLite or PostgreSQL, use `--test-run --yes`.
+
+```bash
+php run db:migrations --test-run --yes
 ```
 
 To actually commit the changes, add `--apply`.
@@ -105,17 +109,26 @@ Quma uses the configured table and column names when it creates the metadata tab
 
 For flat migrations and the `default` namespace, Quma records the migration file base name, for example `250320-101500-create-users.sql`. For non-default namespaces, Quma records `namespace:basename`, for example `billing:250320-101500-create-users.sql`.
 
-## Dry run and transaction behavior
+## Plan, test run, and transaction behavior
 
-Transaction behavior depends on the driver.
+Transaction behavior depends on the mode and driver.
 
-- SQLite: transactional in Quma's test run
-- PostgreSQL: transactional in Quma's test run
-- MySQL: plan-only without `--apply`; non-transactional in Quma's migration runner with `--apply`
+- Plan mode: `migrations` without `--apply` or `--test-run`; no migrations are executed on any driver
+- Test run: `migrations --test-run`; SQLite and PostgreSQL only; executes inside a transaction and rolls back
+- Apply: `migrations --apply`; commits the migrations and records them
 
-For SQLite and PostgreSQL:
+For plan mode:
 
-- running `migrations` without `--apply` executes pending migrations inside a transaction and rolls back at the end
+- Quma lists pending migrations only
+- Quma does not execute SQL migrations
+- Quma does not render `.tpql` migrations
+- Quma does not require or run `.php` migrations
+- Quma does not create the metadata table or record anything
+
+For SQLite and PostgreSQL test runs:
+
+- `migrations --test-run` requires interactive confirmation, or `--yes` in non-interactive shells
+- pending migrations execute inside a transaction and roll back at the end
 - an error rolls back the whole batch
 - `.sql` migrations are sent to the database during the test run
 - `.tpql` migrations are rendered, so any PHP code in the template runs
@@ -124,15 +137,17 @@ For SQLite and PostgreSQL:
 
 Examples:
 
-- `CREATE TABLE users (...)` is normally rolled back on SQLite and PostgreSQL when the no-`--apply` run finishes.
-- A `.php` migration that writes `var/export.csv`, calls an API, or dispatches a job does that even without `--apply`.
-- Some PostgreSQL statements cannot run inside a transaction, for example `CREATE INDEX CONCURRENTLY`, `CREATE DATABASE`, or `VACUUM`. Such migrations may fail during the no-`--apply` test run because Quma wraps the batch in a transaction.
+- `php run db:migrations` only lists pending migrations.
+- `php run db:migrations --test-run --yes` executes pending migrations on SQLite or PostgreSQL, then rolls the transaction back.
+- `CREATE TABLE users (...)` is normally rolled back on SQLite and PostgreSQL when the test run finishes.
+- A `.php` migration that writes `var/export.csv`, calls an API, or dispatches a job does that during a test run.
+- Some PostgreSQL statements cannot run inside a transaction, for example `CREATE INDEX CONCURRENTLY`, `CREATE DATABASE`, or `VACUUM`. Such migrations may fail during `--test-run` because Quma wraps the batch in a transaction.
 
 For MySQL:
 
-- running `migrations` without `--apply` lists the pending migrations and does not execute, render, require, create a metadata table, or record anything
-- Quma uses plan-only behavior here because many MySQL DDL statements, for example `CREATE TABLE`, `ALTER TABLE`, and `DROP TABLE`, cause implicit commits and cannot be safely rolled back
-- running `migrations --apply` applies migrations directly because there is no rollback path in the migration runner
+- `migrations` without flags is plan-only and does not execute, render, require, create a metadata table, or record anything
+- `migrations --test-run` is refused because many MySQL DDL statements, for example `CREATE TABLE`, `ALTER TABLE`, and `DROP TABLE`, cause implicit commits and cannot be safely rolled back
+- `migrations --apply` applies migrations directly because there is no rollback path in the migration runner
 - successful migrations remain applied before a later error
 
 ## Empty migrations

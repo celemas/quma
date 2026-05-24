@@ -71,11 +71,13 @@ Do not use:
 $db->users->listActive(true);
 ```
 
-## MySQL dry runs only print a plan
+## `db:migrations` only prints a plan
 
-MySQL migrations are not transactional in Quma. When you run `db:migrations` without `--apply` on MySQL, Quma lists pending migrations and exits without executing migrations, rendering templates, requiring PHP migrations, creating the metadata table, or recording anything.
+When you run `db:migrations` without `--apply` or `--test-run`, Quma lists pending migrations and exits without executing migrations, rendering templates, requiring PHP migrations, creating the metadata table, or recording anything.
 
-Use `--apply` to run MySQL migrations.
+Use `--apply` to commit migrations. Use `--test-run --yes` on SQLite or PostgreSQL to execute migrations inside a transaction and roll it back.
+
+MySQL does not support `--test-run` because many DDL statements cause implicit commits and cannot be safely rolled back.
 
 ## `No migration directories defined in configuration`
 

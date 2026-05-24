@@ -76,7 +76,7 @@ class MigrationsTest extends TestCase
 	}
 
 	#[DataProvider('transactionConnectionProvider')]
-	public function testRunMigrationsSuccessWithoutApply(string $dsn): void
+	public function testRunMigrationsPlansWithoutApply(string $dsn): void
 	{
 		$_SERVER['argv'] = ['run', 'migrations'];
 		$driver = strtok($dsn, ':');
@@ -87,6 +87,30 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		$this->assertSame(0, $result);
+		$this->assertStringContainsString('Plan only', $content);
+		$this->assertStringContainsString('Would apply 6 migrations', $content);
+		$this->assertStringContainsString('000000-000000-migration.sql', $content);
+		$this->assertStringContainsString('000000-000001-migration.php', $content);
+		$this->assertStringContainsString('000000-000002-migration.tpql', $content);
+		$this->assertStringContainsString("000000-000005-migration-[{$driver}].sql", $content);
+		$this->assertStringContainsString('No migrations were executed', $content);
+		$this->assertStringContainsString('--test-run --yes', $content);
+		$this->assertStringNotContainsString('successfully applied', $content);
+	}
+
+	#[DataProvider('transactionConnectionProvider')]
+	public function testRunMigrationsTestRunSuccess(string $dsn): void
+	{
+		$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
+		$driver = strtok($dsn, ':');
+
+		ob_start();
+		$result = new Runner($this->commands(dsn: $dsn))->run();
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		$this->assertSame(0, $result);
+		$this->assertStringContainsString('--test-run executes migrations', $content);
 		$this->assertMatchesRegularExpression('/000000-000000-migration.sql[^\n]*?success/', $content);
 		$this->assertMatchesRegularExpression('/000000-000001-migration.php[^\n]*?success/', $content);
 		$this->assertMatchesRegularExpression('/000000-000002-migration.tpql[^\n]*?success/', $content);
@@ -94,7 +118,63 @@ class MigrationsTest extends TestCase
 			'/000000-000005-migration-\[' . $driver . '\].sql[^\n]*?success/',
 			$content,
 		);
-		$this->assertStringContainsString('Would apply 4 migrations', $content);
+		$this->assertStringContainsString('Rolled back 4 migrations', $content);
+	}
+
+	public function testRunMigrationsPlanDoesNotExecuteRenderOrRequireMigrations(): void
+	{
+		$dir = $this->createMigrationDir('plan-no-side-effects');
+		$sqlTable = 'plan_should_not_run';
+		$tpqlEffect = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-tpql-effect-' . uniqid();
+		$phpEffect = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-php-effect-' . uniqid();
+		file_put_contents($dir . '/000001-plan.sql', "CREATE TABLE {$sqlTable} (id integer);");
+		file_put_contents(
+			$dir . '/000002-plan.tpql',
+			'<?php file_put_contents(' . var_export($tpqlEffect, true) . ", 'rendered'); ?>\nSELECT 1;",
+		);
+		file_put_contents(
+			$dir . '/000003-plan.php',
+			'<?php file_put_contents('
+			. var_export($phpEffect, true)
+			. ", 'required'); return stdClass::class;",
+		);
+
+		$conn = $this->connection(migrations: $dir);
+		$db = new Database($conn);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations'];
+
+			ob_start();
+			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$metadataTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$sqlMutationTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='{$sqlTable}';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(0, $result);
+			$this->assertStringContainsString('Plan only', $content);
+			$this->assertStringContainsString('Would apply 3 migrations', $content);
+			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
+			$this->assertSame(0, (int) ($sqlMutationTable['available'] ?? 0));
+			$this->assertFileDoesNotExist($tpqlEffect);
+			$this->assertFileDoesNotExist($phpEffect);
+		} finally {
+			if (is_file($tpqlEffect)) {
+				unlink($tpqlEffect);
+			}
+
+			if (is_file($phpEffect)) {
+				unlink($phpEffect);
+			}
+
+			$this->removeMigrationDir($dir);
+		}
 	}
 
 	#[DataProvider('connectionProvider')]
@@ -696,7 +776,7 @@ class MigrationsTest extends TestCase
 		}
 	}
 
-	public function testMysqlDryRunDoesNotMutateDatabase(): void
+	public function testMysqlPlanDoesNotMutateDatabase(): void
 	{
 		$dsn = $this->mysqlDsn();
 
@@ -704,15 +784,15 @@ class MigrationsTest extends TestCase
 			$this->markTestSkipped('MySQL is not available.');
 		}
 
-		$dir = $this->createMigrationDir('mysql-dry-run');
+		$dir = $this->createMigrationDir('mysql-plan');
 		file_put_contents(
-			$dir . '/000001-mysql-dry-run.sql',
-			'CREATE TABLE mysql_dry_run_mutation (id integer);',
+			$dir . '/000001-mysql-plan.sql',
+			'CREATE TABLE mysql_plan_mutation (id integer);',
 		);
 
 		$conn = $this->connection(dsn: $dsn, migrations: $dir);
 		$db = new Database($conn);
-		$db->execute('DROP TABLE IF EXISTS mysql_dry_run_mutation')->run();
+		$db->execute('DROP TABLE IF EXISTS mysql_plan_mutation')->run();
 		$db->execute('DROP TABLE IF EXISTS migrations')->run();
 
 		try {
@@ -727,16 +807,17 @@ class MigrationsTest extends TestCase
 				"SELECT count(*) AS available FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'migrations';",
 			)->one(fetchMode: PDO::FETCH_ASSOC);
 			$mutationTable = $db->execute(
-				"SELECT count(*) AS available FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mysql_dry_run_mutation';",
+				"SELECT count(*) AS available FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mysql_plan_mutation';",
 			)->one(fetchMode: PDO::FETCH_ASSOC);
 
 			$this->assertSame(0, $result);
+			$this->assertStringContainsString('Plan only', $output);
 			$this->assertStringContainsString('Would apply 1 migration', $output);
-			$this->assertStringContainsString('MySQL migrations are not executed during dry runs', $output);
+			$this->assertStringContainsString('MySQL migrations are plan-only without --apply', $output);
 			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
 			$this->assertSame(0, (int) ($mutationTable['available'] ?? 0));
 		} finally {
-			$db->execute('DROP TABLE IF EXISTS mysql_dry_run_mutation')->run();
+			$db->execute('DROP TABLE IF EXISTS mysql_plan_mutation')->run();
 			$db->execute('DROP TABLE IF EXISTS migrations')->run();
 			$this->removeMigrationDir($dir);
 		}

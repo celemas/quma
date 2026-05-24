@@ -43,7 +43,7 @@ Quma registers these commands:
 
 ## `db:migrations`
 
-Applies missing migrations from the configured migration directories.
+Plans, tests, or applies missing migrations from the configured migration directories.
 
 ```bash
 php run db:migrations --apply
@@ -52,14 +52,17 @@ php run db:migrations --apply
 Options:
 
 - `--apply` runs and records pending migrations
+- `--test-run` runs pending migrations inside a transaction and rolls them back; only supported on SQLite and PostgreSQL
+- `--yes` confirms `--test-run` in non-interactive shells
 - `--namespace <name>` runs only one migration namespace
 - `--stacktrace` prints stack traces for migration failures
 - `--conn <name>` selects one named connection when you registered multiple connections
 
-Without `--apply`, behavior depends on the driver. It is not side-effect-free for every driver:
+Without `--apply` or `--test-run`, `db:migrations` is plan-only for every driver. It lists pending migrations and exits without executing SQL migrations, rendering `.tpql` migrations, requiring `.php` migrations, creating the metadata table, or recording anything.
 
-- SQLite and PostgreSQL execute the batch inside a transaction and roll it back at the end. SQL changes from transactional statements are undone, but migration code still runs. A `.tpql` template is rendered and a `.php` migration is required and executed, so file writes, HTTP calls, queue jobs, emails, logs, and other external effects are not rolled back.
-- MySQL lists the pending migrations and a rollback warning without executing, rendering, requiring, creating a metadata table, or recording anything. Quma uses plan-only behavior for MySQL because many DDL statements cause implicit commits and cannot be safely rolled back.
+Use `--test-run --yes` when you explicitly want the old transactional test-run behavior on SQLite or PostgreSQL. This is not side-effect-free: SQL changes in the active database transaction are rolled back, but `.tpql` template code and `.php` migration code still run. File writes, HTTP calls, queue jobs, emails, logs, cache writes, and other external effects are not rolled back.
+
+MySQL does not support `--test-run` because many DDL statements cause implicit commits and cannot be safely rolled back.
 
 ## `db:create-migrations-table`
 
