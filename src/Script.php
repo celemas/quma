@@ -12,6 +12,10 @@ use Throwable;
 /** @api */
 class Script
 {
+	private const array RESERVED_TEMPLATE_PARAMETERS = [
+		'pdodriver' => true,
+	];
+
 	protected Database $db;
 	protected string $script;
 	protected bool $isTemplate;
@@ -83,9 +87,17 @@ class Script
 	 */
 	protected function buildTemplateContext(Args $args): array
 	{
+		$named = $args->getNamed();
+
+		foreach (array_keys(self::RESERVED_TEMPLATE_PARAMETERS) as $name) {
+			if (array_key_exists($name, $named)) {
+				throw new InvalidArgumentException("Template parameter '{$name}' is reserved.");
+			}
+		}
+
 		return array_merge(
+			$named,
 			['pdodriver' => $this->db->getPdoDriver()],
-			$args->getNamed(),
 		);
 	}
 

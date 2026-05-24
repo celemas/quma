@@ -8,6 +8,7 @@ use Celemas\Quma\Args;
 use Celemas\Quma\Database;
 use Celemas\Quma\LoadedScript;
 use Celemas\Quma\Tests\Util\TestableScript;
+use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -51,6 +52,23 @@ class ScriptTest extends TestCase
 		);
 
 		$this->assertSame('Hello Chuck from sqlite', $result);
+	}
+
+	public function testEvaluateTemplateRejectsReservedTemplateParameters(): void
+	{
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage("Template parameter 'pdodriver' is reserved.");
+
+		$script = new TestableScript(
+			new Database($this->connection()),
+			new LoadedScript('Hello from <?= $pdodriver ?>', 'inline.tpql'),
+			true,
+		);
+
+		$script->evaluateTemplatePublic(
+			'Hello from <?= $pdodriver ?>',
+			new Args([['pdodriver' => 'evil']]),
+		);
 	}
 
 	public function testEvaluateTemplateCleansBufferWhenTemplateThrows(): void

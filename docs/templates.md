@@ -54,6 +54,8 @@ Quma injects these values into a query template:
 - `$pdodriver` with the active PDO driver name
 - every key from your named parameter array
 
+`pdodriver` is reserved. Passing a named parameter with that key throws `InvalidArgumentException`.
+
 Example:
 
 ```php
