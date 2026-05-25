@@ -1,60 +1,51 @@
 <?php
 
 /**
- * Migration testing is hard.
- *
- * Some of these tests depend on each other and the order
- * in which they are executed. Reorganize with care.
- *
- * Running a single test with '->only()' might be impossible.
+ * Migration command tests touch shared test databases, so each test resets
+ * database state before arranging its own scenario.
  */
 
 declare(strict_types=1);
 
 namespace Celemas\Quma\Tests;
 
+use Celemas\Cli\Commands;
 use Celemas\Cli\Runner;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Depends;
 
 /**
  * @internal
  */
 class CreateMigrationsTest extends TestCase
 {
-	public static function setUpBeforeClass(): void
+	protected function setUp(): void
 	{
-		parent::setUpBeforeClass();
-		// Remove remnants of previous runs
+		parent::setUp();
 		$migrationsDir = TestCase::root() . '/migrations/';
-		array_map('unlink', glob("{$migrationsDir}*test-migration*"));
+		$paths = glob("{$migrationsDir}*test-migration*");
 
-		TestCase::cleanupTestDbs();
+		if (is_array($paths)) {
+			array_map('unlink', $paths);
+		}
+
+		TestCase::cleanUpTestDbs();
 	}
 
 	#[DataProvider('connectionProvider')]
 	public function testCreateMigrationsTableSuccess(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table'];
-
-		ob_start();
-		$result = new Runner($this->commands(dsn: $dsn))->run();
-		ob_end_clean();
+		[$result] = $this->runCreateMigrationsTable(dsn: $dsn);
 
 		$this->assertSame(0, $result);
 	}
 
 	#[DataProvider('connectionProvider')]
-	#[Depends('testCreateMigrationsTableSuccess')]
 	public function testCreateMigrationsTableAlreadyExists(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table'];
+		[$created] = $this->runCreateMigrationsTable(dsn: $dsn);
+		[$result, $content] = $this->runCreateMigrationsTable(dsn: $dsn);
 
-		ob_start();
-		$result = new Runner($this->commands(dsn: $dsn))->run();
-		$content = ob_get_contents();
-		ob_end_clean();
-
+		$this->assertSame(0, $created);
 		$this->assertSame(1, $result);
 
 		if (str_starts_with($dsn, 'pgsql')) {
@@ -66,59 +57,118 @@ class CreateMigrationsTest extends TestCase
 
 	public function testCreateMigrationsTableAlreadyExistsConnectionAsArg(): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table', '--conn', 'first'];
-
-		ob_start();
-		$result = new Runner($this->commands(
+		[$created] = $this->runCreateMigrationsTable(
 			multipleConnections: true,
 			firstMultipleConnectionsKey: 'first',
-		))->run();
-		$content = ob_get_contents();
-		ob_end_clean();
+			connectionKey: 'first',
+		);
+		[$result, $content] = $this->runCreateMigrationsTable(
+			multipleConnections: true,
+			firstMultipleConnectionsKey: 'first',
+			connectionKey: 'first',
+		);
 
+		$this->assertSame(0, $created);
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString("Table 'migrations' already exists", $content);
 	}
 
 	public function testCreateMigrationsTableAlreadyExistsMulticonnectionWithDefault(): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table'];
-
-		ob_start();
-		$result = new Runner($this->commands(
+		[$created] = $this->runCreateMigrationsTable(
 			multipleConnections: true,
 			firstMultipleConnectionsKey: 'default',
-		))->run();
-		$content = ob_get_contents();
-		ob_end_clean();
+		);
+		[$result, $content] = $this->runCreateMigrationsTable(
+			multipleConnections: true,
+			firstMultipleConnectionsKey: 'default',
+		);
 
+		$this->assertSame(0, $created);
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString("Table 'migrations' already exists", $content);
 	}
 
 	public function testCreateMigrationsTableAlternateConnection(): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table', '--conn', 'second'];
-
-		ob_start();
-		$result = new Runner($this->commands(multipleConnections: true))->run();
-		ob_end_clean();
+		[$result] = $this->runCreateMigrationsTable(
+			multipleConnections: true,
+			connectionKey: 'second',
+		);
 
 		$this->assertSame(0, $result);
 	}
 
-	#[Depends('testCreateMigrationsTableAlternateConnection')]
 	public function testCreateMigrationsTableAlreadyExistsAlternateConnection(): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table', '--conn', 'second'];
+		[$created] = $this->runCreateMigrationsTable(
+			multipleConnections: true,
+			connectionKey: 'second',
+		);
+		[$result, $content] = $this->runCreateMigrationsTable(
+			multipleConnections: true,
+			connectionKey: 'second',
+		);
 
-		ob_start();
-		$result = new Runner($this->commands(multipleConnections: true))->run();
-		$content = ob_get_contents();
-		ob_end_clean();
-
+		$this->assertSame(0, $created);
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString("Table 'migrations' already exists", $content);
+	}
+
+	/** @return array{0: string|int, 1: string} */
+	private function runCreateMigrationsTable(
+		?string $dsn = null,
+		bool $multipleConnections = false,
+		string $firstMultipleConnectionsKey = 'default',
+		?string $connectionKey = null,
+	): array {
+		$argv = ['run', 'create-migrations-table'];
+
+		if ($connectionKey !== null) {
+			$argv[] = '--conn';
+			$argv[] = $connectionKey;
+		}
+
+		return $this->runCommand(
+			$argv,
+			fn(): Commands => $this->commands(
+				dsn: $dsn,
+				multipleConnections: $multipleConnections,
+				firstMultipleConnectionsKey: $firstMultipleConnectionsKey,
+			),
+		);
+	}
+
+	/**
+	 * @param list<string> $argv
+	 * @param callable(): Commands $commandFactory
+	 * @return array{0: string|int, 1: string}
+	 */
+	private function runCommand(array $argv, callable $commandFactory): array
+	{
+		$hadArgv = array_key_exists('argv', $_SERVER);
+		$previousArgv = $_SERVER['argv'] ?? null;
+		$level = ob_get_level();
+		$_SERVER['argv'] = $argv;
+
+		ob_start();
+
+		try {
+			$result = new Runner($commandFactory())->run();
+			$output = ob_get_clean();
+
+			return [$result, is_string($output) ? $output : ''];
+		} finally {
+			while (ob_get_level() > $level) {
+				ob_end_clean();
+			}
+
+			if ($hadArgv) {
+				$_SERVER['argv'] = $previousArgv;
+			} else {
+				unset($_SERVER['argv']);
+			}
+		}
 	}
 
 	public static function connectionProvider(): array
