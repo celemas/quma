@@ -24,6 +24,41 @@ class TestCase extends BaseTestCase
 	private static ?string $sqliteDbPath1 = null;
 	private static ?string $sqliteDbPath2 = null;
 
+	private bool $hasGlobalStateSnapshot = false;
+	private bool $hadArgv = false;
+	private mixed $argv = null;
+	private int $outputBufferLevel = 0;
+
+	protected function setUp(): void
+	{
+		parent::setUp();
+
+		$this->hasGlobalStateSnapshot = true;
+		$this->hadArgv = array_key_exists('argv', $_SERVER);
+		$this->argv = $_SERVER['argv'] ?? null;
+		$this->outputBufferLevel = ob_get_level();
+	}
+
+	protected function tearDown(): void
+	{
+		try {
+			if ($this->hasGlobalStateSnapshot) {
+				while (ob_get_level() > $this->outputBufferLevel) {
+					ob_end_clean();
+				}
+
+				if ($this->hadArgv) {
+					$_SERVER['argv'] = $this->argv;
+				} else {
+					unset($_SERVER['argv']);
+				}
+			}
+		} finally {
+			$this->hasGlobalStateSnapshot = false;
+			parent::tearDown();
+		}
+	}
+
 	protected static function getSqliteDbPath1(): string
 	{
 		if (self::$sqliteDbPath1 === null) {
