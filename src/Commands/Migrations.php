@@ -165,6 +165,8 @@ final class Migrations extends Command
 			return false;
 		}
 
+		// Interactive readline() needs a real TTY; non-interactive safety behavior is covered above.
+		// @codeCoverageIgnoreStart
 		$answer = readline('Continue? [y/N] ');
 
 		if (!is_string($answer) || !in_array(strtolower(trim($answer)), ['y', 'yes'], true)) {
@@ -174,6 +176,8 @@ final class Migrations extends Command
 		}
 
 		return true;
+
+		// @codeCoverageIgnoreEnd
 	}
 
 	protected function showTestRunWarning(): void

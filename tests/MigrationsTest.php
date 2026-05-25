@@ -75,6 +75,22 @@ class MigrationsTest extends TestCase
 		$this->assertStringContainsString('No migration directories defined', $content);
 	}
 
+	public function testRunMigrationsRejectsApplyAndTestRunTogether(): void
+	{
+		$_SERVER['argv'] = ['run', 'migrations', '--apply', '--test-run', '--yes'];
+
+		ob_start();
+		$result = new Runner($this->commands())->run();
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString(
+			'Options --apply and --test-run cannot be used together',
+			$content,
+		);
+	}
+
 	#[DataProvider('transactionConnectionProvider')]
 	public function testRunMigrationsPlansWithoutApply(string $dsn): void
 	{
@@ -95,6 +111,57 @@ class MigrationsTest extends TestCase
 		$this->assertStringContainsString("000000-000005-migration-[{$driver}].sql", $content);
 		$this->assertStringContainsString('No migrations were executed', $content);
 		$this->assertStringContainsString('--test-run --yes', $content);
+		$this->assertStringNotContainsString('successfully applied', $content);
+	}
+
+	public function testRunMigrationsPlanReportsNoPendingMigrations(): void
+	{
+		$dir = $this->createMigrationDir('plan-no-pending');
+		file_put_contents(
+			$dir . '/000001-plan-no-pending.sql',
+			'CREATE TABLE plan_no_pending (id integer);',
+		);
+		$conn = $this->connection(migrations: $dir);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+
+			ob_start();
+			$applyResult = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			ob_end_clean();
+
+			$_SERVER['argv'] = ['run', 'migrations'];
+
+			ob_start();
+			$planResult = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$this->assertSame(0, $applyResult);
+			$this->assertSame(0, $planResult);
+			$this->assertStringContainsString('Plan only', $content);
+			$this->assertStringContainsString('No pending migrations', $content);
+			$this->assertStringNotContainsString('Would apply', $content);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testRunMigrationsTestRunRequiresYesForPendingMigrations(): void
+	{
+		$_SERVER['argv'] = ['run', 'migrations', '--test-run'];
+
+		ob_start();
+		$result = new Runner($this->commands())->run();
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString('--test-run executes migrations', $content);
+		$this->assertStringContainsString(
+			'Use --yes to confirm test-run execution in non-interactive shells',
+			$content,
+		);
 		$this->assertStringNotContainsString('successfully applied', $content);
 	}
 
@@ -119,6 +186,39 @@ class MigrationsTest extends TestCase
 			$content,
 		);
 		$this->assertStringContainsString('Rolled back 4 migrations', $content);
+	}
+
+	public function testRunMigrationsTestRunSkipsConfirmationWithoutPendingMigrations(): void
+	{
+		$dir = $this->createMigrationDir('test-run-no-pending');
+		file_put_contents(
+			$dir . '/000001-test-run-no-pending.sql',
+			'CREATE TABLE test_run_no_pending (id integer);',
+		);
+		$conn = $this->connection(migrations: $dir);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+
+			ob_start();
+			$applyResult = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			ob_end_clean();
+
+			$_SERVER['argv'] = ['run', 'migrations', '--test-run'];
+
+			ob_start();
+			$testRunResult = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$this->assertSame(0, $applyResult);
+			$this->assertSame(0, $testRunResult);
+			$this->assertStringContainsString('No migrations applied', $content);
+			$this->assertStringNotContainsString('--test-run executes migrations', $content);
+			$this->assertStringNotContainsString('Use --yes', $content);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
 	}
 
 	public function testRunMigrationsPlanDoesNotExecuteRenderOrRequireMigrations(): void
