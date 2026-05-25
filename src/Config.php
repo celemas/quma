@@ -173,7 +173,7 @@ final class Config
 	 *
 	 * @return list<non-empty-string>
 	 */
-	private function readFlatDirs(string|array $config, bool $preserveOrder = false): array
+	private function readFlatDirs(string|array $config): array
 	{
 		if (is_string($config)) {
 			return [$this->preparePath($config)];
@@ -191,11 +191,7 @@ final class Config
 
 		foreach ($config as $entry) {
 			if (is_string($entry)) {
-				if ($preserveOrder) {
-					$dirs[] = $this->preparePath($entry);
-				} else {
-					array_unshift($dirs, $this->preparePath($entry));
-				}
+				array_unshift($dirs, $this->preparePath($entry));
 
 				continue;
 			}
@@ -206,21 +202,13 @@ final class Config
 						continue;
 					}
 
-					if ($preserveOrder) {
-						$dirs[] = $this->preparePath($path);
-					} else {
-						array_unshift($dirs, $this->preparePath($path));
-					}
+					array_unshift($dirs, $this->preparePath($path));
 				}
 
 				continue;
 			}
 
-			if ($preserveOrder) {
-				$dirs = array_merge($dirs, $this->readAssocDirs($entry));
-			} else {
-				$dirs = array_merge($this->readAssocDirs($entry), $dirs);
-			}
+			$dirs = array_merge($this->readAssocDirs($entry), $dirs);
 		}
 
 		return $dirs;

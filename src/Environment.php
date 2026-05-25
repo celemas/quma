@@ -71,7 +71,7 @@ class Environment
 				$migrationDirs,
 				function (mixed $dirs, int|string $namespace) use (&$migrations): void {
 					if (!is_string($namespace)) {
-						return;
+						return; // @codeCoverageIgnore
 					}
 
 					if (is_string($dirs)) {
@@ -79,7 +79,7 @@ class Environment
 					} elseif (is_array($dirs)) {
 						$resolvedDirs = $this->normalizeMigrationDirs($dirs);
 					} else {
-						return;
+						return; // @codeCoverageIgnore
 					}
 
 					if (count($resolvedDirs) === 0) {

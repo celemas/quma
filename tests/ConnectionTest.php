@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Tests;
 
-use Celemas\Quma\Config;
 use Celemas\Quma\Connection;
 use Celemas\Quma\Delimiters;
 use PDO;
-use ReflectionMethod;
 use RuntimeException;
 use ValueError;
 
@@ -338,67 +336,46 @@ class ConnectionTest extends TestCase
 			->migrationNamespace('install', TestCase::root() . 'sql/additional');
 	}
 
-	public function testReadFlatDirsReturnsEmptyArrayForEmptyConfig(): void
+	public function testAddSqlWithEmptyConfigLeavesExistingDirs(): void
 	{
-		$config = new Config($this->getDsn(), TestCase::root() . 'sql/default');
-		$method = new ReflectionMethod(Config::class, 'readFlatDirs');
+		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default');
+		$conn->addSql([]);
 
-		$this->assertSame([], $method->invoke($config, [], false));
+		$this->assertCount(1, $conn->config->sql);
+		$this->assertStringEndsWith('/default', $conn->config->sql[0]);
 	}
 
-	public function testReadFlatDirsCanPreserveConfiguredOrder(): void
+	public function testSqlDirsSkipUnsupportedNestedListValues(): void
 	{
-		$config = new Config($this->getDsn(), TestCase::root() . 'sql/default');
-		$method = new ReflectionMethod(Config::class, 'readFlatDirs');
+		$conn = new Connection($this->getDsn(), [[123, TestCase::root() . 'sql/default']]);
 
-		$dirs = $method->invoke(
-			$config,
-			[
-				TestCase::root() . 'sql/default',
-				[TestCase::root() . 'sql/more'],
-				['sqlite' => TestCase::root() . 'sql/additional'],
-			],
-			true,
-		);
-
-		$this->assertCount(3, $dirs);
-		$this->assertStringEndsWith('/default', $dirs[0]);
-		$this->assertStringEndsWith('/more', $dirs[1]);
-		$this->assertStringEndsWith('/additional', $dirs[2]);
+		$this->assertCount(1, $conn->config->sql);
+		$this->assertStringEndsWith('/default', $conn->config->sql[0]);
 	}
 
-	public function testReadFlatDirsSkipsUnsupportedNestedListValues(): void
+	public function testDriverSpecificDirsSkipUnsupportedValues(): void
 	{
-		$config = new Config($this->getDsn(), TestCase::root() . 'sql/default');
-		$method = new ReflectionMethod(Config::class, 'readFlatDirs');
-
-		$dirs = $method->invoke($config, [[123, TestCase::root() . 'sql/default']], false);
-
-		$this->assertCount(1, $dirs);
-		$this->assertStringEndsWith('/default', $dirs[0]);
-	}
-
-	public function testReadDirsEntrySkipsUnsupportedValues(): void
-	{
-		$config = new Config($this->getDsn(), TestCase::root() . 'sql/default');
-		$method = new ReflectionMethod(Config::class, 'readDirsEntry');
-
-		$this->assertSame([], $method->invoke($config, 123));
-		$this->assertSame([], $method->invoke($config, [123]));
-	}
-
-	public function testReadNamespacedDirsSkipsInvalidNamespaceDirectoryValue(): void
-	{
-		$config = new Config($this->getDsn(), TestCase::root() . 'sql/default');
-		$method = new ReflectionMethod(Config::class, 'readNamespacedDirs');
-
-		$namespacedDirs = $method->invoke($config, [
-			'valid' => TestCase::root() . 'migrations',
-			'invalid' => 123,
+		$direct = new Connection($this->getDsn(), ['sqlite' => 123]);
+		$nested = new Connection($this->getDsn(), [
+			'sqlite' => [123],
+			'all' => TestCase::root() . 'sql/default',
 		]);
 
-		$this->assertArrayHasKey('valid', $namespacedDirs);
-		$this->assertArrayNotHasKey('invalid', $namespacedDirs);
+		$this->assertSame([], $direct->config->sql);
+		$this->assertCount(1, $nested->config->sql);
+		$this->assertStringEndsWith('/default', $nested->config->sql[0]);
+	}
+
+	public function testNamespacedMigrationDirsSkipInvalidDirectoryValue(): void
+	{
+		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
+			->migrations([
+				'valid' => TestCase::root() . 'migrations',
+				'invalid' => 123,
+			]);
+
+		$this->assertArrayHasKey('valid', $conn->config->migrations);
+		$this->assertArrayNotHasKey('invalid', $conn->config->migrations);
 	}
 
 	public function testUnsupportedDsn(): void

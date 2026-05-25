@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Tests;
 
-use Celemas\Quma\Config;
 use Celemas\Quma\Environment;
 use Celemas\Quma\Tests\Util\FakeDatabase;
-use ReflectionProperty;
 
 /**
  * @internal
@@ -86,15 +84,13 @@ class EnvironmentTest extends TestCase
 		$dir = $this->createMigrationDir('namespaced-skip');
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
-		$connection = $this->connection(migrations: [$dir]);
-		$property = new ReflectionProperty(Config::class, 'migrations');
-		$property->setValue($connection->config, [
-			0 => $dir,
-			'valid' => $dir,
-		]);
-
 		$_SERVER['argv'] = ['run'];
-		$env = new Environment(['default' => $connection], []);
+		$env = new Environment([
+			'default' => $this->connection(migrations: [
+				0 => $dir,
+				'valid' => $dir,
+			]),
+		], []);
 		$migrations = $env->getMigrations();
 
 		$this->assertIsArray($migrations);
@@ -109,16 +105,14 @@ class EnvironmentTest extends TestCase
 		$dir = $this->createMigrationDir('namespaced-invalid-dirs');
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
-		$connection = $this->connection(migrations: [$dir]);
-		$property = new ReflectionProperty(Config::class, 'migrations');
-		$property->setValue($connection->config, [
-			'valid' => [$dir],
-			'invalidType' => 123,
-			'emptyDirs' => [''],
-		]);
-
 		$_SERVER['argv'] = ['run'];
-		$env = new Environment(['default' => $connection], []);
+		$env = new Environment([
+			'default' => $this->connection(migrations: [
+				'valid' => [$dir],
+				'invalidType' => 123,
+				'emptyDirs' => [],
+			]),
+		], []);
 		$migrations = $env->getMigrations();
 
 		$this->assertIsArray($migrations);

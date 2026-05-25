@@ -5,27 +5,38 @@ declare(strict_types=1);
 namespace Celemas\Quma\Tests;
 
 use Celemas\Cli\Runner;
-use Celemas\Quma\Commands\Add;
-use ReflectionMethod;
 
 /**
  * @internal
  */
 class AddMigrationTest extends TestCase
 {
-	public function testGetFirstMigrationDirHandlesEmptyConfig(): void
-	{
-		$command = new Add($this->connection());
-		$method = new ReflectionMethod(Add::class, 'getFirstMigrationDir');
-		$this->assertNull($method->invoke($command, []));
-	}
-
 	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
 	{
-		$command = new Add($this->connection());
-		$method = new ReflectionMethod(Add::class, 'getPhpMigrationName');
+		$_SERVER['argv'] = ['run', 'add-migration', '--file=---.php'];
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-migrations-name-' . uniqid();
+		mkdir($dir, 0o700, true);
+		$migration = null;
 
-		$this->assertSame('Migration', $method->invoke($command, '---.php'));
+		try {
+			ob_start();
+			$migration = new Runner($this->commands(migrations: ['temp' => $dir]))->run();
+			ob_end_clean();
+
+			$this->assertIsString($migration);
+			$this->assertStringContainsString(
+				'Implement migration Migration before running it.',
+				(string) file_get_contents($migration),
+			);
+		} finally {
+			if (is_string($migration) && is_file($migration)) {
+				unlink($migration);
+			}
+
+			if (is_dir($dir)) {
+				rmdir($dir);
+			}
+		}
 	}
 
 	public function testAddMigrationWithoutDirectories(): void

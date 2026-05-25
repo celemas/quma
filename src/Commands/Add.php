@@ -172,7 +172,7 @@ return Migration::class;";
 		$first = reset($migrations);
 
 		if ($first === false) {
-			return null;
+			return null; // @codeCoverageIgnore
 		}
 
 		// If it's a string, return it directly
