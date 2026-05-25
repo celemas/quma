@@ -18,7 +18,7 @@ new Connection(string $dsn, string|array $sql)
 
 ### Key methods
 
-- `credentials(?string $username, ?string $password = null): static` sets PDO credentials
+- `credentials(string $username, ?string $password = null): static` sets PDO credentials
 - `options(array $options): static` replaces PDO options
 - `option(int $attribute, mixed $value): static` sets one PDO option
 - `fetch(int $fetchMode): static` sets the default query fetch mode

@@ -47,7 +47,7 @@ class Script
 		if ($this->isTemplate) {
 			if ($args->type() === ArgType::Positional) {
 				throw new InvalidArgumentException(
-					'Template queries `*.sql.php` allow named parameters only',
+					'Template queries `*.tpql` allow named parameters only',
 				);
 			}
 

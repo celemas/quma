@@ -74,7 +74,7 @@ Application code can read these values directly. Use `Connection` methods to mut
 
 ## PDO configuration
 
-### `credentials(?string $username, ?string $password = null): static`
+### `credentials(string $username, ?string $password = null): static`
 
 Sets the username and password passed to PDO.
 
