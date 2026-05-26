@@ -62,6 +62,30 @@ class MigrationsTest extends TestCase
 		new Runner($this->commands(multipleConnections: true))->run();
 	}
 
+	public function testRunMigrationsCreatesMetadataTableOnSelectedConnection(): void
+	{
+		$_SERVER['argv'] = ['run', 'migrations', '--conn', 'second', '--apply'];
+
+		ob_start();
+		$result = new Runner($this->commands(multipleConnections: true))->run();
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		$firstDb = new Database($this->connection());
+		$secondDb = new Database($this->connection($this->getDsn(self::getSqliteDbPath2())));
+		$firstTable = $firstDb->execute(
+			"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+		)->one(fetchMode: PDO::FETCH_ASSOC);
+		$secondTable = $secondDb->execute(
+			"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+		)->one(fetchMode: PDO::FETCH_ASSOC);
+
+		$this->assertSame(0, $result);
+		$this->assertStringContainsString("Created table 'migrations'", $content);
+		$this->assertSame(0, (int) ($firstTable['available'] ?? 0));
+		$this->assertSame(1, (int) ($secondTable['available'] ?? 0));
+	}
+
 	public function testRunMigrationsNoMigrationsDirectoriesDefined(): void
 	{
 		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
@@ -216,6 +240,67 @@ class MigrationsTest extends TestCase
 			$this->assertStringContainsString('No migrations applied', $content);
 			$this->assertStringNotContainsString('--test-run executes migrations', $content);
 			$this->assertStringNotContainsString('Use --yes', $content);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testRunMigrationsTestRunRollsBackCreatedMetadataTable(): void
+	{
+		$dir = $this->createMigrationDir('test-run-metadata-rollback');
+		file_put_contents(
+			$dir . '/000001-test-run-metadata-rollback.sql',
+			'CREATE TABLE test_run_metadata_rollback (id integer);',
+		);
+		$conn = $this->connection(migrations: $dir);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
+
+			ob_start();
+			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$db = new Database($conn);
+			$metadataTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$migrationTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='test_run_metadata_rollback';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(0, $result);
+			$this->assertStringContainsString('Rolled back 1 migration', $content);
+			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
+			$this->assertSame(0, (int) ($migrationTable['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testRunMigrationsRollsBackCreatedMetadataTableAfterError(): void
+	{
+		$dir = $this->createMigrationDir('metadata-rollback-error');
+		file_put_contents($dir . '/000001-metadata-rollback-error.sql', 'RUBBISH;');
+		$conn = $this->connection(migrations: $dir);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
+
+			ob_start();
+			$result = new Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$content = ob_get_contents();
+			ob_end_clean();
+
+			$db = new Database($conn);
+			$metadataTable = $db->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='migrations';",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString('Due to errors no migrations applied', $content);
+			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
 		} finally {
 			$this->removeMigrationDir($dir);
 		}
