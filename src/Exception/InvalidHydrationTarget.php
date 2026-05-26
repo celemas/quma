@@ -7,7 +7,7 @@ namespace Celemas\Quma\Exception;
 use Throwable;
 
 /** @api */
-final class InvalidHydrationTarget extends Hydration
+final class InvalidHydrationTarget extends HydrationFailure
 {
 	/** @param list<string> $rowKeys */
 	public static function forTarget(

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Celemas\Quma\Hydration;
 
 use BackedEnum;
-use Celemas\Quma\Exception\TypeCoercion;
+use Celemas\Quma\Exception\InvalidTypeCoercion;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -61,7 +61,7 @@ final class TypeCoercer
 
 				try {
 					return $this->coerceNamed($value, $name, $context, $type->describe());
-				} catch (TypeCoercion $e) {
+				} catch (InvalidTypeCoercion $e) {
 					$lastFailure = $e->getMessage();
 				}
 			}
@@ -374,6 +374,6 @@ final class TypeCoercer
 		string $description,
 		string $reason,
 	): never {
-		throw TypeCoercion::forContext($context, $value, $description, $reason);
+		throw InvalidTypeCoercion::forContext($context, $value, $description, $reason);
 	}
 }

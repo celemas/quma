@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Hydration;
 
-use Celemas\Quma\Exception\Hydration;
+use Celemas\Quma\Exception\HydrationFailure;
 use Celemas\Quma\Exception\InvalidHydrationTarget;
+use Celemas\Quma\Exception\InvalidTypeCoercion;
 use Celemas\Quma\Exception\MissingColumn;
-use Celemas\Quma\Exception\TypeCoercion;
 use Celemas\Quma\Hydratable;
 use Closure;
 use Throwable;
@@ -155,10 +155,10 @@ final class Hydrator
 
 		try {
 			return $hydratable::fromRow($row);
-		} catch (Hydration $e) {
+		} catch (HydrationFailure $e) {
 			throw $e;
 		} catch (Throwable $e) {
-			throw Hydration::fromHydratableFailure($class, $sourcePath, $rowKeys, $e);
+			throw HydrationFailure::fromHydratableFailure($class, $sourcePath, $rowKeys, $e);
 		}
 	}
 
@@ -230,7 +230,7 @@ final class Hydrator
 			/** @psalm-suppress MixedMethodCall */
 			return new $class(...$args);
 		} catch (TypeError $e) {
-			throw TypeCoercion::constructorFailure(
+			throw InvalidTypeCoercion::constructorFailure(
 				$metadata->class,
 				$sourcePath,
 				$rowKeys,

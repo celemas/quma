@@ -8,7 +8,7 @@ use RuntimeException;
 use Throwable;
 
 /** @api */
-class Hydration extends RuntimeException
+class HydrationFailure extends RuntimeException
 {
 	/**
 	 * @param class-string $class

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Celemas\Quma\Exception;
 
 /** @api */
-final class MissingColumn extends Hydration
+final class MissingColumn extends HydrationFailure
 {
 	/**
 	 * @param class-string $class

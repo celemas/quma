@@ -204,9 +204,9 @@ public static function fromRow(array $row): static;
 
 Quma hydration exceptions live in `Celemas\Quma\Exception`.
 
-- `Hydration` is the base exception for built-in hydration failures.
+- `HydrationFailure` is the base exception for built-in hydration failures.
 - `MissingColumn` is thrown when a required constructor parameter has no matching row column.
-- `TypeCoercion` is thrown when a present value cannot be converted to the declared parameter type.
+- `InvalidTypeCoercion` is thrown when a present value cannot be converted to the declared parameter type.
 - `InvalidHydrationTarget` is thrown for invalid targets, unsupported constructor shapes, unsupported parameter types, invalid `#[Column]` values, or invalid resolver results.
 
 ## `Celemas\Quma\Environment`

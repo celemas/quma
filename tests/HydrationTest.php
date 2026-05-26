@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Celemas\Quma\Tests;
 
 use Celemas\Quma\Column;
-use Celemas\Quma\Exception\Hydration;
+use Celemas\Quma\Exception\HydrationFailure;
 use Celemas\Quma\Exception\InvalidHydrationTarget;
+use Celemas\Quma\Exception\InvalidTypeCoercion;
 use Celemas\Quma\Exception\MissingColumn;
-use Celemas\Quma\Exception\TypeCoercion;
 use Celemas\Quma\Hydratable;
 use Celemas\Quma\Hydration\ClassMetadata;
 use Celemas\Quma\Hydration\HydrationContext;
@@ -84,7 +84,7 @@ class HydrationTest extends TestCase
 
 	public function testPresentNullForNonNullableParameterThrows(): void
 	{
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage('null is not allowed');
 
 		new Hydrator()->hydrate(['value' => null], HydrationIntValue::class, null);
@@ -122,7 +122,7 @@ class HydrationTest extends TestCase
 	#[DataProvider('scalarFailureProvider')]
 	public function testRejectsInvalidScalarValues(string $class, mixed $input): void
 	{
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 
 		new Hydrator()->hydrate(['value' => $input], $class, null);
 	}
@@ -168,7 +168,7 @@ class HydrationTest extends TestCase
 
 	public function testRejectsInvalidEnumValues(): void
 	{
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage('no enum case matches');
 
 		new Hydrator()->hydrate(['value' => 'missing'], HydrationStringEnumValue::class, null);
@@ -180,7 +180,7 @@ class HydrationTest extends TestCase
 		mixed $value,
 		string $message,
 	): void {
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage($message);
 
 		new Hydrator()->hydrate(['value' => $value], $class, null);
@@ -254,7 +254,7 @@ class HydrationTest extends TestCase
 	#[DataProvider('dateFailureProvider')]
 	public function testRejectsInvalidDateStrings(string $class, mixed $value): void
 	{
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 
 		new Hydrator()->hydrate(['value' => $value], $class, null);
 	}
@@ -323,7 +323,7 @@ class HydrationTest extends TestCase
 
 	public function testRejectsUnionValuesThatMatchNoArm(): void
 	{
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage('no union arm accepted');
 
 		new Hydrator()->hydrate(['value' => []], HydrationIntFloatValue::class, null);
@@ -348,7 +348,7 @@ class HydrationTest extends TestCase
 			[new NamedTypeMetadata('unknown', false, null, null, null, null)],
 		);
 
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage('unsupported declared type');
 
 		new TypeCoercer()->coerce('x', $type, $this->coercionContext());
@@ -383,19 +383,19 @@ class HydrationTest extends TestCase
 			)],
 		);
 
-		$this->expectException(TypeCoercion::class);
+		$this->expectException(InvalidTypeCoercion::class);
 		$this->expectExceptionMessage('enum is not backed');
 
 		new TypeCoercer()->coerce('One', $type, $this->coercionContext());
 	}
 
-	public function testTypeCoercionFormatsResourceValues(): void
+	public function testInvalidTypeCoercionFormatsResourceValues(): void
 	{
 		$resource = fopen('php://memory', 'r');
 		assert(is_resource($resource), 'Test resource must be available.');
 
 		try {
-			$this->expectException(TypeCoercion::class);
+			$this->expectException(InvalidTypeCoercion::class);
 			$this->expectExceptionMessage('stream resource');
 
 			new Hydrator()->hydrate(['value' => $resource], HydrationStringValue::class, null);
@@ -441,10 +441,10 @@ class HydrationTest extends TestCase
 
 	public function testHydratableExceptionsBubble(): void
 	{
-		$this->expectException(Hydration::class);
+		$this->expectException(HydrationFailure::class);
 		$this->expectExceptionMessage('factory validation failed');
 
-		new Hydrator()->hydrate([], HydrationFactoryThrowsHydration::class, null);
+		new Hydrator()->hydrate([], HydrationFactoryThrowsHydrationFailure::class, null);
 	}
 
 	public function testHydratableThrowablesAreWrapped(): void
@@ -452,7 +452,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate(['id' => 1], HydrationFactoryThrowsRuntime::class, 'sql/factory.sql');
 			$this->fail('Expected a hydration exception.');
-		} catch (Hydration $e) {
+		} catch (HydrationFailure $e) {
 			$this->assertStringContainsString('from sql/factory.sql', $e->getMessage());
 			$this->assertStringContainsString('Hydratable::fromRow() failed', $e->getMessage());
 			$this->assertInstanceOf(RuntimeException::class, $e->getPrevious());
@@ -493,7 +493,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate([], HydrationAbstractFactory::class, null);
 			$this->fail('Expected hydration exception.');
-		} catch (Hydration $e) {
+		} catch (HydrationFailure $e) {
 			$this->assertStringContainsString('Hydratable::fromRow() failed', $e->getMessage());
 			$this->assertInstanceOf(\Error::class, $e->getPrevious());
 		}
@@ -552,7 +552,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate(['value' => 1], HydrationConstructorThrowsTypeError::class, null);
 			$this->fail('Expected a type coercion exception.');
-		} catch (TypeCoercion $e) {
+		} catch (InvalidTypeCoercion $e) {
 			$this->assertStringContainsString('constructor rejected hydrated arguments', $e->getMessage());
 			$this->assertInstanceOf(TypeError::class, $e->getPrevious());
 		}
@@ -826,11 +826,11 @@ final class HydrationFactoryRow implements Hydratable
 	}
 }
 
-final class HydrationFactoryThrowsHydration implements Hydratable
+final class HydrationFactoryThrowsHydrationFailure implements Hydratable
 {
 	public static function fromRow(array $row): static
 	{
-		throw new Hydration('factory validation failed');
+		throw new HydrationFailure('factory validation failed');
 	}
 }
 

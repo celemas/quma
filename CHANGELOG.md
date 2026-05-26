@@ -4,7 +4,7 @@
 
 ### Breaking
 
-- Moved Quma exceptions to `Celemas\Quma\Exception` and removed the `Exception` suffix from their class names.
+- Moved Quma exceptions to `Celemas\Quma\Exception`, renamed hydration failures to `HydrationFailure`, renamed type-coercion failures to `InvalidTypeCoercion`, and removed the `Exception` suffix from class names.
 - Changed `db:migrations` without `--apply` to plan-only mode for every driver. Use `--test-run --yes` for the previous transactional execute-and-rollback behavior on SQLite and PostgreSQL.
 - Removed the runtime `ext-tokenizer` requirement.
 - Removed `Connection::applyPlaceholders()`, `Connection::assertNoTemplatePlaceholders()`, `Connection::cache()`, `Connection::noCache()`, `Config::$cacheDir`, placeholder introspection helpers, and the old direct `Script` constructor shape.

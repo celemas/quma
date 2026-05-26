@@ -157,7 +157,7 @@ Constructor hydration supports these declared types:
 - `DateTimeImmutable` and `DateTime` from common SQL date/time strings
 - backed enums from their backing values
 
-Unsupported constructor shapes or types throw `Celemas\Quma\Exception\InvalidHydrationTarget`. Present values that cannot be converted to the declared type throw `Celemas\Quma\Exception\TypeCoercion`. A present `null` never falls back to a default; it must be accepted by the declared type.
+Unsupported constructor shapes or types throw `Celemas\Quma\Exception\InvalidHydrationTarget`. Present values that cannot be converted to the declared type throw `Celemas\Quma\Exception\InvalidTypeCoercion`. A present `null` never falls back to a default; it must be accepted by the declared type.
 
 ### Custom hydration
 

@@ -8,7 +8,7 @@ use Celemas\Quma\Hydration\HydrationContext;
 use Throwable;
 
 /** @api */
-final class TypeCoercion extends Hydration
+final class InvalidTypeCoercion extends HydrationFailure
 {
 	/** @internal */
 	public static function forContext(
