@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Celemas\Quma\Tests;
 
 use Celemas\Quma\Database;
-use Celemas\Quma\UnexpectedResultCountException;
+use Celemas\Quma\Exception\UnexpectedResultCount;
 use InvalidArgumentException;
 use PDO;
 
@@ -40,7 +40,7 @@ class QueryHydrationTest extends TestCase
 
 	public function testOneThrowsWhenNoRowExists(): void
 	{
-		$this->expectException(UnexpectedResultCountException::class);
+		$this->expectException(UnexpectedResultCount::class);
 
 		$this
 			->getDb()
@@ -163,7 +163,7 @@ class QueryHydrationTest extends TestCase
 		$this->assertSame(7, $calls);
 	}
 
-	public function testScriptHydrationExceptionIncludesSourcePath(): void
+	public function testScriptHydrationIncludesSourcePath(): void
 	{
 		$this->expectExceptionMessage(TestCase::root() . 'sql/default/members/byId.sql');
 		$this->expectExceptionMessage("missing required column 'joined'");
@@ -171,7 +171,7 @@ class QueryHydrationTest extends TestCase
 		$this->getDb()->members->byId(1)->one(QueryHydrationMember::class);
 	}
 
-	public function testAdHocHydrationExceptionMentionsAdHocSql(): void
+	public function testAdHocHydrationMentionsAdHocSql(): void
 	{
 		$this->expectExceptionMessage('from ad-hoc SQL');
 		$this->expectExceptionMessage("missing required column 'name'");

@@ -4,6 +4,7 @@
 
 ### Breaking
 
+- Moved Quma exceptions to `Celemas\Quma\Exception` and removed the `Exception` suffix from their class names.
 - Changed `db:migrations` without `--apply` to plan-only mode for every driver. Use `--test-run --yes` for the previous transactional execute-and-rollback behavior on SQLite and PostgreSQL.
 - Removed the runtime `ext-tokenizer` requirement.
 - Removed `Connection::applyPlaceholders()`, `Connection::assertNoTemplatePlaceholders()`, `Connection::cache()`, `Connection::noCache()`, `Config::$cacheDir`, placeholder introspection helpers, and the old direct `Script` constructor shape.
@@ -25,7 +26,7 @@
 - Required `ext-tokenizer` at runtime for template placeholder parsing.
 - Changed the default query fetch mode from `PDO::FETCH_BOTH` to `PDO::FETCH_ASSOC`.
 - Changed query terminal method signatures so the optional hydration map is the first argument and the per-call fetch mode is the second argument or `fetchMode` named argument.
-- Changed `Query::one()` to require exactly one row and throw `UnexpectedResultCountException` for empty or multi-row results.
+- Changed `Query::one()` to require exactly one row and throw on empty or multi-row results.
 - Changed non-default migration namespaces to record applied migrations as `namespace:basename`.
 - Removed `Connection::print()` and `Database::print()` in favor of `QUMA_DEBUG` and `QUMA_DEBUG_PRINT`.
 - Changed PHP migrations to return class names implementing `Contract\Migration` and support optional `Contract\MigrationFactory` construction.

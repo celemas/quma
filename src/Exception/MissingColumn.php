@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Exception;
 
 /** @api */
-final class MissingColumnException extends HydrationException
+final class MissingColumn extends Hydration
 {
 	/**
 	 * @param class-string $class

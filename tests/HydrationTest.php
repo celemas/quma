@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Celemas\Quma\Tests;
 
 use Celemas\Quma\Column;
+use Celemas\Quma\Exception\Hydration;
+use Celemas\Quma\Exception\InvalidHydrationTarget;
+use Celemas\Quma\Exception\MissingColumn;
+use Celemas\Quma\Exception\TypeCoercion;
 use Celemas\Quma\Hydratable;
 use Celemas\Quma\Hydration\ClassMetadata;
 use Celemas\Quma\Hydration\HydrationContext;
@@ -14,10 +18,6 @@ use Celemas\Quma\Hydration\NamedTypeMetadata;
 use Celemas\Quma\Hydration\StaticReflectionCache;
 use Celemas\Quma\Hydration\TypeCoercer;
 use Celemas\Quma\Hydration\TypeMetadata;
-use Celemas\Quma\HydrationException;
-use Celemas\Quma\InvalidHydrationTargetException;
-use Celemas\Quma\MissingColumnException;
-use Celemas\Quma\TypeCoercionException;
 use Countable;
 use DateTime;
 use DateTimeImmutable;
@@ -59,7 +59,7 @@ class HydrationTest extends TestCase
 
 	public function testMissingRequiredColumnIncludesContext(): void
 	{
-		$this->expectException(MissingColumnException::class);
+		$this->expectException(MissingColumn::class);
 		$this->expectExceptionMessage(
 			'Could not hydrate ' . HydrationCountry::class . ' from sql/country.sql',
 		);
@@ -84,7 +84,7 @@ class HydrationTest extends TestCase
 
 	public function testPresentNullForNonNullableParameterThrows(): void
 	{
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage('null is not allowed');
 
 		new Hydrator()->hydrate(['value' => null], HydrationIntValue::class, null);
@@ -122,7 +122,7 @@ class HydrationTest extends TestCase
 	#[DataProvider('scalarFailureProvider')]
 	public function testRejectsInvalidScalarValues(string $class, mixed $input): void
 	{
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 
 		new Hydrator()->hydrate(['value' => $input], $class, null);
 	}
@@ -168,7 +168,7 @@ class HydrationTest extends TestCase
 
 	public function testRejectsInvalidEnumValues(): void
 	{
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage('no enum case matches');
 
 		new Hydrator()->hydrate(['value' => 'missing'], HydrationStringEnumValue::class, null);
@@ -180,7 +180,7 @@ class HydrationTest extends TestCase
 		mixed $value,
 		string $message,
 	): void {
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage($message);
 
 		new Hydrator()->hydrate(['value' => $value], $class, null);
@@ -254,7 +254,7 @@ class HydrationTest extends TestCase
 	#[DataProvider('dateFailureProvider')]
 	public function testRejectsInvalidDateStrings(string $class, mixed $value): void
 	{
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 
 		new Hydrator()->hydrate(['value' => $value], $class, null);
 	}
@@ -323,7 +323,7 @@ class HydrationTest extends TestCase
 
 	public function testRejectsUnionValuesThatMatchNoArm(): void
 	{
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage('no union arm accepted');
 
 		new Hydrator()->hydrate(['value' => []], HydrationIntFloatValue::class, null);
@@ -348,7 +348,7 @@ class HydrationTest extends TestCase
 			[new NamedTypeMetadata('unknown', false, null, null, null, null)],
 		);
 
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage('unsupported declared type');
 
 		new TypeCoercer()->coerce('x', $type, $this->coercionContext());
@@ -383,19 +383,19 @@ class HydrationTest extends TestCase
 			)],
 		);
 
-		$this->expectException(TypeCoercionException::class);
+		$this->expectException(TypeCoercion::class);
 		$this->expectExceptionMessage('enum is not backed');
 
 		new TypeCoercer()->coerce('One', $type, $this->coercionContext());
 	}
 
-	public function testTypeCoercionExceptionFormatsResourceValues(): void
+	public function testTypeCoercionFormatsResourceValues(): void
 	{
 		$resource = fopen('php://memory', 'r');
 		assert(is_resource($resource), 'Test resource must be available.');
 
 		try {
-			$this->expectException(TypeCoercionException::class);
+			$this->expectException(TypeCoercion::class);
 			$this->expectExceptionMessage('stream resource');
 
 			new Hydrator()->hydrate(['value' => $resource], HydrationStringValue::class, null);
@@ -421,7 +421,7 @@ class HydrationTest extends TestCase
 
 	public function testMissingAttributeColumnReportsColumnAndParameter(): void
 	{
-		$this->expectException(MissingColumnException::class);
+		$this->expectException(MissingColumn::class);
 		$this->expectExceptionMessage("column 'email_address'");
 		$this->expectExceptionMessage("parameter '\$email'");
 
@@ -441,7 +441,7 @@ class HydrationTest extends TestCase
 
 	public function testHydratableExceptionsBubble(): void
 	{
-		$this->expectException(HydrationException::class);
+		$this->expectException(Hydration::class);
 		$this->expectExceptionMessage('factory validation failed');
 
 		new Hydrator()->hydrate([], HydrationFactoryThrowsHydration::class, null);
@@ -452,7 +452,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate(['id' => 1], HydrationFactoryThrowsRuntime::class, 'sql/factory.sql');
 			$this->fail('Expected a hydration exception.');
-		} catch (HydrationException $e) {
+		} catch (Hydration $e) {
 			$this->assertStringContainsString('from sql/factory.sql', $e->getMessage());
 			$this->assertStringContainsString('Hydratable::fromRow() failed', $e->getMessage());
 			$this->assertInstanceOf(RuntimeException::class, $e->getPrevious());
@@ -482,7 +482,7 @@ class HydrationTest extends TestCase
 
 	public function testRejectsBuiltinTargetInReflectionCache(): void
 	{
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('target is not an existing class');
 
 		new StaticReflectionCache()->metadata('int');
@@ -493,7 +493,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate([], HydrationAbstractFactory::class, null);
 			$this->fail('Expected hydration exception.');
-		} catch (HydrationException $e) {
+		} catch (Hydration $e) {
 			$this->assertStringContainsString('Hydratable::fromRow() failed', $e->getMessage());
 			$this->assertInstanceOf(\Error::class, $e->getPrevious());
 		}
@@ -501,7 +501,7 @@ class HydrationTest extends TestCase
 
 	public function testMetadataRejectsPrivateConstructors(): void
 	{
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('target is not instantiable');
 
 		new Hydrator()->hydrate([], HydrationPrivateConstructor::class, null);
@@ -509,7 +509,7 @@ class HydrationTest extends TestCase
 
 	public function testInvalidColumnAttributeArgumentsThrow(): void
 	{
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('has an invalid #[Column] attribute');
 
 		new Hydrator()->hydrate(['value' => 'x'], HydrationInvalidColumn::class, null);
@@ -525,7 +525,7 @@ class HydrationTest extends TestCase
 			}
 		};
 
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('target is not hydratable');
 
 		new Hydrator($cache)->hydrate([], stdClass::class, null);
@@ -541,7 +541,7 @@ class HydrationTest extends TestCase
 			}
 		};
 
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('target is not instantiable');
 
 		new Hydrator($cache)->hydrate([], stdClass::class, null);
@@ -552,7 +552,7 @@ class HydrationTest extends TestCase
 		try {
 			new Hydrator()->hydrate(['value' => 1], HydrationConstructorThrowsTypeError::class, null);
 			$this->fail('Expected a type coercion exception.');
-		} catch (TypeCoercionException $e) {
+		} catch (TypeCoercion $e) {
 			$this->assertStringContainsString('constructor rejected hydrated arguments', $e->getMessage());
 			$this->assertInstanceOf(TypeError::class, $e->getPrevious());
 		}
@@ -561,7 +561,7 @@ class HydrationTest extends TestCase
 	#[DataProvider('invalidTargetProvider')]
 	public function testInvalidTargetsThrow(string $class): void
 	{
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 
 		new Hydrator()->hydrate(['value' => 1], $class, null);
 	}
@@ -586,7 +586,7 @@ class HydrationTest extends TestCase
 
 	public function testClosureReturningNullThrows(): void
 	{
-		$this->expectException(InvalidHydrationTargetException::class);
+		$this->expectException(InvalidHydrationTarget::class);
 		$this->expectExceptionMessage('expected class-string, got null');
 
 		new Hydrator()->hydrate(['id' => 1], static fn(array $row): null => null, null);
@@ -830,7 +830,7 @@ final class HydrationFactoryThrowsHydration implements Hydratable
 {
 	public static function fromRow(array $row): static
 	{
-		throw new HydrationException('factory validation failed');
+		throw new Hydration('factory validation failed');
 	}
 }
 

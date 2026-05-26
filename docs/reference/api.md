@@ -147,7 +147,7 @@ Represents a prepared query.
 
 ### Execution methods
 
-- `one(string|Closure|null $map = null, ?int $fetchMode = null): array|object` returns the only row and throws `UnexpectedResultCountException` unless exactly one row exists
+- `one(string|Closure|null $map = null, ?int $fetchMode = null): array|object` returns the only row and throws `Celemas\Quma\Exception\UnexpectedResultCount` unless exactly one row exists
 - `first(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the first row or `null`
 - `fetch(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the next row from a cursor or `null`
 - `all(string|Closure|null $map = null, ?int $fetchMode = null): array` returns every row
@@ -164,7 +164,7 @@ Pass a class name or resolver closure as `$map` to hydrate rows into objects. Le
 
 ### Query result exceptions
 
-- `UnexpectedResultCountException` is thrown by `Query::one()` when the result has zero rows or more than one row.
+- `Celemas\Quma\Exception\UnexpectedResultCount` is thrown by `Query::one()` when the result has zero rows or more than one row.
 
 ## Debug environment variables
 
@@ -202,10 +202,12 @@ public static function fromRow(array $row): static;
 
 ### Hydration exceptions
 
-- `HydrationException` is the base exception for built-in hydration failures.
-- `MissingColumnException` is thrown when a required constructor parameter has no matching row column.
-- `TypeCoercionException` is thrown when a present value cannot be converted to the declared parameter type.
-- `InvalidHydrationTargetException` is thrown for invalid targets, unsupported constructor shapes, unsupported parameter types, invalid `#[Column]` values, or invalid resolver results.
+Quma hydration exceptions live in `Celemas\Quma\Exception`.
+
+- `Hydration` is the base exception for built-in hydration failures.
+- `MissingColumn` is thrown when a required constructor parameter has no matching row column.
+- `TypeCoercion` is thrown when a present value cannot be converted to the declared parameter type.
+- `InvalidHydrationTarget` is thrown for invalid targets, unsupported constructor shapes, unsupported parameter types, invalid `#[Column]` values, or invalid resolver results.
 
 ## `Celemas\Quma\Environment`
 

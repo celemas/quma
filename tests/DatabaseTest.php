@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Celemas\Quma\Tests;
 
 use Celemas\Quma\Database;
+use Celemas\Quma\Exception\UnexpectedResultCount;
 use Celemas\Quma\Tests\Util\InspectableDatabase;
-use Celemas\Quma\UnexpectedResultCountException;
 use InvalidArgumentException;
 use PDO;
 use PDOStatement;
@@ -283,7 +283,7 @@ class DatabaseTest extends TestCase
 
 	public function testOneThrowsWhenNoResultExists(): void
 	{
-		$this->expectException(UnexpectedResultCountException::class);
+		$this->expectException(UnexpectedResultCount::class);
 		$this->expectExceptionMessage('Expected exactly one result, got none.');
 
 		$this->getDb()->execute('SELECT name FROM members WHERE member = -1')->one();
@@ -291,7 +291,7 @@ class DatabaseTest extends TestCase
 
 	public function testOneThrowsWhenMultipleResultsExist(): void
 	{
-		$this->expectException(UnexpectedResultCountException::class);
+		$this->expectException(UnexpectedResultCount::class);
 		$this->expectExceptionMessage('Expected exactly one result, got more than one.');
 
 		$this->getDb()->members->list()->one();

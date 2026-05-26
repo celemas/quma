@@ -6,8 +6,8 @@ namespace Celemas\Quma\Hydration;
 
 use BackedEnum;
 use Celemas\Quma\Column;
+use Celemas\Quma\Exception\InvalidHydrationTarget;
 use Celemas\Quma\Hydratable;
-use Celemas\Quma\InvalidHydrationTargetException;
 use DateTime;
 use DateTimeImmutable;
 use ReflectionClass;
@@ -44,7 +44,7 @@ final class StaticReflectionCache implements MetadataCache
 	private function build(string $class): ClassMetadata
 	{
 		if ($this->isBuiltinTypeName($class) || !class_exists($class)) {
-			throw InvalidHydrationTargetException::forTarget(
+			throw InvalidHydrationTarget::forTarget(
 				$class,
 				reason: 'target is not an existing class',
 			);
@@ -57,7 +57,7 @@ final class StaticReflectionCache implements MetadataCache
 		$reflection = new ReflectionClass($class);
 
 		if (!$reflection->isInstantiable()) {
-			throw InvalidHydrationTargetException::forTarget($class, reason: 'target is not instantiable');
+			throw InvalidHydrationTarget::forTarget($class, reason: 'target is not instantiable');
 		}
 
 		$constructor = $reflection->getConstructor();
@@ -88,17 +88,17 @@ final class StaticReflectionCache implements MetadataCache
 		$name = $parameter->getName();
 
 		if ($parameter->isVariadic()) {
-			throw InvalidHydrationTargetException::forParameter($class, $name, 'is variadic');
+			throw InvalidHydrationTarget::forParameter($class, $name, 'is variadic');
 		}
 
 		if ($parameter->isPassedByReference()) {
-			throw InvalidHydrationTargetException::forParameter($class, $name, 'is by-reference');
+			throw InvalidHydrationTarget::forParameter($class, $name, 'is by-reference');
 		}
 
 		$type = $parameter->getType();
 
 		if ($type === null) {
-			throw InvalidHydrationTargetException::forParameter($class, $name, 'has no declared type');
+			throw InvalidHydrationTarget::forParameter($class, $name, 'has no declared type');
 		}
 
 		$column = $this->columnName($class, $parameter, $name);
@@ -134,7 +134,7 @@ final class StaticReflectionCache implements MetadataCache
 		try {
 			$column = $attributes[0]->newInstance();
 		} catch (Throwable) {
-			throw InvalidHydrationTargetException::forParameter(
+			throw InvalidHydrationTarget::forParameter(
 				$class,
 				$parameterName,
 				'has an invalid #[Column] attribute',
@@ -144,7 +144,7 @@ final class StaticReflectionCache implements MetadataCache
 		$columnName = $column->name;
 
 		if ($columnName === '' || trim($columnName) === '') {
-			throw InvalidHydrationTargetException::forParameter(
+			throw InvalidHydrationTarget::forParameter(
 				$class,
 				$parameterName,
 				'has an empty #[Column] name',
@@ -174,7 +174,7 @@ final class StaticReflectionCache implements MetadataCache
 
 			foreach ($type->getTypes() as $inner) {
 				if (!$inner instanceof ReflectionNamedType) {
-					throw InvalidHydrationTargetException::forParameter(
+					throw InvalidHydrationTarget::forParameter(
 						$class,
 						$parameterName,
 						'uses an unsupported intersection or DNF type',
@@ -197,7 +197,7 @@ final class StaticReflectionCache implements MetadataCache
 			return new TypeMetadata('union', $type->allowsNull(), $names);
 		}
 
-		throw InvalidHydrationTargetException::forParameter(
+		throw InvalidHydrationTarget::forParameter(
 			$class,
 			$parameterName,
 			'uses an unsupported intersection type',
@@ -221,7 +221,7 @@ final class StaticReflectionCache implements MetadataCache
 				return new NamedTypeMetadata($lower, true, null, $lower, null, null);
 			}
 
-			throw InvalidHydrationTargetException::forParameter(
+			throw InvalidHydrationTarget::forParameter(
 				$class,
 				$parameterName,
 				"uses unsupported type {$name}",
@@ -240,7 +240,7 @@ final class StaticReflectionCache implements MetadataCache
 			return new NamedTypeMetadata($name, false, $name, null, null, $name);
 		}
 
-		throw InvalidHydrationTargetException::forParameter(
+		throw InvalidHydrationTarget::forParameter(
 			$class,
 			$parameterName,
 			"uses unsupported type {$name}",

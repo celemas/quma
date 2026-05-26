@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Exception;
 
 use RuntimeException;
 
 /** @api */
-final class UnexpectedResultCountException extends RuntimeException
+final class UnexpectedResultCount extends RuntimeException
 {
 	public static function none(): self
 	{

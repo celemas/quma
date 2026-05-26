@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Exception;
 
 use RuntimeException;
 use Throwable;
 
 /** @api */
-class HydrationException extends RuntimeException
+class Hydration extends RuntimeException
 {
 	/**
 	 * @param class-string $class

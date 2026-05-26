@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Exception;
 
 use Throwable;
 
 /** @api */
-final class InvalidHydrationTargetException extends HydrationException
+final class InvalidHydrationTarget extends Hydration
 {
 	/** @param list<string> $rowKeys */
 	public static function forTarget(

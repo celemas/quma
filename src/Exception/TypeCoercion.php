@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celemas\Quma\Exception;
 
 use Celemas\Quma\Hydration\HydrationContext;
 use Throwable;
 
 /** @api */
-final class TypeCoercionException extends HydrationException
+final class TypeCoercion extends Hydration
 {
 	/** @internal */
 	public static function forContext(

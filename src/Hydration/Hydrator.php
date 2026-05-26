@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Hydration;
 
+use Celemas\Quma\Exception\Hydration;
+use Celemas\Quma\Exception\InvalidHydrationTarget;
+use Celemas\Quma\Exception\MissingColumn;
+use Celemas\Quma\Exception\TypeCoercion;
 use Celemas\Quma\Hydratable;
-use Celemas\Quma\HydrationException;
-use Celemas\Quma\InvalidHydrationTargetException;
-use Celemas\Quma\MissingColumnException;
-use Celemas\Quma\TypeCoercionException;
 use Closure;
 use Throwable;
 use TypeError;
@@ -42,8 +42,8 @@ final class Hydrator
 
 		try {
 			$metadata = $this->cache->metadata($class);
-		} catch (InvalidHydrationTargetException $e) {
-			throw InvalidHydrationTargetException::forTarget(
+		} catch (InvalidHydrationTarget $e) {
+			throw InvalidHydrationTarget::forTarget(
 				$class,
 				$sourcePath,
 				$rowKeys,
@@ -98,7 +98,7 @@ final class Hydrator
 		$result = $map($row);
 
 		if (!is_string($result)) {
-			throw InvalidHydrationTargetException::forClosureResult($result, $sourcePath, $rowKeys);
+			throw InvalidHydrationTarget::forClosureResult($result, $sourcePath, $rowKeys);
 		}
 
 		return $this->validateClass($result, $sourcePath, $rowKeys);
@@ -111,7 +111,7 @@ final class Hydrator
 	private function validateClass(string $target, ?string $sourcePath, array $rowKeys): string
 	{
 		if ($this->isBuiltinTypeName($target)) {
-			throw InvalidHydrationTargetException::forTarget(
+			throw InvalidHydrationTarget::forTarget(
 				$target,
 				$sourcePath,
 				$rowKeys,
@@ -120,7 +120,7 @@ final class Hydrator
 		}
 
 		if (!class_exists($target)) {
-			throw InvalidHydrationTargetException::forTarget(
+			throw InvalidHydrationTarget::forTarget(
 				$target,
 				$sourcePath,
 				$rowKeys,
@@ -143,7 +143,7 @@ final class Hydrator
 		array $rowKeys,
 	): object {
 		if (!is_a($class, Hydratable::class, true)) {
-			throw InvalidHydrationTargetException::forTarget(
+			throw InvalidHydrationTarget::forTarget(
 				$class,
 				$sourcePath,
 				$rowKeys,
@@ -155,10 +155,10 @@ final class Hydrator
 
 		try {
 			return $hydratable::fromRow($row);
-		} catch (HydrationException $e) {
+		} catch (Hydration $e) {
 			throw $e;
 		} catch (Throwable $e) {
-			throw HydrationException::fromHydratableFailure($class, $sourcePath, $rowKeys, $e);
+			throw Hydration::fromHydratableFailure($class, $sourcePath, $rowKeys, $e);
 		}
 	}
 
@@ -173,7 +173,7 @@ final class Hydrator
 		array $rowKeys,
 	): object {
 		if (!$metadata->instantiable) {
-			throw InvalidHydrationTargetException::forTarget(
+			throw InvalidHydrationTarget::forTarget(
 				$metadata->class,
 				$sourcePath,
 				$rowKeys,
@@ -215,7 +215,7 @@ final class Hydrator
 				continue;
 			}
 
-			throw MissingColumnException::forColumn(
+			throw MissingColumn::forColumn(
 				$metadata->class,
 				$parameter->name,
 				$parameter->column,
@@ -230,7 +230,7 @@ final class Hydrator
 			/** @psalm-suppress MixedMethodCall */
 			return new $class(...$args);
 		} catch (TypeError $e) {
-			throw TypeCoercionException::constructorFailure(
+			throw TypeCoercion::constructorFailure(
 				$metadata->class,
 				$sourcePath,
 				$rowKeys,

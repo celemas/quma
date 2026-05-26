@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma;
 
+use Celemas\Quma\Exception\UnexpectedResultCount;
 use Celemas\Quma\Hydration\Hydrator;
 use Closure;
 use Generator;
@@ -68,11 +69,11 @@ class Query
 			$record = $this->fetchArrayRecord($fetchMode);
 
 			if ($record === null) {
-				throw UnexpectedResultCountException::none();
+				throw UnexpectedResultCount::none();
 			}
 
 			if ($this->fetchArrayRecord($fetchMode) !== null) {
-				throw UnexpectedResultCountException::multiple();
+				throw UnexpectedResultCount::multiple();
 			}
 
 			return $this->hydrateRecord($record, $map);

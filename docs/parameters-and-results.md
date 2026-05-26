@@ -60,7 +60,7 @@ Use `one()` when the query must return exactly one row.
 $user = $db->users->byId(42)->one();
 ```
 
-`one()` returns the row. It throws `UnexpectedResultCountException` when the query returns no row or more than one row.
+`one()` returns the row. It throws `Celemas\Quma\Exception\UnexpectedResultCount` when the query returns no row or more than one row.
 
 ## Fetch the first row
 
@@ -132,7 +132,7 @@ foreach ($db->users->list()->lazy(User::class) as $user) {
 }
 ```
 
-Quma reads public constructor parameters and matches each parameter name to a row column. Missing optional columns use the constructor default. Missing required columns throw `MissingColumnException`. Extra row columns are ignored.
+Quma reads public constructor parameters and matches each parameter name to a row column. Missing optional columns use the constructor default. Missing required columns throw `Celemas\Quma\Exception\MissingColumn`. Extra row columns are ignored.
 
 Use `#[Column]` when the database column name differs from the constructor parameter name.
 
@@ -157,7 +157,7 @@ Constructor hydration supports these declared types:
 - `DateTimeImmutable` and `DateTime` from common SQL date/time strings
 - backed enums from their backing values
 
-Unsupported constructor shapes or types throw `InvalidHydrationTargetException`. Present values that cannot be converted to the declared type throw `TypeCoercionException`. A present `null` never falls back to a default; it must be accepted by the declared type.
+Unsupported constructor shapes or types throw `Celemas\Quma\Exception\InvalidHydrationTarget`. Present values that cannot be converted to the declared type throw `Celemas\Quma\Exception\TypeCoercion`. A present `null` never falls back to a default; it must be accepted by the declared type.
 
 ### Custom hydration
 
@@ -192,7 +192,7 @@ $events = $db->events->list()->all(
 );
 ```
 
-The resolver runs once per hydrated row. It must return an existing class name. Returning `null`, a scalar type name, an unknown class, or a non-hydratable abstract class throws `InvalidHydrationTargetException`.
+The resolver runs once per hydrated row. It must return an existing class name. Returning `null`, a scalar type name, an unknown class, or a non-hydratable abstract class throws `Celemas\Quma\Exception\InvalidHydrationTarget`.
 
 ## Run write queries
 
