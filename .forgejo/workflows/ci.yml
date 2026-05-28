@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+
+jobs:
+  ci:
+    runs-on: ci-base
+    env:
+      QUMA_TEST_DRIVERS: sqlite,mysql,pgsql
+      QUMA_DB_MYSQL_HOST: mysql
+      QUMA_DB_PGSQL_HOST: pgsql
+      QUMA_DB_NAME: quma_db
+      QUMA_DB_USER: root
+      QUMA_DB_PASSWORD: root
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: quma_db
+          MYSQL_ROOT_PASSWORD: root
+        options: >-
+          --health-cmd="mysqladmin ping -uroot -proot"
+          --health-interval=5s --health-retries=20
+      pgsql:
+        image: postgres:17
+        env:
+          POSTGRES_DB: quma_db
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: root
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s --health-retries=20
+    steps:
+      - name: Checkout repo
+        uses: https://code.forgejo.org/actions/checkout@v5
+
+      - name: Install packages with composer
+        run: composer install --prefer-dist --no-interaction
+        env:
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{ secrets.GH_TOKEN }}"}}'
+
+      - name: Run PHP lint checks
+        run: composer lint
+
+      - name: Run Markdown lint checks
+        run: composer docs:lint
+        env:
+          npm_config_yes: 'true'
+
+      - name: Run tests with coverage
+        run: composer coverage:test
+        env:
+            XDEBUG_MODE: coverage
+
+      - name: Analyze coverage
+        run: composer coverage:analyze
+
+      - name: Upload coverage to Codecov
+        uses: https://github.com/codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./.coverage/coverage.xml
+          fail_ci_if_error: true
+
+      - name: Run static analysis
+        run: composer types -- --output-format=github --shepherd
