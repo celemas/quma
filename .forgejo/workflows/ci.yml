@@ -56,16 +56,9 @@ jobs:
       - name: Analyze coverage
         run: composer coverage:analyze
 
-      - name: Upload coverage to Codecov
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          codecov upload-process \
-            --fail-on-error \
-            --disable-search \
-            -f ./.coverage/coverage.xml \
-            -F phpunit \
-            -n forgejo-${{ forgejo.run_id }}
+      - name: Deploy coverage report
+        if: ${{ always() && forgejo.ref == 'refs/heads/main' }}
+        run: deploy-coverage .coverage
 
       - name: Run static analysis
         run: composer types -- --output-format=github --shepherd
