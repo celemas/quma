@@ -15,7 +15,6 @@ composer test:mysql
 composer test:pgsql
 composer test:all
 composer coverage
-composer coverage:all
 composer types
 composer docs:lint
 composer ci

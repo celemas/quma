@@ -57,7 +57,7 @@
 		"docs:lint": "npx markdownlint-cli2@0.22.1 --config vendor/celemas/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
 		"ci": [
 			"composer lint",
-			"composer coverage:all",
+			"composer coverage",
 			"composer types",
 			"composer docs:lint"
 		]
