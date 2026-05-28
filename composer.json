@@ -36,26 +36,25 @@
 		"celemas/dev": "^4.2"
 	},
 	"scripts": {
-		"test:base": "./vendor/bin/phpunit --testdox --no-coverage --colors=always",
+		"test:base": "@php vendor/bin/phpunit --testdox --no-coverage --colors=always",
 		"test:sqlite": "QUMA_TEST_DRIVERS=sqlite composer test:base",
 		"test:mysql": "QUMA_TEST_DRIVERS=mysql composer test:base",
 		"test:pgsql": "QUMA_TEST_DRIVERS=pgsql composer test:base",
 		"test:all": "QUMA_TEST_DRIVERS=sqlite,mysql,pgsql composer test:base",
 		"test": "composer test:base",
-		"coverage:test": "php -d xdebug.mode=coverage ./vendor/bin/phpunit --testdox --path-coverage --colors=always",
-		"coverage:analyze": "./vendor/bin/coverlyzer .coverage/coverage.php",
+		"coverage:test": "QUMA_TEST_DRIVERS=sqlite,mysql,pgsql php -d xdebug.mode=coverage vendor/bin/phpunit --testdox --path-coverage --colors=always",
+		"coverage:analyze": "@php vendor/bin/coverlyzer .coverage/coverage.php",
 		"coverage": [
 			"composer coverage:test",
 			"composer coverage:analyze"
 		],
-		"coverage:all": "QUMA_TEST_DRIVERS=sqlite,mysql,pgsql composer coverage",
-		"types": "./vendor/bin/psalm --no-cache",
+		"types": "@php vendor/bin/psalm --no-cache",
 		"lint": [
-			"./vendor/bin/mago fmt --check",
-			"./vendor/bin/mago lint"
+			"@php vendor/bin/mago fmt --check",
+			"@php vendor/bin/mago lint"
 		],
-		"docs:format": "npx prettier@3.6.2 --write --config ./docs/.prettierrc README.md CHANGELOG.md LICENSE.md docs/",
-		"docs:lint": "npx markdownlint-cli2@0.22.1 --config ./vendor/celemas/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
+		"docs:format": "npx prettier@3.6.2 --write --config docs/.prettierrc README.md CHANGELOG.md LICENSE.md docs/",
+		"docs:lint": "npx markdownlint-cli2@0.22.1 --config vendor/celemas/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
 		"ci": [
 			"composer lint",
 			"composer coverage:all",
