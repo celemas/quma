@@ -56,9 +56,16 @@ jobs:
       - name: Analyze coverage
         run: composer coverage:analyze
 
-      - name: Deploy coverage report
+      - name: Deploy code coverage report
         if: ${{ always() && forgejo.ref == 'refs/heads/main' }}
-        run: deploy-coverage .coverage
+        run: deploy-code-coverage .coverage
 
       - name: Run static analysis
-        run: composer types -- --output-format=github --shepherd
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          composer types -- --stats --report=psalm-issues.json 2>&1 | tee psalm-stats.txt
+
+      - name: Deploy type coverage report
+        if: ${{ always() && forgejo.ref == 'refs/heads/main' }}
+        run: deploy-type-coverage
