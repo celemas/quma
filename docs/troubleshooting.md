@@ -49,7 +49,7 @@ Check:
 
 ## `Expected exactly one result, got ...`
 
-`Query::one()` requires exactly one row. It throws `Celemas\Quma\Exception\UnexpectedResultCount` when the query returns no rows or more than one row.
+`Query::one()` requires exactly one row. It throws `Celema\Quma\Exception\UnexpectedResultCount` when the query returns no rows or more than one row.
 
 Use `first()` if zero or multiple rows are valid and you only need the first row. Use `fetch()` if you want to read successive rows from the same query cursor.
 
@@ -98,7 +98,7 @@ You are using namespaced migrations and ran the migration command without `--nam
 Fix one of these:
 
 - add a `default` namespace
-- run the command with `--namespace <name>`
+- run the command with `--namespace=<name>`
 
 ## `No migration directories configured. Aborting.`
 

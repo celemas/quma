@@ -1,10 +1,10 @@
-# Celemas Quma
+# Celema Quma
 
 <!-- prettier-ignore-start -->
-[![ci](https://codeberg.org/celemas/quma/badges/workflows/ci.yml/badge.svg?style=flat&logo=codeberg&logoColor=white&label=ci)](https://codeberg.org/celemas/quma/actions)
-[![code coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celemas.dev%2Fcelemas%2Fquma%2Fcode%2Fbadge.json)](https://cov.celemas.dev/celemas/quma/code)
-[![type coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celemas.dev%2Fcelemas%2Fquma%2Ftypes%2Fbadge-cover.json)](https://cov.celemas.dev/celemas/quma/types)
-[![psalm level](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celemas.dev%2Fcelemas%2Fquma%2Ftypes%2Fbadge-level.json)](https://cov.celemas.dev/celemas/quma/types)
+[![ci](https://codeberg.org/celema/quma/badges/workflows/ci.yml/badge.svg?style=flat&logo=codeberg&logoColor=white&label=ci)](https://codeberg.org/celema/quma/actions)
+[![code coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celema.dev%2Fcelema%2Fquma%2Fcode%2Fbadge.json)](https://cov.celema.dev/celema/quma/code)
+[![type coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celema.dev%2Fcelema%2Fquma%2Ftypes%2Fbadge-cover.json)](https://cov.celema.dev/celema/quma/types)
+[![psalm level](https://img.shields.io/endpoint?url=https%3A%2F%2Fcov.celema.dev%2Fcelema%2Fquma%2Ftypes%2Fbadge-level.json)](https://cov.celema.dev/celema/quma/types)
 [![Software License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 <!-- prettier-ignore-end -->
 
@@ -22,7 +22,7 @@ Quma currently requires:
 ## Install
 
 ```bash
-composer require celemas/quma
+composer require celema/quma
 ```
 
 ## Quickstart
@@ -49,8 +49,8 @@ Then configure Quma and run the query:
 
 declare(strict_types=1);
 
-use Celemas\Quma\Connection;
-use Celemas\Quma\Database;
+use Celema\Quma\Connection;
+use Celema\Quma\Database;
 
 $conn = new Connection(
     'sqlite:' . __DIR__ . '/app.sqlite',

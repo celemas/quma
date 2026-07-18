@@ -39,7 +39,7 @@ In a namespaced setup, each key becomes the namespace name.
 Use `--namespace` with the `migrations` command.
 
 ```bash
-php run db:migrations --namespace feature --apply
+php run db:migrations --namespace=feature --apply
 ```
 
 Quma loads only the files from that namespace.
@@ -92,7 +92,7 @@ Use consistent timestamp prefixes to keep the order predictable. File names only
 If you run a namespace that does not exist, Quma stops with an error.
 
 ```bash
-php run db:migrations --namespace missing --apply
+php run db:migrations --namespace=missing --apply
 ```
 
 ## Adding migration directories later

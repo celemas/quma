@@ -8,7 +8,7 @@ Use a PHP migration when SQL alone is not enough. A PHP migration file must decl
 
 ## Contract
 
-A PHP migration file must return the class name of a class that implements `Celemas\Quma\Contract\Migration`.
+A PHP migration file must return the class name of a class that implements `Celema\Quma\Contract\Migration`.
 
 The interface is:
 
@@ -17,9 +17,9 @@ The interface is:
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Contract;
+namespace Celema\Quma\Contract;
 
-use Celemas\Quma\Environment;
+use Celema\Quma\Environment;
 
 interface Migration
 {
@@ -36,8 +36,8 @@ declare(strict_types=1);
 
 namespace Quma\Migrations\M250320_102000_CreateUsers;
 
-use Celemas\Quma\Contract;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract;
+use Celema\Quma\Environment;
 
 class Migration implements Contract\Migration
 {
@@ -62,11 +62,11 @@ Without a migration factory, Quma instantiates the returned class with no constr
 $migration = new $class();
 ```
 
-If your migration has required constructor arguments, configure a `Celemas\Quma\Contract\MigrationFactory` when creating the Quma commands. Quma passes the returned class name and the active `Environment` to the factory.
+If your migration has required constructor arguments, configure a `Celema\Quma\Contract\MigrationFactory` when creating the Quma commands. Quma passes the returned class name and the active `Environment` to the factory.
 
 ```php
-use Celemas\Quma\Contract\Migration;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract\Migration;
+use Celema\Quma\Environment;
 
 interface MigrationFactory
 {
@@ -79,16 +79,16 @@ Quma does not depend on a container package. Applications can use any factory im
 
 ### Wire example
 
-Install `celemas/wire` in the application if you want autowiring.
+Install `celema/wire` in the application if you want autowiring.
 
 ```php
-use Celemas\Quma\Connection;
-use Celemas\Quma\Contract\Migration;
-use Celemas\Quma\Contract\MigrationFactory;
-use Celemas\Quma\Commands;
-use Celemas\Quma\Database;
-use Celemas\Quma\Environment;
-use Celemas\Wire\Wire;
+use Celema\Quma\Connection;
+use Celema\Quma\Contract\Migration;
+use Celema\Quma\Contract\MigrationFactory;
+use Celema\Quma\Commands;
+use Celema\Quma\Database;
+use Celema\Quma\Environment;
+use Celema\Wire\Wire;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 
@@ -124,7 +124,7 @@ $commands = Commands::get(
 );
 ```
 
-`celemas/container` works with this example because it implements PSR-11 and uses Wire for autowiring.
+`celema/container` works with this example because it implements PSR-11 and uses Wire for autowiring.
 
 ## Autoloading
 
@@ -158,8 +158,8 @@ declare(strict_types=1);
 
 namespace Quma\Migrations\M250320_103000_AddCreatedAt;
 
-use Celemas\Quma\Contract;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract;
+use Celema\Quma\Environment;
 
 class Migration implements Contract\Migration
 {

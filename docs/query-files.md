@@ -51,7 +51,7 @@ WHERE published = :published;
 Configure replacements and delimiters explicitly on `Connection` with `placeholders()`.
 
 ```php
-use Celemas\Quma\Delimiters;
+use Celema\Quma\Delimiters;
 
 $conn = new Connection(
     'pgsql:host=localhost;dbname=app',

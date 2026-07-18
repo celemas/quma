@@ -4,20 +4,20 @@ title: CLI
 
 # CLI
 
-Quma ships with migration-related commands that plug into `celemas/cli`.
+Quma ships with migration-related commands that plug into `celema/console`.
 
 ## Register the commands
 
-Use `Celemas\Quma\Commands::get()` to build the command set.
+Use `Celema\Quma\Commands::get()` to build the command set.
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-use Celemas\Cli\Runner;
-use Celemas\Quma\Commands;
-use Celemas\Quma\Connection;
+use Celema\Console\Runner;
+use Celema\Quma\Commands;
+use Celema\Quma\Connection;
 
 $conn = new Connection(
     'sqlite:' . __DIR__ . '/app.sqlite',
@@ -54,9 +54,9 @@ Options:
 - `--apply` runs and records pending migrations
 - `--test-run` runs pending migrations inside a transaction and rolls them back; only supported on SQLite and PostgreSQL
 - `--yes` confirms `--test-run` in non-interactive shells
-- `--namespace <name>` runs only one migration namespace
+- `--namespace=<name>` runs only one migration namespace
 - `--stacktrace` prints stack traces for migration failures
-- `--conn <name>` selects one named connection when you registered multiple connections
+- `--conn=<name>` selects one named connection when you registered multiple connections
 
 Without `--apply` or `--test-run`, `db:migrations` is plan-only for every driver. It lists pending migrations and exits without executing SQL migrations, rendering `.tpql` migrations, requiring `.php` migrations, creating the metadata table, or recording anything.
 
@@ -77,20 +77,20 @@ The `db:migrations` command already creates the table automatically when possibl
 Options:
 
 - `--stacktrace`
-- `--conn <name>`
+- `--conn=<name>`
 
 ## `db:add-migration`
 
 Creates a new migration file in the first configured migration directory.
 
 ```bash
-php run db:add-migration --file create-users.sql
+php run db:add-migration --file=create-users.sql
 ```
 
 Options:
 
-- `-f <name>` or `--file <name>` sets the file name
-- `--conn <name>` selects one named connection
+- `-f=<name>` or `--file=<name>` sets the file name
+- `--conn=<name>` selects one named connection
 
 If you omit the extension, Quma creates a `.sql` file.
 
@@ -116,7 +116,7 @@ $commands = Commands::get([
 Select one at runtime:
 
 ```bash
-php run db:migrations --conn reporting --apply
+php run db:migrations --conn=reporting --apply
 ```
 
 If the selected connection does not exist, Quma throws a runtime error.

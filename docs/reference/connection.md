@@ -32,8 +32,8 @@ All configured paths must already exist. Otherwise Quma throws `ValueError`.
 ## Example
 
 ```php
-use Celemas\Quma\Connection;
-use Celemas\Quma\Delimiters;
+use Celema\Quma\Connection;
+use Celema\Quma\Delimiters;
 use PDO;
 
 $conn = new Connection(
@@ -117,7 +117,7 @@ Enables static placeholders with explicit delimiters and replacements. If you do
 The recommended delimiter preset is `Delimiters::comments()`, which finds SQL comment tokens such as `/*:prefix:*/`. This keeps unprocessed SQL syntactically valid for database tools.
 
 ```php
-use Celemas\Quma\Delimiters;
+use Celema\Quma\Delimiters;
 
 $conn->placeholders(Delimiters::comments(), [
     'all' => ['prefix' => ''],

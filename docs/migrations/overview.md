@@ -67,7 +67,7 @@ Quma only applies the file that matches the current driver.
 
 ## Running migrations from the CLI
 
-Quma exposes a `migrations` command through `Celemas\Quma\Commands::get()`.
+Quma exposes a `migrations` command through `Celema\Quma\Commands::get()`.
 
 Without `--apply` or `--test-run`, the command is plan-only for every driver. It lists pending migrations and exits without executing SQL migrations, rendering `.tpql` migrations, requiring `.php` migrations, creating the metadata table, or recording anything.
 
@@ -189,7 +189,7 @@ As with query templates, generated placeholder tokens are allowed when they come
 
 ## PHP migrations
 
-A `.php` migration must return a class name that implements `Celemas\Quma\Contract\Migration`.
+A `.php` migration must return a class name that implements `Celema\Quma\Contract\Migration`.
 
 ```php
 <?php
@@ -198,8 +198,8 @@ declare(strict_types=1);
 
 namespace Quma\Migrations\M250320_102000_CreateExample;
 
-use Celemas\Quma\Contract;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract;
+use Celema\Quma\Environment;
 
 class Migration implements Contract\Migration
 {

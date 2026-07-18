@@ -6,7 +6,7 @@ title: API reference
 
 This page summarizes the main public types that application code works with directly.
 
-## `Celemas\Quma\Connection`
+## `Celema\Quma\Connection`
 
 Stores DSN, SQL directory, migration, placeholder, delimiter, and PDO configuration.
 
@@ -32,7 +32,7 @@ new Connection(string $dsn, string|array $sql)
 
 Read resolved configuration through `$conn->config`. See [Connection reference](connection.md) for config properties and configuration formats.
 
-## `Celemas\Quma\Config`
+## `Celema\Quma\Config`
 
 Read-only resolved connection configuration.
 
@@ -48,7 +48,7 @@ Common properties:
 - `pdo: PdoConfig`
 - `placeholders: ?Placeholders`
 
-## `Celemas\Quma\PdoConfig`
+## `Celema\Quma\PdoConfig`
 
 Read-only resolved PDO configuration.
 
@@ -63,7 +63,7 @@ Methods:
 
 - `effectiveOptions(): array` returns PDO options with Quma defaults and required exception mode applied
 
-## `Celemas\Quma\Delimiters`
+## `Celema\Quma\Delimiters`
 
 Configures static placeholder delimiters.
 
@@ -75,7 +75,7 @@ new Delimiters(string $open, string $close)
 
 Delimiter strings must not be empty and must not contain NUL bytes. Use `Delimiters::comments()` for SQL-friendly comment placeholders.
 
-## `Celemas\Quma\Database`
+## `Celema\Quma\Database`
 
 The main entry point for query execution.
 
@@ -119,7 +119,7 @@ $db->users;
 
 This returns a `Folder` instance for the `users` SQL directory.
 
-## `Celemas\Quma\Folder`
+## `Celema\Quma\Folder`
 
 Represents one SQL folder.
 
@@ -130,7 +130,7 @@ Represents one SQL folder.
 
 If the script file does not exist, `Folder` throws `RuntimeException`.
 
-## `Celemas\Quma\Script`
+## `Celema\Quma\Script`
 
 Wraps a static `.sql` file or a template `.tpql` file.
 
@@ -141,13 +141,13 @@ Wraps a static `.sql` file or a template `.tpql` file.
 
 Most application code uses a `Script` implicitly through `$db->folder->queryName(...)`.
 
-## `Celemas\Quma\Query`
+## `Celema\Quma\Query`
 
 Represents a prepared query.
 
 ### Execution methods
 
-- `one(string|Closure|null $map = null, ?int $fetchMode = null): array|object` returns the only row and throws `Celemas\Quma\Exception\UnexpectedResultCount` unless exactly one row exists
+- `one(string|Closure|null $map = null, ?int $fetchMode = null): array|object` returns the only row and throws `Celema\Quma\Exception\UnexpectedResultCount` unless exactly one row exists
 - `first(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the first row or `null`
 - `fetch(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the next row from a cursor or `null`
 - `all(string|Closure|null $map = null, ?int $fetchMode = null): array` returns every row
@@ -164,7 +164,7 @@ Pass a class name or resolver closure as `$map` to hydrate rows into objects. Le
 
 ### Query result exceptions
 
-- `Celemas\Quma\Exception\UnexpectedResultCount` is thrown by `Query::one()` when the result has zero rows or more than one row.
+- `Celema\Quma\Exception\UnexpectedResultCount` is thrown by `Query::one()` when the result has zero rows or more than one row.
 
 ## Debug environment variables
 
@@ -182,7 +182,7 @@ Debug directories must already exist and be writable. Keep them outside the publ
 
 ## Row hydration types
 
-### `Celemas\Quma\Column`
+### `Celema\Quma\Column`
 
 Constructor-parameter attribute for mapping a parameter to a different row column.
 
@@ -191,7 +191,7 @@ Constructor-parameter attribute for mapping a parameter to a different row colum
 public string $email
 ```
 
-### `Celemas\Quma\Hydratable`
+### `Celema\Quma\Hydratable`
 
 Interface for classes that own custom row hydration.
 
@@ -202,14 +202,14 @@ public static function fromRow(array $row): static;
 
 ### Hydration exceptions
 
-Quma hydration exceptions live in `Celemas\Quma\Exception`.
+Quma hydration exceptions live in `Celema\Quma\Exception`.
 
 - `HydrationFailure` is the base exception for built-in hydration failures.
 - `MissingColumn` is thrown when a required constructor parameter has no matching row column.
 - `InvalidTypeCoercion` is thrown when a present value cannot be converted to the declared parameter type.
 - `InvalidHydrationTarget` is thrown for invalid targets, unsupported constructor shapes, unsupported parameter types, invalid `#[Column]` values, or invalid resolver results.
 
-## `Celemas\Quma\Environment`
+## `Celema\Quma\Environment`
 
 Provides the runtime context for migration commands and PHP migrations.
 
@@ -230,7 +230,7 @@ Provides the runtime context for migration commands and PHP migrations.
 - `checkIfMigrationsTableExists(Database $db): bool`
 - `getMigrationsTableDDL(): string|false`
 
-## `Celemas\Quma\Contract\Migration`
+## `Celema\Quma\Contract\Migration`
 
 Implemented by PHP migrations.
 
@@ -243,7 +243,7 @@ interface Migration
 
 PHP migration files must return a class name that implements this contract.
 
-## `Celemas\Quma\Contract\MigrationFactory`
+## `Celema\Quma\Contract\MigrationFactory`
 
 Optional factory for constructing PHP migrations with custom constructors.
 
@@ -255,7 +255,7 @@ interface MigrationFactory
 }
 ```
 
-## `Celemas\Quma\Commands`
+## `Celema\Quma\Commands`
 
 Factory for the bundled CLI commands.
 
@@ -266,7 +266,7 @@ Commands::get(
     array|Connection $conn,
     array $options = [],
     ?MigrationFactory $migrationFactory = null,
-): Celemas\Cli\Commands
+): Celema\Console\Commands
 ```
 
 Pass either one `Connection` or an array of named connections. Pass a migration factory when PHP migrations need constructor dependency injection.
