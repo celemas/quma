@@ -7,10 +7,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Cli\Commands;
-use Celemas\Cli\Runner;
+use Celema\Console\Commands;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -125,8 +124,7 @@ class CreateMigrationsTest extends TestCase
 		$argv = ['run', 'create-migrations-table'];
 
 		if ($connectionKey !== null) {
-			$argv[] = '--conn';
-			$argv[] = $connectionKey;
+			$argv[] = "--conn={$connectionKey}";
 		}
 
 		return $this->runCommand(
@@ -154,7 +152,7 @@ class CreateMigrationsTest extends TestCase
 		ob_start();
 
 		try {
-			$result = new Runner($commandFactory())->run();
+			$result = $this->consoleRunner($commandFactory())->run();
 			$output = ob_get_clean();
 
 			return [$result, is_string($output) ? $output : ''];

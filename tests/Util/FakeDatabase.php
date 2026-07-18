@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests\Util;
+namespace Celema\Quma\Tests\Util;
 
-use Celemas\Quma\Connection;
-use Celemas\Quma\Database;
-use Celemas\Quma\Query;
+use Celema\Quma\Connection;
+use Celema\Quma\Database;
+use Celema\Quma\Query;
 
 final class FakeDatabase extends Database
 {

@@ -2,9 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
-
-use Celemas\Cli\Runner;
+namespace Celema\Quma\Tests;
 
 /**
  * @internal
@@ -20,7 +18,7 @@ class AddMigrationTest extends TestCase
 
 		try {
 			ob_start();
-			$exit = new Runner($this->commands(migrations: ['temp' => $dir]))->run();
+			$exit = $this->consoleRunner($this->commands(migrations: ['temp' => $dir]))->run();
 			$output = (string) ob_get_clean();
 
 			// run() now returns an exit code; the created path is printed as
@@ -50,7 +48,7 @@ class AddMigrationTest extends TestCase
 		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
 
 		ob_start();
-		$result = new Runner($this->commands(migrations: []))->run();
+		$result = $this->consoleRunner($this->commands(migrations: []))->run();
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -63,7 +61,7 @@ class AddMigrationTest extends TestCase
 		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
 
 		ob_start();
-		$result = new Runner($this->commands(migrations: ['empty' => []]))->run();
+		$result = $this->consoleRunner($this->commands(migrations: ['empty' => []]))->run();
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -83,7 +81,7 @@ class AddMigrationTest extends TestCase
 		$handler = set_error_handler(static fn(): bool => true);
 		try {
 			ob_start();
-			$result = new Runner($this->commands(migrations: ['temp' => $tempFile]))->run();
+			$result = $this->consoleRunner($this->commands(migrations: ['temp' => $tempFile]))->run();
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {

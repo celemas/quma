@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Hydration;
+namespace Celema\Quma\Hydration;
 
 /** @internal */
 final readonly class ParameterMetadata

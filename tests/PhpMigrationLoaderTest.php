@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Contract\Migration as MigrationContract;
-use Celemas\Quma\Contract\MigrationFactory;
-use Celemas\Quma\Environment;
-use Celemas\Quma\Migrations\PhpLoader;
+use Celema\Quma\Contract\Migration as MigrationContract;
+use Celema\Quma\Contract\MigrationFactory;
+use Celema\Quma\Environment;
+use Celema\Quma\Migrations\PhpLoader;
 use RuntimeException;
 
 /**
@@ -165,8 +165,8 @@ class PhpMigrationLoaderTest extends TestCase
 
 			namespace {$namespace};
 
-			use Celemas\\Quma\\Contract;
-			use Celemas\\Quma\\Environment;
+			use Celema\\Quma\\Contract;
+			use Celema\\Quma\\Environment;
 
 			final class Migration implements Contract\\Migration
 			{
@@ -190,8 +190,8 @@ class PhpMigrationLoaderTest extends TestCase
 
 			namespace {$namespace};
 
-			use Celemas\\Quma\\Contract;
-			use Celemas\\Quma\\Environment;
+			use Celema\\Quma\\Contract;
+			use Celema\\Quma\\Environment;
 
 			final class Migration implements Contract\\Migration
 			{

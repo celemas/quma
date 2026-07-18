@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Commands;
+namespace Celema\Quma\Commands;
 
-use Celemas\Cli\Args;
-use Celemas\Cli\Command;
-use Celemas\Quma\Connection;
-use Celemas\Quma\Contract;
-use Celemas\Quma\Environment;
-use Celemas\Quma\Migrations\DriverPolicy;
-use Celemas\Quma\Migrations\Executor;
-use Celemas\Quma\Migrations\Log;
-use Celemas\Quma\Migrations\MetadataTable;
-use Celemas\Quma\Migrations\PhpLoader;
-use Celemas\Quma\Migrations\Plan;
-use Celemas\Quma\Migrations\Planner;
-use Celemas\Quma\Migrations\Runner;
-use Celemas\Quma\Migrations\RunOptions;
-use Celemas\Quma\Migrations\TestRunConfirmation;
+use Celema\Console\Args;
+use Celema\Console\Command;
+use Celema\Quma\Connection;
+use Celema\Quma\Contract;
+use Celema\Quma\Environment;
+use Celema\Quma\Migrations\DriverPolicy;
+use Celema\Quma\Migrations\Executor;
+use Celema\Quma\Migrations\Log;
+use Celema\Quma\Migrations\MetadataTable;
+use Celema\Quma\Migrations\PhpLoader;
+use Celema\Quma\Migrations\Plan;
+use Celema\Quma\Migrations\Planner;
+use Celema\Quma\Migrations\Runner;
+use Celema\Quma\Migrations\RunOptions;
+use Celema\Quma\Migrations\TestRunConfirmation;
 use Override;
 
 final class Migrations extends Command

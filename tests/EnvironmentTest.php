@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Environment;
-use Celemas\Quma\Tests\Util\FakeDatabase;
+use Celema\Quma\Environment;
+use Celema\Quma\Tests\Util\FakeDatabase;
 
 /**
  * @internal

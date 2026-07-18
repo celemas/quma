@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celema\Quma;
 
-use Celemas\Cli\Commands as BaseCommands;
-use Celemas\Quma\Commands\Add;
-use Celemas\Quma\Commands\CreateMigrationsTable;
-use Celemas\Quma\Commands\Migrations;
-use Celemas\Quma\Contract\MigrationFactory;
+use Celema\Console\Commands as BaseCommands;
+use Celema\Quma\Commands\Add;
+use Celema\Quma\Commands\CreateMigrationsTable;
+use Celema\Quma\Commands\Migrations;
+use Celema\Quma\Contract\MigrationFactory;
 
 /** @api */
 class Commands

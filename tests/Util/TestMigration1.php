@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests\Util;
+namespace Celema\Quma\Tests\Util;
 
-use Celemas\Quma\Contract\Migration;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract\Migration;
+use Celema\Quma\Environment;
 use PDO;
 
 final class TestMigration1 implements Migration

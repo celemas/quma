@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Commands;
+namespace Celema\Quma\Commands;
 
-use Celemas\Cli\Command as BaseCommand;
-use Celemas\Quma\Connection;
-use Celemas\Quma\Environment;
+use Celema\Console\Command as BaseCommand;
+use Celema\Quma\Connection;
+use Celema\Quma\Environment;
 
 abstract class Command extends BaseCommand
 {

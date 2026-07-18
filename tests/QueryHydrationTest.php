@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Database;
-use Celemas\Quma\Exception\UnexpectedResultCount;
+use Celema\Quma\Database;
+use Celema\Quma\Exception\UnexpectedResultCount;
 use InvalidArgumentException;
 use PDO;
 

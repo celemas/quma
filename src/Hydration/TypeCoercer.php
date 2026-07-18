@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Hydration;
+namespace Celema\Quma\Hydration;
 
 use BackedEnum;
-use Celemas\Quma\Exception\InvalidTypeCoercion;
+use Celema\Quma\Exception\InvalidTypeCoercion;
 use DateTime;
 use DateTimeImmutable;
 use DateTimeZone;

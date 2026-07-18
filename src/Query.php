@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celema\Quma;
 
-use Celemas\Quma\Exception\UnexpectedResultCount;
-use Celemas\Quma\Hydration\Hydrator;
+use Celema\Quma\Exception\UnexpectedResultCount;
+use Celema\Quma\Hydration\Hydrator;
 use Closure;
 use Generator;
 use InvalidArgumentException;

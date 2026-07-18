@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Cli\Args;
-use Celemas\Quma\Commands\CreateMigrationsTable;
-use Celemas\Quma\Commands\Migrations;
-use Celemas\Quma\Connection;
-use Celemas\Quma\Database;
-use Celemas\Quma\Environment;
-use Celemas\Quma\Migrations\DriverPolicy;
-use Celemas\Quma\Migrations\Executor;
-use Celemas\Quma\Migrations\Log;
-use Celemas\Quma\Migrations\PhpLoader;
-use Celemas\Quma\Migrations\Plan;
-use Celemas\Quma\Migrations\Planner;
-use Celemas\Quma\Migrations\Runner as MigrationRunner;
-use Celemas\Quma\Migrations\RunOptions;
+use Celema\Console\Args;
+use Celema\Quma\Commands\CreateMigrationsTable;
+use Celema\Quma\Commands\Migrations;
+use Celema\Quma\Connection;
+use Celema\Quma\Database;
+use Celema\Quma\Environment;
+use Celema\Quma\Migrations\DriverPolicy;
+use Celema\Quma\Migrations\Executor;
+use Celema\Quma\Migrations\Log;
+use Celema\Quma\Migrations\PhpLoader;
+use Celema\Quma\Migrations\Plan;
+use Celema\Quma\Migrations\Planner;
+use Celema\Quma\Migrations\Runner as MigrationRunner;
+use Celema\Quma\Migrations\RunOptions;
 use PDO;
 
 /**
@@ -104,7 +104,7 @@ class MigrationsCommandTest extends TestCase
 
 		try {
 			ob_start();
-			$result = new \Celemas\Cli\Runner(\Celemas\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {

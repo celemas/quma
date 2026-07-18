@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celema\Quma;
 
 /**
  * @psalm-type ArgsArray = list<mixed>|array<non-empty-string, mixed>

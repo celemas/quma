@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celema\Quma;
 
-use Celemas\Cli\Args;
+use Celema\Console\Args;
 use PDO;
 use RuntimeException;
 
@@ -26,7 +26,6 @@ class Environment
 		array $connections,
 		public readonly array $options,
 	) {
-		/** @var list<string> $argv */
 		$argv = $_SERVER['argv'] ?? [];
 		$args = new Args($argv);
 

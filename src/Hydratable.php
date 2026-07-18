@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma;
+namespace Celema\Quma;
 
 /** @api */
 interface Hydratable

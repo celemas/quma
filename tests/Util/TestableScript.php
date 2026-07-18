@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests\Util;
+namespace Celema\Quma\Tests\Util;
 
-use Celemas\Quma\Args;
-use Celemas\Quma\Script;
+use Celema\Quma\Args;
+use Celema\Quma\Script;
 
 final class TestableScript extends Script
 {

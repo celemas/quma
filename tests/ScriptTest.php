@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Args;
-use Celemas\Quma\Database;
-use Celemas\Quma\LoadedScript;
-use Celemas\Quma\Tests\Util\TestableScript;
+use Celema\Quma\Args;
+use Celema\Quma\Database;
+use Celema\Quma\LoadedScript;
+use Celema\Quma\Tests\Util\TestableScript;
 use InvalidArgumentException;
 use RuntimeException;
 

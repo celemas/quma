@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests\Util;
+namespace Celema\Quma\Tests\Util;
 
-use Celemas\Quma\Query;
+use Celema\Quma\Query;
 use Closure;
 
 final class FakeQuery extends Query

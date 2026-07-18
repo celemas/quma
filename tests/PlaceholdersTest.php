@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Delimiters;
-use Celemas\Quma\Placeholders;
+use Celema\Quma\Delimiters;
+use Celema\Quma\Placeholders;
 use InvalidArgumentException;
 use RuntimeException;
 

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Migrations;
+namespace Celema\Quma\Migrations;
 
 use ArgumentCountError;
-use Celemas\Quma\Contract;
-use Celemas\Quma\Environment;
+use Celema\Quma\Contract;
+use Celema\Quma\Environment;
 use RuntimeException;
 
 final class PhpLoader

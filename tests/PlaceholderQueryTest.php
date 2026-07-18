@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Connection;
-use Celemas\Quma\Database;
-use Celemas\Quma\Delimiters;
+use Celema\Quma\Connection;
+use Celema\Quma\Database;
+use Celema\Quma\Delimiters;
 use PDO;
 use RuntimeException;
 

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Commands;
+namespace Celema\Quma\Commands;
 
-use Celemas\Cli\Args;
+use Celema\Console\Args;
 use Override;
 
 final class Add extends Command
@@ -114,8 +114,8 @@ declare(strict_types=1);
 
 namespace {$namespace};
 
-use Celemas\\Quma\\Contract;
-use Celemas\\Quma\\Environment;
+use Celema\\Quma\\Contract;
+use Celema\\Quma\\Environment;
 
 class Migration implements Contract\\Migration
 {

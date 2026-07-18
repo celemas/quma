@@ -1,28 +1,28 @@
 {
-	"name": "celemas/quma",
+	"name": "celema/quma",
 	"description": "A no-ORM database library for executing raw SQL files",
 	"type": "library",
 	"license": "MIT",
 	"authors": [
 		{
 			"name": "Ernst",
-			"email": "ernst@celemas.dev"
+			"email": "ernst@celema.dev"
 		}
 	],
-	"homepage": "https://celemas.dev/quma",
+	"homepage": "https://celema.dev/quma",
 	"keywords": [
-		"celemas",
+		"celema",
 		"database",
 		"sql"
 	],
 	"autoload": {
 		"psr-4": {
-			"Celemas\\Quma\\": "src/"
+			"Celema\\Quma\\": "src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"Celemas\\Quma\\Tests\\": "tests"
+			"Celema\\Quma\\Tests\\": "tests"
 		}
 	},
 	"require": {
@@ -30,10 +30,10 @@
 		"ext-json": "*",
 		"ext-pdo": "*",
 		"ext-readline": "*",
-		"celemas/cli": "^0.2"
+		"celema/console": "^0.3"
 	},
 	"require-dev": {
-		"celemas/dev": "^4.2"
+		"celema/dev": "^5.0"
 	},
 	"scripts": {
 		"test:base": "@php vendor/bin/phpunit --testdox --no-coverage --colors=always",
@@ -54,7 +54,7 @@
 			"@php vendor/bin/mago lint"
 		],
 		"docs:format": "npx prettier@3.6.2 --write --config docs/.prettierrc README.md CHANGELOG.md LICENSE.md docs/",
-		"docs:lint": "npx markdownlint-cli2@0.22.1 --config vendor/celemas/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
+		"docs:lint": "npx markdownlint-cli2@0.22.1 --config vendor/celema/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
 		"ci": [
 			"composer lint",
 			"composer coverage",

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Migrations;
+namespace Celema\Quma\Migrations;
 
 final readonly class Planner
 {

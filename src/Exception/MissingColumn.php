@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Exception;
+namespace Celema\Quma\Exception;
 
 /** @api */
 final class MissingColumn extends HydrationFailure

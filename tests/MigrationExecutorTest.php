@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Database;
-use Celemas\Quma\Environment;
-use Celemas\Quma\Migrations\DriverPolicy;
-use Celemas\Quma\Migrations\Executor;
-use Celemas\Quma\Migrations\Log;
-use Celemas\Quma\Migrations\PhpLoader;
-use Celemas\Quma\Migrations\Planner;
+use Celema\Quma\Database;
+use Celema\Quma\Environment;
+use Celema\Quma\Migrations\DriverPolicy;
+use Celema\Quma\Migrations\Executor;
+use Celema\Quma\Migrations\Log;
+use Celema\Quma\Migrations\PhpLoader;
+use Celema\Quma\Migrations\Planner;
 
 /**
  * @internal

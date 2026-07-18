@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Migrations;
+namespace Celema\Quma\Migrations;
 
-use Celemas\Quma\Database;
-use Celemas\Quma\Environment;
+use Celema\Quma\Database;
+use Celema\Quma\Environment;
 
 final readonly class Runner
 {

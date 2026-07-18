@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Cli\Commands;
-use Celemas\Quma\Commands as QumaCommands;
-use Celemas\Quma\Connection;
-use Celemas\Quma\Database;
+use Celema\Console\Commands;
+use Celema\Console\Runner;
+use Celema\Quma\Commands as QumaCommands;
+use Celema\Quma\Connection;
+use Celema\Quma\Database;
 use PDO;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use Throwable;
@@ -400,6 +401,24 @@ class TestCase extends BaseTestCase
 		}
 
 		return QumaCommands::get($conn);
+	}
+
+	protected function consoleRunner(Commands $commands): Runner
+	{
+		return new Runner($commands, errorOutput: 'php://output');
+	}
+
+	protected function createMigration(Commands $commands): string
+	{
+		ob_start();
+		$result = $this->consoleRunner($commands)->run();
+		$output = ob_get_clean();
+
+		$this->assertSame(0, $result);
+		$this->assertIsString($output);
+		$this->assertStringStartsWith("Migration created:\n", $output);
+
+		return trim(substr($output, strlen("Migration created:\n")));
 	}
 
 	protected static function getServerDsns(): array

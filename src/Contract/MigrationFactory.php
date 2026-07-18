@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Contract;
+namespace Celema\Quma\Contract;
 
-use Celemas\Quma\Environment;
+use Celema\Quma\Environment;
 
 /** @api */
 interface MigrationFactory

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Hydration;
+namespace Celema\Quma\Hydration;
 
-use Celemas\Quma\Exception\HydrationFailure;
-use Celemas\Quma\Exception\InvalidHydrationTarget;
-use Celemas\Quma\Exception\InvalidTypeCoercion;
-use Celemas\Quma\Exception\MissingColumn;
-use Celemas\Quma\Hydratable;
+use Celema\Quma\Exception\HydrationFailure;
+use Celema\Quma\Exception\InvalidHydrationTarget;
+use Celema\Quma\Exception\InvalidTypeCoercion;
+use Celema\Quma\Exception\MissingColumn;
+use Celema\Quma\Hydratable;
 use Closure;
 use Throwable;
 use TypeError;

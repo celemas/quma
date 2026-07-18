@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests;
+namespace Celema\Quma\Tests;
 
-use Celemas\Quma\Column;
-use Celemas\Quma\Exception\HydrationFailure;
-use Celemas\Quma\Exception\InvalidHydrationTarget;
-use Celemas\Quma\Exception\InvalidTypeCoercion;
-use Celemas\Quma\Exception\MissingColumn;
-use Celemas\Quma\Hydratable;
-use Celemas\Quma\Hydration\ClassMetadata;
-use Celemas\Quma\Hydration\HydrationContext;
-use Celemas\Quma\Hydration\Hydrator;
-use Celemas\Quma\Hydration\MetadataCache;
-use Celemas\Quma\Hydration\NamedTypeMetadata;
-use Celemas\Quma\Hydration\StaticReflectionCache;
-use Celemas\Quma\Hydration\TypeCoercer;
-use Celemas\Quma\Hydration\TypeMetadata;
+use Celema\Quma\Column;
+use Celema\Quma\Exception\HydrationFailure;
+use Celema\Quma\Exception\InvalidHydrationTarget;
+use Celema\Quma\Exception\InvalidTypeCoercion;
+use Celema\Quma\Exception\MissingColumn;
+use Celema\Quma\Hydratable;
+use Celema\Quma\Hydration\ClassMetadata;
+use Celema\Quma\Hydration\HydrationContext;
+use Celema\Quma\Hydration\Hydrator;
+use Celema\Quma\Hydration\MetadataCache;
+use Celema\Quma\Hydration\NamedTypeMetadata;
+use Celema\Quma\Hydration\StaticReflectionCache;
+use Celema\Quma\Hydration\TypeCoercer;
+use Celema\Quma\Hydration\TypeMetadata;
 use Countable;
 use DateTime;
 use DateTimeImmutable;
@@ -570,7 +570,7 @@ class HydrationTest extends TestCase
 	{
 		return [
 			'scalar target' => ['int'],
-			'unknown target' => ['Celemas\\Quma\\Tests\\NoSuchHydrationClass'],
+			'unknown target' => ['Celema\\Quma\\Tests\\NoSuchHydrationClass'],
 			'abstract target' => [HydrationAbstractTarget::class],
 			'untyped parameter' => [HydrationUntypedParameter::class],
 			'array parameter' => [HydrationArrayParameter::class],

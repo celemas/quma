@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Tests\Util;
+namespace Celema\Quma\Tests\Util;
 
-use Celemas\Quma\Database;
+use Celema\Quma\Database;
 use PDO;
 
 final class InspectableDatabase extends Database

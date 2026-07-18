@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Exception;
+namespace Celema\Quma\Exception;
 
-use Celemas\Quma\Hydration\HydrationContext;
+use Celema\Quma\Hydration\HydrationContext;
 use Throwable;
 
 /** @api */

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Hydration;
+namespace Celema\Quma\Hydration;
 
 use BackedEnum;
-use Celemas\Quma\Column;
-use Celemas\Quma\Exception\InvalidHydrationTarget;
-use Celemas\Quma\Hydratable;
+use Celema\Quma\Column;
+use Celema\Quma\Exception\InvalidHydrationTarget;
+use Celema\Quma\Hydratable;
 use DateTime;
 use DateTimeImmutable;
 use ReflectionClass;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Migrations;
+namespace Celema\Quma\Migrations;
 
-use Celemas\Quma\Environment;
+use Celema\Quma\Environment;
 
 final readonly class Plan
 {

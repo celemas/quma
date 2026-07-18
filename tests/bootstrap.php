@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Celemas\Quma\Tests\TestCase;
+use Celema\Quma\Tests\TestCase;
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/Util/noninteractive.php';

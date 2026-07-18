@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Celemas\Quma\Commands;
+namespace Celema\Quma\Commands;
 
-use Celemas\Cli\Args;
-use Celemas\Quma\Migrations\MetadataTable;
+use Celema\Console\Args;
+use Celema\Quma\Migrations\MetadataTable;
 use Override;
 
 final class CreateMigrationsTable extends Command
