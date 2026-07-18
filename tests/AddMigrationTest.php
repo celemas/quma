@@ -20,10 +20,16 @@ class AddMigrationTest extends TestCase
 
 		try {
 			ob_start();
-			$migration = new Runner($this->commands(migrations: ['temp' => $dir]))->run();
-			ob_end_clean();
+			$exit = new Runner($this->commands(migrations: ['temp' => $dir]))->run();
+			$output = (string) ob_get_clean();
 
-			$this->assertIsString($migration);
+			// run() now returns an exit code; the created path is printed as
+			// "Migration created:\n<path>".
+			preg_match('/Migration created:\s*(\S+)/', $output, $matches);
+			$migration = $matches[1] ?? '';
+
+			$this->assertSame(0, $exit);
+			$this->assertNotSame('', $migration);
 			$this->assertStringContainsString(
 				'Implement migration Migration before running it.',
 				(string) file_get_contents($migration),
@@ -41,7 +47,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithoutDirectories(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file', 'test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
 
 		ob_start();
 		$result = new Runner($this->commands(migrations: []))->run();
@@ -54,7 +60,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithInvalidDirectory(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file', 'test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
 
 		ob_start();
 		$result = new Runner($this->commands(migrations: ['empty' => []]))->run();
@@ -67,7 +73,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationCannotCreateFile(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file', 'test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
 		$tempFile = tempnam(sys_get_temp_dir(), 'quma-migrations-');
 
 		if ($tempFile === false) {

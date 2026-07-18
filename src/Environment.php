@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma;
 
-use Celemas\Cli\Opts;
+use Celemas\Cli\Args;
 use PDO;
 use RuntimeException;
 
@@ -26,16 +26,18 @@ class Environment
 		array $connections,
 		public readonly array $options,
 	) {
-		$opts = new Opts();
+		/** @var list<string> $argv */
+		$argv = $_SERVER['argv'] ?? [];
+		$args = new Args($argv);
 
-		$key = $opts->get('--conn', 'default');
+		$key = $args->opt('--conn', 'default');
 
 		if (!array_key_exists($key, $connections)) {
 			throw new RuntimeException("Connection '{$key}' does not exist");
 		}
 
 		$this->conn = $connections[$key];
-		$this->showStacktrace = $opts->has('--stacktrace');
+		$this->showStacktrace = $args->has('--stacktrace');
 		$this->db = new Database($this->conn);
 		$this->driver = $this->conn->config->driver;
 		$this->table = $this->conn->config->migrationsTable;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Tests;
 
+use Celemas\Cli\Args;
 use Celemas\Quma\Commands\CreateMigrationsTable;
 use Celemas\Quma\Commands\Migrations;
 use Celemas\Quma\Connection;
@@ -73,10 +74,11 @@ class MigrationsCommandTest extends TestCase
 			$this->getSqlDirs(),
 		)->migrations($dir);
 		$command = new Migrations($conn);
+		$args = new Args(array_slice($_SERVER['argv'], offset: 2));
 
 		try {
 			ob_start();
-			$result = $command->run();
+			$result = $command->run($args);
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {
@@ -94,7 +96,7 @@ class MigrationsCommandTest extends TestCase
 		mkdir($dir, 0o700, true);
 		file_put_contents($dir . '/000001-validation.sql', 'SELECT 1;');
 
-		$_SERVER['argv'] = ['run', 'migrations', '--namespace', 'missing', '--apply'];
+		$_SERVER['argv'] = ['run', 'migrations', '--namespace=missing', '--apply'];
 		$conn = new Connection(
 			'mysql:unix_socket=/path/that/does/not/exist/quma.sock;dbname=quma',
 			$this->getSqlDirs(),
@@ -142,9 +144,7 @@ class MigrationsCommandTest extends TestCase
 					true,
 					false,
 					static function () use ($conn): int {
-						$result = new CreateMigrationsTable($conn)->run();
-
-						return is_int($result) ? $result : 1;
+						return new CreateMigrationsTable($conn)->run(new Args([]));
 					},
 				),
 			);

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Commands;
 
-use Celemas\Cli\Opts;
+use Celemas\Cli\Args;
 use Override;
 
 final class Add extends Command
@@ -15,11 +15,10 @@ final class Add extends Command
 	protected string $description = 'Initialize a new migration';
 
 	#[Override]
-	public function run(): string|int
+	public function run(Args $args): int
 	{
 		$env = $this->env;
-		$opts = new Opts();
-		$fileName = $opts->get('-f', $opts->get('--file', ''));
+		$fileName = $args->opt('-f', $args->opt('--file', ''));
 
 		if ($fileName === '') {
 			// Would stop the test suit and wait for input
@@ -101,7 +100,7 @@ final class Add extends Command
 		fclose($f);
 		echo "Migration created:\n{$migration}\n";
 
-		return $migration;
+		return self::SUCCESS;
 	}
 
 	protected function getPhpContent(string $fileName, string $timestamp): string

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Celemas\Quma\Commands;
 
+use Celemas\Cli\Args;
 use Celemas\Cli\Command;
-use Celemas\Cli\Opts;
 use Celemas\Quma\Connection;
 use Celemas\Quma\Contract;
 use Celemas\Quma\Environment;
@@ -46,15 +46,14 @@ final class Migrations extends Command
 	}
 
 	#[Override]
-	public function run(): string|int
+	public function run(Args $args): int
 	{
 		$env = $this->env;
-		$opts = new Opts();
-		$namespace = $opts->get('--namespace', '');
-		$showStacktrace = $opts->has('--stacktrace');
-		$apply = $opts->has('--apply');
-		$testRun = $opts->has('--test-run');
-		$yes = $opts->has('--yes');
+		$namespace = $args->opt('--namespace', '');
+		$showStacktrace = $args->has('--stacktrace');
+		$apply = $args->has('--apply');
+		$testRun = $args->has('--test-run');
+		$yes = $args->has('--yes');
 		$driverSupported = $this->driverPolicy()->isKnown();
 
 		if ($apply && $testRun) {
