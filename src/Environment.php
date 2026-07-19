@@ -21,11 +21,12 @@ class Environment
 	public readonly string $columnApplied;
 	public readonly Database $db;
 
-	/** @param array<non-empty-string, Connection> $connections */
+	/** @param array<non-empty-string, Connection>|Connection $connections */
 	public function __construct(
-		array $connections,
-		public readonly array $options,
+		array|Connection $connections,
+		public readonly array $options = [],
 	) {
+		$connections = $connections instanceof Connection ? ['default' => $connections] : $connections;
 		$argv = $_SERVER['argv'] ?? [];
 		$args = new Args($argv);
 

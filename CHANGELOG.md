@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://codeberg.org/celema/quma/compare/0.3.0...HEAD)
 
-No notable changes since the last release.
+### Breaking
+
+- Adopted the attribute-based command API of `celema/console` 0.4. The commands are now plain `#[Command]` classes invoked via `__invoke(Args $args, Io $io)`; the shared `Celema\Quma\Commands\Command` base class was removed. `Commands::get()` is unchanged but registers lazy factories, so an unknown `--conn` now surfaces as a runner error message instead of an uncaught `RuntimeException` during registration.
+
+### Changed
+
+- `Environment` accepts a single `Connection` besides a connection array and defaults `options` to `[]`.
+- `db:add-migration` prompts for the file name and prints its messages through the console `Io` instead of `readline()` and raw `echo`, so the prompt path is testable with `BufferedIo`.
+- The `--test-run` confirmation renders through the console `Io` as well and uses its `confirm()` prompt in interactive shells; non-interactive runs still require `--yes`.
 
 ## [0.3.0](https://codeberg.org/celema/quma/src/tag/0.3.0) (2026-07-18)
 

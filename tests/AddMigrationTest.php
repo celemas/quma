@@ -4,11 +4,53 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
+use Celema\Console\BufferedIo;
+use Celema\Console\Runner;
+
 /**
  * @internal
  */
 class AddMigrationTest extends TestCase
 {
+	public function testAddMigrationPromptsWhenFileNameIsOmitted(): void
+	{
+		$_SERVER['argv'] = ['run', 'add-migration'];
+		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-migrations-prompt-' . uniqid();
+		mkdir($dir, 0o700, recursive: true);
+		$migration = null;
+
+		try {
+			$out = new BufferedIo("prompted migration\n");
+			$exit = new Runner($this->commands(migrations: ['temp' => $dir]), $out)->run();
+			$output = $out->output();
+
+			preg_match('/Migration created:\s*(\S+)/', $output, $matches);
+			$migration = $matches[1] ?? '';
+
+			$this->assertSame(0, $exit);
+			$this->assertStringContainsString('Name of the migration script:', $output);
+			$this->assertStringEndsWith('prompted-migration.sql', $migration);
+		} finally {
+			if (is_string($migration) && is_file($migration)) {
+				unlink($migration);
+			}
+
+			if (is_dir($dir)) {
+				rmdir($dir);
+			}
+		}
+	}
+
+	public function testAddMigrationAbortsWithoutPromptInput(): void
+	{
+		$_SERVER['argv'] = ['run', 'add-migration'];
+		$out = new BufferedIo();
+		$exit = new Runner($this->commands(migrations: []), $out)->run();
+
+		$this->assertSame(1, $exit);
+		$this->assertStringContainsString('No input provided. Aborting.', $out->output());
+	}
+
 	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
 	{
 		$_SERVER['argv'] = ['run', 'add-migration', '--file=---.php'];

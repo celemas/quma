@@ -6,6 +6,8 @@ namespace Celema\Quma\Commands;
 
 use Celema\Console\Args;
 use Celema\Console\Command;
+use Celema\Console\Io;
+use Celema\Console\Opt;
 use Celema\Quma\Connection;
 use Celema\Quma\Contract;
 use Celema\Quma\Environment;
@@ -19,16 +21,22 @@ use Celema\Quma\Migrations\Planner;
 use Celema\Quma\Migrations\Runner;
 use Celema\Quma\Migrations\RunOptions;
 use Celema\Quma\Migrations\TestRunConfirmation;
-use Override;
 
-final class Migrations extends Command
+#[Command('db:migrations', 'Apply missing database migrations', group: 'Database')]
+#[Opt('--apply', 'Apply the pending migrations instead of only planning them')]
+#[Opt(
+	'--test-run',
+	'Run pending migrations inside a transaction and roll back (sqlite/pgsql only)',
+)]
+#[Opt('--namespace', 'Migration namespace to run', value: 'name')]
+#[Opt('--conn', 'Connection to use', value: 'name')]
+#[Opt('--stacktrace', 'Show stack traces for failing migrations')]
+#[Opt('--yes', 'Skip the test-run confirmation prompt')]
+final class Migrations
 {
 	protected readonly Environment $env;
 	protected readonly ?Contract\MigrationFactory $migrationFactory;
-	protected string $name = 'migrations';
-	protected string $group = 'Database';
-	protected string $prefix = 'db';
-	protected string $description = 'Apply missing database migrations';
+	protected Io $io;
 
 	/** @param array<non-empty-string, Connection>|Connection $conn */
 	public function __construct(
@@ -36,18 +44,13 @@ final class Migrations extends Command
 		array $options = [],
 		?Contract\MigrationFactory $migrationFactory = null,
 	) {
-		if (is_array($conn)) {
-			$this->env = new Environment($conn, $options);
-		} else {
-			$this->env = new Environment(['default' => $conn], $options);
-		}
-
+		$this->env = new Environment($conn, $options);
 		$this->migrationFactory = $migrationFactory;
 	}
 
-	#[Override]
-	public function run(Args $args): int
+	public function __invoke(Args $args, Io $io): int
 	{
+		$this->io = $io;
 		$env = $this->env;
 		$namespace = $args->opt('--namespace', '');
 		$showStacktrace = $args->has('--stacktrace');
@@ -152,7 +155,7 @@ final class Migrations extends Command
 			return true;
 		}
 
-		return new TestRunConfirmation()->confirm($yes);
+		return new TestRunConfirmation()->confirm($this->io, $yes);
 	}
 
 	/**
@@ -168,7 +171,7 @@ final class Migrations extends Command
 
 		if ($namespace) {
 			if (!array_key_exists($namespace, $migrationNamespaces)) {
-				$this->error("Migration namespace '{$namespace}' does not exist");
+				$this->io->error("Migration namespace '{$namespace}' does not exist");
 
 				return false;
 			}
@@ -179,8 +182,8 @@ final class Migrations extends Command
 		}
 
 		if (!array_key_exists('default', $migrationNamespaces)) {
-			$this->error("Migration namespace 'default' does not exist");
-			$this->info(
+			$this->io->error("Migration namespace 'default' does not exist");
+			$this->io->info(
 				'If you have defined namespaced migrations, you must either provide a namespace using the '
 				. "`--namespace` flag when running this command, or define a namespace named 'default' which "
 				. 'will be used when no namespace is provided.',
@@ -200,7 +203,7 @@ final class Migrations extends Command
 		$duplicates = $this->planner()->duplicateMigrationIds($namespace, $migrations);
 
 		foreach ($duplicates as $id => $paths) {
-			$this->error("Duplicate migration id '{$id}' in namespace '{$namespace}'");
+			$this->io->error("Duplicate migration id '{$id}' in namespace '{$namespace}'");
 
 			foreach ($paths as $path) {
 				echo "  - {$path}\n";
@@ -220,7 +223,7 @@ final class Migrations extends Command
 
 		// Would require simulating failing metadata table creation.
 		// @codeCoverageIgnoreStart
-		$this->error('Migration table could not be created.');
+		$this->io->error('Migration table could not be created.');
 
 		return $result;
 

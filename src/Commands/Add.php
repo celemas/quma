@@ -5,55 +5,43 @@ declare(strict_types=1);
 namespace Celema\Quma\Commands;
 
 use Celema\Console\Args;
-use Override;
+use Celema\Console\Command;
+use Celema\Console\Io;
+use Celema\Console\Opt;
+use Celema\Quma\Connection;
+use Celema\Quma\Environment;
 
-final class Add extends Command
+#[Command('db:add-migration', 'Initialize a new migration', group: 'Database')]
+#[Opt(
+	'--file',
+	'Name of the migration script; prompted for interactively when omitted',
+	short: '-f',
+	value: 'name',
+)]
+final class Add
 {
-	protected string $name = 'add-migration';
-	protected string $group = 'Database';
-	protected string $prefix = 'db';
-	protected string $description = 'Initialize a new migration';
+	private readonly Environment $env;
 
-	#[Override]
-	public function run(Args $args): int
+	/** @param array<non-empty-string, Connection>|Connection $conn */
+	public function __construct(array|Connection $conn, array $options = [])
+	{
+		$this->env = new Environment($conn, $options);
+	}
+
+	public function __invoke(Args $args, Io $io): int
 	{
 		$env = $this->env;
-		$fileName = $args->opt('-f', $args->opt('--file', ''));
+		$fileName = $this->fileName($args, $io);
 
-		if ($fileName === '') {
-			// Would stop the test suit and wait for input
-			// @codeCoverageIgnoreStart
-			$input = readline('Name of the migration script: ');
-
-			if ($input === false) {
-				echo "No input provided. Aborting.\n";
-
-				return 1;
-			}
-			$fileName = $input;
-
-			// @codeCoverageIgnoreEnd
+		if ($fileName === null) {
+			return 1;
 		}
 
-		$fileName = str_replace(' ', '-', $fileName);
-		$fileName = str_replace('_', '-', $fileName);
-		$fileName = strtolower($fileName);
 		$ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-
-		if (!$ext) {
-			$fileName .= '.sql';
-		} else {
-			if (!in_array($ext, ['sql', 'php', 'tpql'], strict: true)) {
-				echo "Wrong file extension '{$ext}'. Use 'sql', 'php' or 'tpql' instead.\nAborting.\n";
-
-				return 1;
-			}
-		}
-
 		$migrations = $env->conn->config->migrations;
 
 		if (count($migrations) === 0) {
-			echo "No migration directories configured. Aborting.\n";
+			$io->echoln('No migration directories configured. Aborting.');
 
 			return 1;
 		}
@@ -63,19 +51,21 @@ final class Add extends Command
 		$migrationsDir = $this->getFirstMigrationDir($migrations);
 
 		if ($migrationsDir === null) {
-			echo "No valid migration directory found. Aborting.\n";
+			$io->echoln('No valid migration directory found. Aborting.');
 
 			return 1;
 		}
 
 		if (str_contains($migrationsDir, '/vendor')) {
-			echo "The migrations directory is inside './vendor'.\n  -> {$migrationsDir}\nAborting.\n";
+			$io->echoln(
+				"The migrations directory is inside './vendor'.\n  -> {$migrationsDir}\nAborting.",
+			);
 
 			return 1;
 		}
 
 		if (!is_writable($migrationsDir)) {
-			echo "Migrations directory is not writable\n  -> {$migrationsDir}\nAborting. \n";
+			$io->echoln("Migrations directory is not writable\n  -> {$migrationsDir}\nAborting. ");
 
 			return 1;
 		}
@@ -86,7 +76,7 @@ final class Add extends Command
 		$f = fopen($migration, 'w');
 
 		if ($f === false) {
-			echo "Could not create migration file: {$migration}\nAborting.\n";
+			$io->echoln("Could not create migration file: {$migration}\nAborting.");
 
 			return 1;
 		}
@@ -98,9 +88,44 @@ final class Add extends Command
 		}
 
 		fclose($f);
-		echo "Migration created:\n{$migration}\n";
+		$io->echoln("Migration created:\n{$migration}");
 
-		return self::SUCCESS;
+		return 0;
+	}
+
+	/**
+	 * Resolves the migration file name from the options or a prompt.
+	 *
+	 * Returns null when no name was provided or the extension is invalid.
+	 */
+	private function fileName(Args $args, Io $io): ?string
+	{
+		$fileName = $args->opt('-f', $args->opt('--file', ''));
+
+		if ($fileName === '') {
+			$fileName = $io->ask('Name of the migration script:');
+
+			if ($fileName === '') {
+				$io->echoln('No input provided. Aborting.');
+
+				return null;
+			}
+		}
+
+		$fileName = strtolower(str_replace([' ', '_'], '-', $fileName));
+		$ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+		if (!$ext) {
+			return $fileName . '.sql';
+		}
+
+		if (!in_array($ext, ['sql', 'php', 'tpql'], strict: true)) {
+			$io->echoln("Wrong file extension '{$ext}'. Use 'sql', 'php' or 'tpql' instead.\nAborting.");
+
+			return null;
+		}
+
+		return $fileName;
 	}
 
 	protected function getPhpContent(string $fileName, string $timestamp): string

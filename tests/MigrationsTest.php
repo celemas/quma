@@ -20,7 +20,6 @@ use Celema\Quma\Delimiters;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
-use RuntimeException;
 use ValueError;
 
 /**
@@ -53,12 +52,16 @@ class MigrationsTest extends TestCase
 
 	public function testWrongConnection(): void
 	{
-		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessageMatches('/doesnotexist/');
-
 		$_SERVER['argv'] = ['run', 'create-migrations-table', '--conn=doesnotexist'];
 
-		$this->consoleRunner($this->commands(multipleConnections: true))->run();
+		// Commands are built lazily, so the runner turns the Environment's
+		// RuntimeException into an error message and exit code.
+		ob_start();
+		$result = $this->consoleRunner($this->commands(multipleConnections: true))->run();
+		$output = (string) ob_get_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString("Connection 'doesnotexist' does not exist", $output);
 	}
 
 	public function testRunMigrationsCreatesMetadataTableOnSelectedConnection(): void

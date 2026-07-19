@@ -30,7 +30,7 @@
 		"ext-json": "*",
 		"ext-pdo": "*",
 		"ext-readline": "*",
-		"celema/console": "^0.3"
+		"celema/console": "dev-main"
 	},
 	"require-dev": {
 		"celema/dev": "^5.0"
@@ -61,5 +61,13 @@
 			"composer types",
 			"composer docs:lint"
 		]
-	}
+	},
+	"repositories": [{
+		"name": "console",
+		"type": "path",
+		"url": "../console",
+		"options": {
+			"symlink": true
+		}
+	}]
 }

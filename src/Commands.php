@@ -19,10 +19,19 @@ class Commands
 		array $options = [],
 		?MigrationFactory $migrationFactory = null,
 	): BaseCommands {
+		// Factories keep registration cheap: no Environment is built unless
+		// the command actually runs.
 		return new BaseCommands([
-			new Add($conn, $options),
-			new CreateMigrationsTable($conn, $options),
-			new Migrations($conn, $options, $migrationFactory),
+			Add::class => static fn(): Add => new Add($conn, $options),
+			CreateMigrationsTable::class => static fn(): CreateMigrationsTable => new CreateMigrationsTable(
+				$conn,
+				$options,
+			),
+			Migrations::class => static fn(): Migrations => new Migrations(
+				$conn,
+				$options,
+				$migrationFactory,
+			),
 		]);
 	}
 }

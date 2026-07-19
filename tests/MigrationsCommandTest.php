@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Celema\Quma\Tests;
 
 use Celema\Console\Args;
+use Celema\Console\Io;
 use Celema\Quma\Commands\CreateMigrationsTable;
 use Celema\Quma\Commands\Migrations;
 use Celema\Quma\Connection;
@@ -78,7 +79,7 @@ class MigrationsCommandTest extends TestCase
 
 		try {
 			ob_start();
-			$result = $command->run($args);
+			$result = $command($args, new Io('php://output', 'php://output'));
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {
@@ -144,7 +145,10 @@ class MigrationsCommandTest extends TestCase
 					true,
 					false,
 					static function () use ($conn): int {
-						return new CreateMigrationsTable($conn)->run(new Args([]));
+						return (new CreateMigrationsTable($conn))(
+							new Args([]),
+							new Io('php://output', 'php://output'),
+						);
 					},
 				),
 			);
