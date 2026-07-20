@@ -22,8 +22,10 @@ class EnvironmentTest extends TestCase
 		$output = ob_get_contents();
 		ob_end_clean();
 
+		// The migrations command reports the problem; the Environment
+		// itself stays silent.
 		$this->assertFalse($result);
-		$this->assertStringContainsString('No migration directories defined', $output);
+		$this->assertSame('', $output);
 	}
 
 	public function testGetMigrationsHandlesFlatAndNamespacedDirs(): void

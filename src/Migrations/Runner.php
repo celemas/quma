@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Migrations;
 
+use Celema\Console\Io;
 use Celema\Quma\Database;
 use Celema\Quma\Environment;
 
 final readonly class Runner
 {
+	// Internal wiring, constructed by the Migrations command only.
+	// @mago-expect lint:excessive-parameter-list
 	public function __construct(
 		private Environment $env,
 		private DriverPolicy $driverPolicy,
 		private Planner $planner,
 		private Log $log,
 		private Executor $executor,
+		private Io $io,
 	) {}
 
 	/** @param list<string> $migrations */
@@ -74,50 +78,51 @@ final readonly class Runner
 		bool $apply,
 		int $numApplied,
 	): int {
+		$io = $this->io;
 		$plural = $numApplied > 1 ? 's' : '';
 
 		if ($this->driverPolicy->supportsTransactions()) {
 			if ($result === Executor::ERROR) {
 				$db->rollback();
-				echo "\nDue to errors no migrations applied\n";
+				$io->echolnErr("\nDue to errors no migrations applied");
 
 				return 1;
 			}
 
 			if ($numApplied === 0) {
 				$db->rollback();
-				echo "\nNo migrations applied\n";
+				$io->echoln("\nNo migrations applied");
 
 				return 0;
 			}
 
 			if ($apply) {
 				$db->commit();
-				echo "\n{$numApplied} migration{$plural} successfully applied\n";
+				$io->echoln("\n{$numApplied} migration{$plural} successfully applied");
 
 				return 0;
 			}
-			echo "\n\033[1;31mNotice\033[0m: Test run only\033[0m";
-			echo "\nRolled back {$numApplied} migration{$plural}. ";
-			echo "Use --apply to commit them\n";
+			$io->echoln("\n<bright-red>Notice</bright-red>: Test run only");
+			$io->echo("Rolled back {$numApplied} migration{$plural}. ");
+			$io->echoln('Use --apply to commit them');
 			$db->rollback();
 
 			return 0;
 		}
 
 		if ($result === Executor::ERROR) {
-			echo "\n{$numApplied} migration{$plural} applied until the error occured\n";
+			$io->echolnErr("\n{$numApplied} migration{$plural} applied until the error occured");
 
 			return 1;
 		}
 
 		if ($numApplied > 0) {
-			echo "\n{$numApplied} migration{$plural} successfully applied\n";
+			$io->echoln("\n{$numApplied} migration{$plural} successfully applied");
 
 			return 0;
 		}
 
-		echo "\nNo migrations applied\n";
+		$io->echoln("\nNo migrations applied");
 
 		return 0;
 	}

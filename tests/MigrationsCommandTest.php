@@ -145,10 +145,7 @@ class MigrationsCommandTest extends TestCase
 					true,
 					false,
 					static function () use ($conn): int {
-						return (new CreateMigrationsTable($conn))(
-							new Args([]),
-							new Io('php://output', 'php://output'),
-						);
+						return (new CreateMigrationsTable($conn))(new Io('php://output', 'php://output'));
 					},
 				),
 			);
@@ -212,7 +209,7 @@ class MigrationsCommandTest extends TestCase
 		$policy = new DriverPolicy($env->driver);
 		$planner = new Planner($policy);
 
-		return new Plan($env, $planner, new Log($env, $planner));
+		return new Plan($env, $planner, new Log($env, $planner), new Io('php://output', 'php://output'));
 	}
 
 	private function runner(Environment $env, DriverPolicy $policy): MigrationRunner
@@ -220,12 +217,15 @@ class MigrationsCommandTest extends TestCase
 		$planner = new Planner($policy);
 		$log = new Log($env, $planner);
 
+		$io = new Io('php://output', 'php://output');
+
 		return new MigrationRunner(
 			$env,
 			$policy,
 			$planner,
 			$log,
-			new Executor($env, $log, new PhpLoader($env)),
+			new Executor($env, $log, new PhpLoader($env), $io),
+			$io,
 		);
 	}
 

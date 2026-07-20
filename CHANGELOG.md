@@ -10,6 +10,7 @@
 
 - `Environment` accepts a single `Connection` besides a connection array and defaults `options` to `[]`.
 - `db:add-migration` prompts for the file name and prints its messages through the console `Io` instead of `readline()` and raw `echo`, so the prompt path is testable with `BufferedIo`.
+- The whole migrations machinery prints through the console `Io` instead of native `echo` with hardcoded escape codes: colors are now inline markup (honoring `NO_COLOR`, terminal detection, and `BufferedIo`), errors and warnings go to STDERR, and exception messages are escaped. `Plan`, `Runner`, `Executor`, and `MetadataTable` take the `Io` as an additional constructor argument, `CreateMigrationsTable::__invoke()` takes only `Io`, and `Environment::getMigrations()` no longer prints — the migrations command reports the missing-directories problem itself.
 - The `--test-run` confirmation renders through the console `Io` as well and uses its `confirm()` prompt in interactive shells; non-interactive runs still require `--yes`.
 
 ## [0.3.0](https://codeberg.org/celema/quma/src/tag/0.3.0) (2026-07-18)

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Migrations;
 
+use Celema\Console\Io;
 use Celema\Quma\Database;
 use Celema\Quma\Environment;
 use Throwable;
@@ -12,14 +13,16 @@ final readonly class MetadataTable
 {
 	public function __construct(
 		private Environment $env,
+		private Io $io,
 	) {}
 
 	public function create(Database $db): int
 	{
 		$env = $this->env;
+		$io = $this->io;
 
 		if ($env->checkIfMigrationsTableExists($db)) {
-			echo "Table '{$env->table}' already exists. Aborting\n";
+			$io->echolnErr("Table '{$env->table}' already exists. Aborting");
 
 			return 1;
 		}
@@ -29,7 +32,7 @@ final readonly class MetadataTable
 		if ($ddl !== false) {
 			try {
 				$db->execute($ddl)->run();
-				echo "\033[1;32mSuccess\033[0m: Created table '{$env->table}'\n";
+				$io->echoln("<bright-green>Success</bright-green>: Created table '{$env->table}'");
 
 				return 0;
 
@@ -37,11 +40,11 @@ final readonly class MetadataTable
 				// setup a different test database. Too much effort.
 				// @codeCoverageIgnoreStart
 			} catch (Throwable $e) {
-				echo "\033[1;31mError\033[0m: While trying to create table '{$env->table}'\n";
-				echo $e->getMessage() . PHP_EOL;
+				$io->echolnErr("<bright-red>Error</bright-red>: While trying to create table '{$env->table}'");
+				$io->echolnErr($io->escape($e->getMessage()));
 
 				if ($env->showStacktrace) {
-					echo escapeshellarg($e->getTraceAsString()) . PHP_EOL;
+					$io->echolnErr($io->escape($e->getTraceAsString()));
 				}
 
 				return 1;
@@ -53,7 +56,7 @@ final readonly class MetadataTable
 		// Cannot be reliably tested.
 		// Would require an unsupported driver to be installed.
 		// @codeCoverageIgnoreStart
-		echo "PDO driver '{$env->driver}' not supported. Aborting\n";
+		$io->echolnErr("PDO driver '{$env->driver}' not supported. Aborting");
 
 		return 1;
 

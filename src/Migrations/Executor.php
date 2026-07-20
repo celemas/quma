@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Migrations;
 
+use Celema\Console\Io;
 use Celema\Quma\Environment;
 use RuntimeException;
 use Throwable;
@@ -19,6 +20,7 @@ final readonly class Executor
 		private Environment $env,
 		private Log $log,
 		private PhpLoader $phpLoader,
+		private Io $io,
 	) {}
 
 	public function migrate(string $namespace, string $migration, bool $showStacktrace): string
@@ -156,11 +158,11 @@ final readonly class Executor
 
 	private function showEmptyMessage(string $migration): void
 	{
-		echo
-			"\033[33mWarning\033[0m: Migration '\033[1;33m"
-				. basename($migration)
-				. "'\033[0m is empty. Skipped\n"
-		;
+		$this->io->echolnErr(
+			"<yellow>Warning</yellow>: Migration '<bright-yellow>"
+			. basename($migration)
+			. "</bright-yellow>' is empty. Skipped",
+		);
 	}
 
 	private function showMessage(
@@ -168,25 +170,27 @@ final readonly class Executor
 		?Throwable $e = null,
 		bool $showStacktrace = false,
 	): void {
+		$io = $this->io;
+
 		if ($e) {
-			echo
-				"\033[1;31mError\033[0m: while working on migration '\033[1;33m"
-					. basename($migration)
-					. "\033[0m'\n"
-			;
-			echo $e->getMessage() . "\n";
+			$io->echolnErr(
+				"<bright-red>Error</bright-red>: while working on migration '<bright-yellow>"
+				. basename($migration)
+				. "</bright-yellow>'",
+			);
+			$io->echolnErr($io->escape($e->getMessage()));
 
 			if ($showStacktrace) {
-				echo $e->getTraceAsString() . "\n";
+				$io->echolnErr($io->escape($e->getTraceAsString()));
 			}
 
 			return;
 		}
 
-		echo
-			"\033[1;32mSuccess\033[0m: Migration '\033[1;33m"
-				. basename($migration)
-				. "\033[0m' successfully applied\n"
-		;
+		$io->echoln(
+			"<bright-green>Success</bright-green>: Migration '<bright-yellow>"
+			. basename($migration)
+			. "</bright-yellow>' successfully applied",
+		);
 	}
 }

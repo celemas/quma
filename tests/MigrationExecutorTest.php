@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
+use Celema\Console\Io;
 use Celema\Quma\Database;
 use Celema\Quma\Environment;
 use Celema\Quma\Migrations\DriverPolicy;
@@ -63,7 +64,12 @@ class MigrationExecutorTest extends TestCase
 		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection()], []);
 
-		return new Executor($env, $this->log($env), new PhpLoader($env));
+		return new Executor(
+			$env,
+			$this->log($env),
+			new PhpLoader($env),
+			new Io('php://output', 'php://output'),
+		);
 	}
 
 	private function log(Environment $env): Log

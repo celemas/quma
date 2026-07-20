@@ -62,18 +62,20 @@ final class Migrations
 		$driverSupported = $this->driverPolicy()->isKnown();
 
 		if ($apply && $testRun) {
-			echo "\033[1;31mError\033[0m: Options --apply and --test-run cannot be used together.\n";
+			$io->echolnErr(
+				'<bright-red>Error</bright-red>: Options --apply and --test-run cannot be used together.',
+			);
 
 			return 1;
 		}
 
 		if ($testRun && (!$driverSupported || !$this->supportsTransactions())) {
-			echo
-				"\033[1;31mError\033[0m: Test runs are only supported for transactional drivers: sqlite and pgsql.\n"
-			;
-			echo
-				"MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.\n"
-			;
+			$io->echolnErr(
+				'<bright-red>Error</bright-red>: Test runs are only supported for transactional drivers: sqlite and pgsql.',
+			);
+			$io->echolnErr(
+				'MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.',
+			);
 
 			return 1;
 		}
@@ -168,6 +170,8 @@ final class Migrations
 		$migrationNamespaces = $this->env->getMigrations();
 
 		if ($migrationNamespaces === false) {
+			$this->io->error('No migration directories defined in configuration');
+
 			return false;
 		}
 
@@ -208,7 +212,7 @@ final class Migrations
 			$this->io->error("Duplicate migration id '{$id}' in namespace '{$namespace}'");
 
 			foreach ($paths as $path) {
-				echo "  - {$path}\n";
+				$this->io->echolnErr("  - {$path}");
 			}
 		}
 
@@ -217,7 +221,7 @@ final class Migrations
 
 	protected function createMigrationsTable(): int
 	{
-		$result = new MetadataTable($this->env)->create($this->env->db);
+		$result = new MetadataTable($this->env, $this->io)->create($this->env->db);
 
 		if ($result === 0) {
 			return 0;
@@ -259,12 +263,12 @@ final class Migrations
 
 	private function plan(): Plan
 	{
-		return new Plan($this->env, $this->planner(), $this->log());
+		return new Plan($this->env, $this->planner(), $this->log(), $this->io);
 	}
 
 	private function executor(): Executor
 	{
-		return new Executor($this->env, $this->log(), $this->phpLoader());
+		return new Executor($this->env, $this->log(), $this->phpLoader(), $this->io);
 	}
 
 	private function runner(): Runner
@@ -275,6 +279,7 @@ final class Migrations
 			$this->planner(),
 			$this->log(),
 			$this->executor(),
+			$this->io,
 		);
 	}
 }
