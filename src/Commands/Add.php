@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Commands;
 
+use Celema\Console\Arg;
 use Celema\Console\Args;
 use Celema\Console\Command;
 use Celema\Console\Io;
-use Celema\Console\Opt;
 use Celema\Quma\Connection;
 use Celema\Quma\Environment;
 
 #[Command('db:add-migration', 'Initialize a new migration', group: 'Database')]
-#[Opt(
-	'--file',
+#[Arg(
+	'name',
 	'Name of the migration script; prompted for interactively when omitted',
-	short: '-f',
-	value: 'name',
+	optional: true,
 )]
 final class Add
 {
@@ -94,13 +93,13 @@ final class Add
 	}
 
 	/**
-	 * Resolves the migration file name from the options or a prompt.
+	 * Resolves the migration file name from the argument or a prompt.
 	 *
 	 * Returns null when no name was provided or the extension is invalid.
 	 */
 	private function fileName(Args $args, Io $io): ?string
 	{
-		$fileName = $args->opt('-f', $args->opt('--file', ''));
+		$fileName = (string) $args->positional(0, '');
 
 		if ($fileName === '') {
 			$fileName = $io->ask('Name of the migration script:');

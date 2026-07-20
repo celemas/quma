@@ -84,12 +84,15 @@ Options:
 Creates a new migration file in the first configured migration directory.
 
 ```bash
-php run db:add-migration --file=create-users.sql
+php run db:add-migration create-users.sql
 ```
+
+Arguments:
+
+- `[<name>]` sets the file name; when omitted, the command prompts for it
 
 Options:
 
-- `-f=<name>` or `--file=<name>` sets the file name
 - `--conn=<name>` selects one named connection
 
 If you omit the extension, Quma creates a `.sql` file.

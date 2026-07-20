@@ -51,9 +51,20 @@ class AddMigrationTest extends TestCase
 		$this->assertStringContainsString('No input provided. Aborting.', $out->output());
 	}
 
+	public function testAddMigrationRejectsSurplusArguments(): void
+	{
+		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql', 'extra'];
+		$out = new BufferedIo();
+		$exit = new Runner($this->commands(migrations: []), $out)->run();
+
+		$this->assertSame(1, $exit);
+		$this->assertStringContainsString("Unexpected argument 'extra'", $out->errorOutput());
+	}
+
 	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=---.php'];
+		// The `--` separator lets the dashed file name pass as a positional.
+		$_SERVER['argv'] = ['run', 'add-migration', '--', '---.php'];
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-migrations-name-' . uniqid();
 		mkdir($dir, 0o700, true);
 		$migration = null;
@@ -87,7 +98,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithoutDirectories(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
 
 		ob_start();
 		$result = $this->consoleRunner($this->commands(migrations: []))->run();
@@ -100,7 +111,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithInvalidDirectory(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
 
 		ob_start();
 		$result = $this->consoleRunner($this->commands(migrations: ['empty' => []]))->run();
@@ -113,7 +124,7 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationCannotCreateFile(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
 		$tempFile = tempnam(sys_get_temp_dir(), 'quma-migrations-');
 
 		if ($tempFile === false) {

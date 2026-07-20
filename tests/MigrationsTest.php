@@ -418,7 +418,7 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		// add the migrations
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test migration'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test migration'];
 		$migration = $this->createMigration($this->commands());
 		$this->assertFileExists($migration);
 		$this->assertStringStartsWith(TestCase::root(), $migration);
@@ -445,7 +445,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationTpql(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test migration.tpql'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test migration.tpql'];
 
 		$migration = $this->createMigration($this->commands());
 		$this->assertFileExists($migration);
@@ -464,7 +464,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationPhp(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test migration.php'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test migration.php'];
 
 		$migration = $this->createMigration($this->commands());
 		$this->assertFileExists($migration);
@@ -489,7 +489,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationWithWrongFileExtension(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '-f=test.exe'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test.exe'];
 
 		ob_start();
 		$this->consoleRunner($this->commands())->run();
@@ -509,7 +509,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationToVendor(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', '-f=test'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test'];
 
 		ob_start();
 		$this->consoleRunner($this->commands(migrations: TestCase::root() . '/../vendor'))->run();
@@ -522,7 +522,7 @@ class MigrationsTest extends TestCase
 	#[DataProvider('failingSqlMigrationProvider')]
 	public function testFailingSqlMigration(string $dsn, string $ext): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', "--file=test-migration-failing{$ext}"];
+		$_SERVER['argv'] = ['run', 'add-migration', "test-migration-failing{$ext}"];
 
 		$migration = $this->createMigration($this->commands(dsn: $dsn));
 
@@ -557,7 +557,7 @@ class MigrationsTest extends TestCase
 	#[DataProvider('failingPhpMigrationProvider')]
 	public function testFailingTpqlPhpMigrationPhpError(string $dsn, string $ext): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', "--file=test-migration-php-failing.{$ext}"];
+		$_SERVER['argv'] = ['run', 'add-migration', "test-migration-php-failing.{$ext}"];
 
 		$migration = $this->createMigration($this->commands(dsn: $dsn));
 
@@ -588,7 +588,7 @@ class MigrationsTest extends TestCase
 		$tmpdir = sys_get_temp_dir() . '/chuck' . (string) mt_rand();
 		mkdir($tmpdir, 0o400);
 
-		$_SERVER['argv'] = ['run', 'add-migration', '--file=test-migration.sql'];
+		$_SERVER['argv'] = ['run', 'add-migration', 'test-migration.sql'];
 
 		ob_start();
 		$this->consoleRunner($this->commands(migrations: $tmpdir))->run();

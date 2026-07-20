@@ -5,6 +5,7 @@
 ### Breaking
 
 - Adopted the attribute-based command API of `celema/console` 0.4. The commands are now plain `#[Command]` classes invoked via `__invoke(Args $args, Io $io)`; the shared `Celema\Quma\Commands\Command` base class was removed. `Commands::get()` is unchanged but registers lazy factories, so an unknown `--conn` now surfaces as a runner error message instead of an uncaught `RuntimeException` during registration.
+- `db:add-migration` takes the migration file name as an optional positional argument — `php run db:add-migration create-users.sql` — instead of the removed `--file`/`-f` option; without a name it still prompts interactively. The argument is declared via `#[Arg]`, so surplus positionals are rejected before the command runs, and a dashed file name can be passed after the `--` separator.
 
 ### Changed
 
