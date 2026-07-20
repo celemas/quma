@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Commands;
 
-use Celema\Console\Args;
 use Celema\Console\Command;
-use Celema\Console\Io;
 use Celema\Quma\Connection;
 use Celema\Quma\Environment;
 use Celema\Quma\Migrations\MetadataTable;
@@ -22,7 +20,7 @@ final class CreateMigrationsTable
 		$this->env = new Environment($conn, $options);
 	}
 
-	public function __invoke(Args $args, Io $io): int
+	public function __invoke(): int
 	{
 		$env = $this->env;
 

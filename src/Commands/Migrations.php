@@ -36,6 +36,8 @@ final class Migrations
 {
 	protected readonly Environment $env;
 	protected readonly ?Contract\MigrationFactory $migrationFactory;
+
+	/** @psalm-suppress PropertyNotSetInConstructor Assigned first thing in __invoke() */
 	protected Io $io;
 
 	/** @param array<non-empty-string, Connection>|Connection $conn */

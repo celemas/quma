@@ -37,9 +37,8 @@ final class TestRunConfirmation
 
 	private function showWarning(Io $io): void
 	{
-		$warning = $io->color('Warning', 'lightred');
 		$io->echoln(
-			"\n{$warning}: --test-run executes migrations before rolling the database transaction back.",
+			"\n<bright-red>Warning</bright-red>: --test-run executes migrations before rolling the database transaction back.",
 		);
 		$io->echoln('SQL migrations are sent to the database.');
 		$io->echoln('TPQL migrations are rendered, so PHP template code runs.');
