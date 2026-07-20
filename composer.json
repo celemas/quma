@@ -30,7 +30,7 @@
 		"ext-json": "*",
 		"ext-pdo": "*",
 		"ext-readline": "*",
-		"celema/console": "^0.4"
+		"celema/console": "^0.5"
 	},
 	"require-dev": {
 		"celema/dev": "^5.0"

@@ -8,6 +8,7 @@ use Celema\Console\Arg;
 use Celema\Console\Args;
 use Celema\Console\Command;
 use Celema\Console\Io;
+use Celema\Console\Opt;
 use Celema\Quma\Connection;
 use Celema\Quma\Environment;
 
@@ -17,6 +18,7 @@ use Celema\Quma\Environment;
 	'Name of the migration script; prompted for interactively when omitted',
 	optional: true,
 )]
+#[Opt('--conn', 'Connection to use', value: 'name')]
 final class Add
 {
 	private readonly Environment $env;
