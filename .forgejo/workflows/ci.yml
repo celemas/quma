@@ -46,8 +46,6 @@ jobs:
 
       - name: Run Markdown lint checks
         run: composer docs:lint
-        env:
-          npm_config_yes: 'true'
 
       - name: Run tests with coverage
         run: composer coverage:test

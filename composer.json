@@ -58,7 +58,10 @@
 		"ci": [
 			"composer lint",
 			"composer coverage",
-			"composer types",
+			"composer types"
+		],
+		"ci:full": [
+			"composer ci",
 			"composer docs:lint"
 		]
 	}

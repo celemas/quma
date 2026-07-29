@@ -18,7 +18,10 @@ composer coverage
 composer types
 composer docs:lint
 composer ci
+composer ci:full
 ```
+
+`composer ci` runs the PHP checks only. `composer docs:lint` and `composer ci:full` lint Markdown and require Node (`npx`).
 
 ## Default test behavior
 
