@@ -34,11 +34,11 @@ use Celema\Quma\Migrations\TestRunConfirmation;
 #[Opt('--yes', 'Skip the test-run confirmation prompt')]
 final class Migrations
 {
-	protected readonly Environment $env;
-	protected readonly ?Contract\MigrationFactory $migrationFactory;
+	private readonly Environment $env;
+	private readonly ?Contract\MigrationFactory $migrationFactory;
 
 	/** @psalm-suppress PropertyNotSetInConstructor Assigned first thing in __invoke() */
-	protected Io $io;
+	private Io $io;
 
 	/** @param array<non-empty-string, Connection>|Connection $conn */
 	public function __construct(
@@ -120,7 +120,7 @@ final class Migrations
 	}
 
 	/** @param list<string> $migrations */
-	protected function migrate(
+	private function migrate(
 		string $namespace,
 		array $migrations,
 		bool $showStacktrace,
@@ -142,7 +142,7 @@ final class Migrations
 	/**
 	 * @param list<string> $migrations
 	 */
-	protected function confirmTestRunForPending(
+	private function confirmTestRunForPending(
 		string $namespace,
 		array $migrations,
 		bool $tableExists,
@@ -165,7 +165,7 @@ final class Migrations
 	/**
 	 * @return list<string>|false
 	 */
-	protected function migrationsForNamespace(string $namespace): array|false
+	private function migrationsForNamespace(string $namespace): array|false
 	{
 		$migrationNamespaces = $this->env->getMigrations();
 
@@ -204,7 +204,7 @@ final class Migrations
 	}
 
 	/** @param list<string> $migrations */
-	protected function migrationIdsAreUnique(string $namespace, array $migrations): bool
+	private function migrationIdsAreUnique(string $namespace, array $migrations): bool
 	{
 		$duplicates = $this->planner()->duplicateMigrationIds($namespace, $migrations);
 
@@ -219,7 +219,7 @@ final class Migrations
 		return count($duplicates) === 0;
 	}
 
-	protected function createMigrationsTable(): int
+	private function createMigrationsTable(): int
 	{
 		$result = new MetadataTable($this->env, $this->io)->create($this->env->db);
 
@@ -236,7 +236,7 @@ final class Migrations
 		// @codeCoverageIgnoreEnd
 	}
 
-	protected function supportsTransactions(): bool
+	private function supportsTransactions(): bool
 	{
 		return $this->driverPolicy()->supportsTransactions();
 	}

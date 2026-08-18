@@ -129,7 +129,7 @@ final class Add
 		return $fileName;
 	}
 
-	protected function getPhpContent(string $fileName, string $timestamp): string
+	private function getPhpContent(string $fileName, string $timestamp): string
 	{
 		$name = $this->getPhpMigrationName($fileName);
 		$namespace = 'Quma\\Migrations\\M' . str_replace('-', '_', $timestamp) . '_' . $name;
@@ -154,7 +154,7 @@ class Migration implements Contract\\Migration
 return Migration::class;";
 	}
 
-	protected function getPhpMigrationName(string $fileName): string
+	private function getPhpMigrationName(string $fileName): string
 	{
 		$parts = preg_split(
 			'/[^a-zA-Z0-9]+/',
@@ -175,7 +175,7 @@ return Migration::class;";
 		return implode('', $words);
 	}
 
-	protected function getTpqlContent(): string
+	private function getTpqlContent(): string
 	{
 		return "<?php if (\$driver === 'pgsql') : ?>
 
@@ -192,7 +192,7 @@ return Migration::class;";
 	 *
 	 * @param array<int|string, string|list<string>> $migrations
 	 */
-	protected function getFirstMigrationDir(array $migrations): ?string
+	private function getFirstMigrationDir(array $migrations): ?string
 	{
 		$first = reset($migrations);
 
