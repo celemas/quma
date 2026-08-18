@@ -405,7 +405,11 @@ class TestCase extends BaseTestCase
 
 	protected function consoleRunner(Commands $commands): Runner
 	{
-		return new Runner($commands, errorOutput: 'php://output');
+		return new Runner(
+			$commands,
+			output: 'php://output',
+			errorOutput: 'php://output',
+		);
 	}
 
 	protected function createMigration(Commands $commands): string
