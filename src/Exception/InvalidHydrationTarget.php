@@ -50,12 +50,12 @@ final class InvalidHydrationTarget extends HydrationFailure
 	): self {
 		return new self(
 			'Invalid hydration target returned by resolver from '
-			. self::source($sourcePath)
-			. ': expected class-string, got '
-			. self::valueType($result)
-			. '. Row keys: '
-			. self::formatRowKeys($rowKeys)
-			. '.',
+				. self::source($sourcePath)
+				. ': expected class-string, got '
+				. self::valueType($result)
+				. '. Row keys: '
+				. self::formatRowKeys($rowKeys)
+				. '.',
 		);
 	}
 }

@@ -24,8 +24,8 @@ final class MissingColumn extends HydrationFailure
 			$class,
 			$sourcePath,
 			"missing required column '{$column}' for parameter '\${$parameter}'. Row keys: "
-			. self::formatRowKeys($rowKeys)
-			. '.',
+				. self::formatRowKeys($rowKeys)
+				. '.',
 		));
 	}
 }

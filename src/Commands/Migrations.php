@@ -94,7 +94,8 @@ final class Migrations
 		}
 
 		if (
-			!$apply && !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
+			!$apply
+				&& !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
 		) {
 			return 1;
 		}
@@ -191,8 +192,8 @@ final class Migrations
 			$this->io->error("Migration namespace 'default' does not exist");
 			$this->io->info(
 				'If you have defined namespaced migrations, you must either provide a namespace using the '
-				. "`--namespace` flag when running this command, or define a namespace named 'default' which "
-				. 'will be used when no namespace is provided.',
+					. "`--namespace` flag when running this command, or define a namespace named 'default' which "
+					. 'will be used when no namespace is provided.',
 			);
 
 			return false;

@@ -325,10 +325,10 @@ final class Debug
 	private static function sessionPath(?string $sourcePath, array $roots): string
 	{
 		return self::session()
-		. DIRECTORY_SEPARATOR
-		. self::counter()
-		. '--'
-		. self::sourceName($sourcePath, $roots);
+			. DIRECTORY_SEPARATOR
+			. self::counter()
+			. '--'
+			. self::sourceName($sourcePath, $roots);
 	}
 
 	/** @param array<array-key, mixed> $roots */

@@ -21,12 +21,12 @@ final class InvalidTypeCoercion extends HydrationFailure
 			$context->class,
 			$context->sourcePath,
 			"could not coerce column '{$context->column}' for parameter '\${$context->parameter}' to {$type}; "
-			. 'value type: '
-			. self::valueType($value)
-			. ($reason === '' ? '' : "; {$reason}")
-			. '. Row keys: '
-			. self::formatRowKeys($context->rowKeys)
-			. '.',
+				. 'value type: '
+				. self::valueType($value)
+				. ($reason === '' ? '' : "; {$reason}")
+				. '. Row keys: '
+				. self::formatRowKeys($context->rowKeys)
+				. '.',
 		));
 	}
 

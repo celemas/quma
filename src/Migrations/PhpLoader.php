@@ -63,7 +63,7 @@ final class PhpLoader
 		if (!is_subclass_of($class, Contract\Migration::class)) {
 			throw new RuntimeException(
 				"Invalid migration file. Migration class '{$class}' must implement "
-				. Contract\Migration::class,
+					. Contract\Migration::class,
 			);
 		}
 

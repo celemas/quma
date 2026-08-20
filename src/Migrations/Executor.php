@@ -160,8 +160,8 @@ final readonly class Executor
 	{
 		$this->io->echolnErr(
 			"<yellow>Warning</yellow>: Migration '<bright-yellow>"
-			. basename($migration)
-			. "</bright-yellow>' is empty. Skipped",
+				. basename($migration)
+				. "</bright-yellow>' is empty. Skipped",
 		);
 	}
 
@@ -175,8 +175,8 @@ final readonly class Executor
 		if ($e) {
 			$io->echolnErr(
 				"<bright-red>Error</bright-red>: while working on migration '<bright-yellow>"
-				. basename($migration)
-				. "</bright-yellow>'",
+					. basename($migration)
+					. "</bright-yellow>'",
 			);
 			$io->echolnErr($io->escape($e->getMessage()));
 
@@ -189,8 +189,8 @@ final readonly class Executor
 
 		$io->echoln(
 			"<bright-green>Success</bright-green>: Migration '<bright-yellow>"
-			. basename($migration)
-			. "</bright-yellow>' successfully applied",
+				. basename($migration)
+				. "</bright-yellow>' successfully applied",
 		);
 	}
 }

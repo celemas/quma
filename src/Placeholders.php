@@ -90,8 +90,8 @@ final class Placeholders
 			if (!is_string($name) || !preg_match('/^' . self::NAME_PATTERN . '$/', $name)) {
 				throw new InvalidArgumentException(
 					"Invalid static placeholder name in scope '{$scope}'. Names must match "
-					. self::NAME_PATTERN
-					. '.',
+						. self::NAME_PATTERN
+						. '.',
 				);
 			}
 
@@ -185,9 +185,9 @@ final class Placeholders
 
 		return new RuntimeException(
 			"Unknown static placeholder {$placeholder} in {$path}:{$line}:{$column} for driver \"{$this->driver}\".\n"
-			. "No value was configured for \"{$name}\".\n"
-			. "Add placeholders['all']['{$name}'] or placeholders['{$this->driver}']['{$name}'].\n"
-			. 'Static placeholders are raw SQL fragments. Use them only for trusted configuration, never for user input.',
+				. "No value was configured for \"{$name}\".\n"
+				. "Add placeholders['all']['{$name}'] or placeholders['{$this->driver}']['{$name}'].\n"
+				. 'Static placeholders are raw SQL fragments. Use them only for trusted configuration, never for user input.',
 		);
 	}
 
@@ -197,20 +197,20 @@ final class Placeholders
 
 		return new RuntimeException(
 			"Malformed static placeholder in {$path}:{$line}:{$column}.\n"
-			. 'Expected '
-			. $this->delimiters->token('name')
-			. ' where name matches: '
-			. self::NAME_PATTERN
-			. ".\n"
-			. 'Examples: '
-			. $this->delimiters->token('prefix')
-			. ', '
-			. $this->delimiters->token('schema.name')
-			. ', '
-			. $this->delimiters->token('tenant-prefix')
-			. ', '
-			. $this->delimiters->token('cms:prefix')
-			. '.',
+				. 'Expected '
+				. $this->delimiters->token('name')
+				. ' where name matches: '
+				. self::NAME_PATTERN
+				. ".\n"
+				. 'Examples: '
+				. $this->delimiters->token('prefix')
+				. ', '
+				. $this->delimiters->token('schema.name')
+				. ', '
+				. $this->delimiters->token('tenant-prefix')
+				. ', '
+				. $this->delimiters->token('cms:prefix')
+				. '.',
 		);
 	}
 

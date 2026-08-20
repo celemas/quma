@@ -12,11 +12,11 @@ final class Util
 	{
 		if (
 			$segment === ''
-			|| $segment === '.'
-			|| $segment === '..'
-			|| str_contains($segment, '/')
-			|| str_contains($segment, '\\')
-			|| str_contains($segment, "\0")
+				|| $segment === '.'
+				|| $segment === '..'
+				|| str_contains($segment, '/')
+				|| str_contains($segment, '\\')
+				|| str_contains($segment, "\0")
 		) {
 			$display = str_replace("\0", '\\0', $segment);
 

@@ -322,8 +322,8 @@ class MigrationsTest extends TestCase
 		file_put_contents(
 			$dir . '/000003-plan.php',
 			'<?php file_put_contents('
-			. var_export($phpEffect, true)
-			. ", 'required'); return stdClass::class;",
+				. var_export($phpEffect, true)
+				. ", 'required'); return stdClass::class;",
 		);
 
 		$conn = $this->connection(migrations: $dir);

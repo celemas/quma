@@ -353,8 +353,8 @@ final class TypeCoercer
 
 		return (
 			strlen($digits) < strlen($limit)
-			|| strlen($digits) === strlen($limit)
-			&& strcmp($digits, $limit) <= 0
+				|| strlen($digits) === strlen($limit)
+				&& strcmp($digits, $limit) <= 0
 		);
 	}
 
@@ -364,7 +364,7 @@ final class TypeCoercer
 
 		return (
 			is_array($errors)
-			&& (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0)
+				&& (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0)
 		);
 	}
 
