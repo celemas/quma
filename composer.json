@@ -33,7 +33,11 @@
 		"celema/console": "^0.5"
 	},
 	"require-dev": {
-		"celema/dev": "^5.0"
+		"carthage-software/mago": "~1.47.0",
+		"celema/dev": "^6.0",
+		"ernst/coverlyzer": "^0.3",
+		"phpunit/phpunit": "^13.0",
+		"vimeo/psalm": "~6.16.0"
 	},
 	"scripts": {
 		"test:base": "@php vendor/bin/phpunit --testdox --no-coverage --colors=always",
