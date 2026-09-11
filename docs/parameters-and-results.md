@@ -222,6 +222,15 @@ The exact row count depends on the PDO driver. For example, SQLite may return `0
 
 Quma uses the fetch mode from `Connection` by default. The default is `PDO::FETCH_ASSOC`.
 
+Unmapped calls to `one()`, `first()`, `fetch()`, `all()`, and `lazy()` support these array-producing modes:
+
+- `PDO::FETCH_ASSOC`: column names as keys
+- `PDO::FETCH_NUM`: numeric indexes as keys
+- `PDO::FETCH_BOTH`: both column names and numeric indexes as keys
+- `PDO::FETCH_NAMED`: column names as keys, with duplicate column names collected into arrays
+
+Other modes, including `PDO::FETCH_OBJ`, `PDO::FETCH_COLUMN`, and `PDO::FETCH_DEFAULT`, and mode flags throw `InvalidArgumentException` before the query executes. This applies to both connection defaults and per-call overrides. For `lazy()`, validation happens when iteration starts. To use other PDO fetch modes, obtain the PDO connection through `Database::getConn()` and prepare and execute the statement directly.
+
 ```php
 use PDO;
 

@@ -98,7 +98,9 @@ Your options override these defaults. `PDO::ATTR_ERRMODE` is always forced to `P
 
 Sets the default fetch mode for unmapped `Query::one()`, `Query::first()`, `Query::fetch()`, `Query::all()`, and `Query::lazy()` calls when you do not pass a fetch mode explicitly.
 
-The default is `PDO::FETCH_ASSOC`. Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
+The default is `PDO::FETCH_ASSOC`. Unmapped calls support `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, and `PDO::FETCH_NAMED`. Other modes and mode flags throw `InvalidArgumentException` when an unmapped query uses that default, before execution. A supported per-call override takes precedence over the connection default.
+
+Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
 
 ## SQL directory methods
 

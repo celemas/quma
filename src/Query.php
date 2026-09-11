@@ -199,6 +199,12 @@ class Query
 			throw new InvalidArgumentException('Hydration requires PDO::FETCH_ASSOC.');
 		}
 
+		if (!in_array($mode, [PDO::FETCH_ASSOC, PDO::FETCH_NUM, PDO::FETCH_BOTH, PDO::FETCH_NAMED], true)) {
+			throw new InvalidArgumentException(
+				'Unsupported fetch mode. Use PDO::FETCH_ASSOC, PDO::FETCH_NUM, PDO::FETCH_BOTH, or PDO::FETCH_NAMED.',
+			);
+		}
+
 		return [$map, $mode];
 	}
 

@@ -8,6 +8,7 @@ use Celema\Quma\Database;
 use Celema\Quma\Exception\UnexpectedResultCount;
 use InvalidArgumentException;
 use PDO;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * @internal
@@ -79,15 +80,25 @@ class QueryHydrationTest extends TestCase
 		$this->assertArrayNotHasKey('name', $one);
 	}
 
-	public function testMappedCallsFetchAssociativeRowsRegardlessOfConnectionDefault(): void
+	#[DataProvider('connectionFetchModes')]
+	public function testMappedCallsFetchAssociativeRowsRegardlessOfConnectionDefault(int $mode): void
 	{
-		$conn = $this->connection()->fetch(PDO::FETCH_NUM);
+		$conn = $this->connection()->fetch($mode);
 		$db = new Database($conn);
 
 		$member = $db->members->list()->first(QueryHydrationMember::class);
 
 		$this->assertInstanceOf(QueryHydrationMember::class, $member);
 		$this->assertSame('Chuck Schuldiner', $member->name);
+	}
+
+	public static function connectionFetchModes(): array
+	{
+		return [
+			'numeric' => [PDO::FETCH_NUM],
+			'object' => [PDO::FETCH_OBJ],
+			'column' => [PDO::FETCH_COLUMN],
+		];
 	}
 
 	public function testMappedCallsRejectNonAssociativeFetchMode(): void

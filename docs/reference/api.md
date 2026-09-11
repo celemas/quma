@@ -157,6 +157,8 @@ Represents a prepared query.
 
 Pass a class name or resolver closure as `$map` to hydrate rows into objects. Leave `$map` as `null` for raw arrays. The per-call fetch mode is the second argument or the `fetchMode` named argument.
 
+Unmapped calls accept `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, and `PDO::FETCH_NAMED`. Other modes and mode flags throw `InvalidArgumentException` before query execution. Mapped calls require `PDO::FETCH_ASSOC`. See [Fetch modes](../parameters-and-results.md#fetch-modes) for details.
+
 ### Debug helpers
 
 - `interpolate(): string` returns a best-effort interpolated SQL string for debugging
