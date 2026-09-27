@@ -4,6 +4,7 @@
 
 ### Breaking
 
+- Constructorless hydration targets now throw `InvalidHydrationTarget` unless they implement `Hydratable`. This includes empty classes and property-only DTOs. Add a public constructor or implement `Hydratable::fromRow()` for affected targets. Public inherited and explicit zero-argument constructors remain supported.
 - Unmapped query methods now consistently accept only `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, and `PDO::FETCH_NAMED`. Other fetch modes and mode flags throw `InvalidArgumentException` before execution instead of returning inconsistent results or silently reporting missing rows. Code using other PDO fetch modes through `all()` must prepare and execute statements directly through `Database::getConn()` instead.
 
 ## [0.4.0](https://codefloe.com/celema/quma/src/tag/0.4.0) (2026-07-20)

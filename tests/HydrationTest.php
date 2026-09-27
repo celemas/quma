@@ -470,14 +470,43 @@ class HydrationTest extends TestCase
 		$deleted = $hydrator->hydrate(['type' => 'deleted', 'id' => 2], $resolver, null);
 
 		$this->assertInstanceOf(HydrationCreatedEvent::class, $created);
+		$this->assertSame(1, $created->id);
 		$this->assertInstanceOf(HydrationDeletedEvent::class, $deleted);
+		$this->assertSame(2, $deleted->id);
 	}
 
-	public function testHydratesClassWithoutConstructor(): void
+	#[DataProvider('constructorlessTargets')]
+	public function testRejectsConstructorlessTargets(string $class): void
 	{
-		$object = new Hydrator()->hydrate(['ignored' => true], HydrationNoConstructor::class, null);
+		$this->expectException(InvalidHydrationTarget::class);
+		$this->expectExceptionMessage('has no constructor');
 
-		$this->assertInstanceOf(HydrationNoConstructor::class, $object);
+		new Hydrator()->hydrate(['name' => 'Chuck'], $class, null);
+	}
+
+	public static function constructorlessTargets(): array
+	{
+		return [
+			'empty class' => [HydrationNoConstructor::class],
+			'uninitialized properties' => [HydrationPropertyOnly::class],
+			'defaulted properties' => [HydrationDefaultedProperties::class],
+		];
+	}
+
+	public function testHydratesClassWithZeroArgumentConstructor(): void
+	{
+		$object = new Hydrator()->hydrate(['ignored' => true], HydrationZeroArgumentConstructor::class, null);
+
+		$this->assertInstanceOf(HydrationZeroArgumentConstructor::class, $object);
+		$this->assertSame('initialized', $object->name);
+	}
+
+	public function testHydratableWithoutConstructorPopulatesProperties(): void
+	{
+		$object = new Hydrator()->hydrate(['name' => 'Chuck'], HydrationConstructorlessFactory::class, null);
+
+		$this->assertInstanceOf(HydrationConstructorlessFactory::class, $object);
+		$this->assertSame('CHUCK', $object->name);
 	}
 
 	public function testRejectsBuiltinTargetInReflectionCache(): void
@@ -638,6 +667,39 @@ class HydrationTest extends TestCase
 }
 
 final class HydrationNoConstructor {}
+
+final class HydrationPropertyOnly
+{
+	public string $name;
+}
+
+final class HydrationDefaultedProperties
+{
+	public string $name = 'anonymous';
+}
+
+final class HydrationZeroArgumentConstructor
+{
+	public string $name;
+
+	public function __construct()
+	{
+		$this->name = 'initialized';
+	}
+}
+
+final class HydrationConstructorlessFactory implements Hydratable
+{
+	public string $name;
+
+	public static function fromRow(array $row): static
+	{
+		$object = new self();
+		$object->name = strtoupper($row['name']);
+
+		return $object;
+	}
+}
 
 final readonly class HydrationCountry
 {

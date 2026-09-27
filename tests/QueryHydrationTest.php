@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Celema\Quma\Tests;
 
 use Celema\Quma\Database;
+use Celema\Quma\Exception\InvalidHydrationTarget;
 use Celema\Quma\Exception\UnexpectedResultCount;
 use InvalidArgumentException;
 use PDO;
@@ -182,6 +183,19 @@ class QueryHydrationTest extends TestCase
 		$this->getDb()->members->byId(1)->one(QueryHydrationMember::class);
 	}
 
+	public function testConstructorlessTargetFailureIncludesQueryContext(): void
+	{
+		try {
+			$this->getDb()->members->byId(1)->one(QueryHydrationPropertyOnlyMember::class);
+			$this->fail('Expected an invalid hydration target exception.');
+		} catch (InvalidHydrationTarget $e) {
+			$this->assertStringContainsString(QueryHydrationPropertyOnlyMember::class, $e->getMessage());
+			$this->assertStringContainsString(TestCase::root() . 'sql/default/members/byId.sql', $e->getMessage());
+			$this->assertStringContainsString('has no constructor', $e->getMessage());
+			$this->assertStringContainsString('implement Hydratable', $e->getMessage());
+		}
+	}
+
 	public function testAdHocHydrationMentionsAdHocSql(): void
 	{
 		$this->expectExceptionMessage('from ad-hoc SQL');
@@ -189,6 +203,11 @@ class QueryHydrationTest extends TestCase
 
 		$this->getDb()->execute('SELECT 1 AS member')->one(QueryHydrationMember::class);
 	}
+}
+
+final class QueryHydrationPropertyOnlyMember
+{
+	public string $name;
 }
 
 final readonly class QueryHydrationMember

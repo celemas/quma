@@ -134,6 +134,8 @@ foreach ($db->users->list()->lazy(User::class) as $user) {
 
 Quma reads public constructor parameters and matches each parameter name to a row column. Missing optional columns use the constructor default. Missing required columns throw `Celema\Quma\Exception\MissingColumn`. Extra row columns are ignored.
 
+Constructor hydration requires a public constructor, declared on the class or inherited. Explicit zero-argument constructors are supported and are responsible for initialization. Classes without a constructor, including empty classes and property-only DTOs, throw `Celema\Quma\Exception\InvalidHydrationTarget` unless they implement `Hydratable`. Quma does not populate properties directly.
+
 Use `#[Column]` when the database column name differs from the constructor parameter name.
 
 ```php
@@ -178,7 +180,7 @@ final readonly class User implements Hydratable
 }
 ```
 
-`Hydratable::fromRow()` receives an associative row and takes precedence over constructor reflection.
+`Hydratable::fromRow()` receives an associative row and takes precedence over constructor reflection. A class implementing `Hydratable` does not need a constructor; its factory is responsible for constructing and initializing the object.
 
 ### Polymorphic hydration
 

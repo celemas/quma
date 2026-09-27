@@ -184,6 +184,8 @@ Debug directories must already exist and be writable. Keep them outside the publ
 
 ## Row hydration types
 
+Targets must have a public constructor (declared or inherited, including zero-argument constructors) or implement `Hydratable`. Constructorless targets without `Hydratable` throw `InvalidHydrationTarget`, even if the class is empty. Quma does not automatically populate properties.
+
 ### `Celema\Quma\Column`
 
 Constructor-parameter attribute for mapping a parameter to a different row column.

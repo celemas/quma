@@ -63,7 +63,10 @@ final class StaticReflectionCache implements MetadataCache
 		$constructor = $reflection->getConstructor();
 
 		if ($constructor === null) {
-			return new ClassMetadata($class, false, true, []);
+			throw InvalidHydrationTarget::forTarget(
+				$class,
+				reason: 'target has no constructor; declare a public constructor or implement Hydratable',
+			);
 		}
 
 		$parameters = [];
