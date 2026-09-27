@@ -95,7 +95,7 @@ final class Migrations
 
 		if (
 			!$apply
-				&& !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
+			&& !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
 		) {
 			return 1;
 		}
