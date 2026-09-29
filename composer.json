@@ -34,7 +34,6 @@
 	},
 	"require-dev": {
 		"carthage-software/mago": "1.50.0",
-		"celema/dev": "^6.0",
 		"ernst/coverlyzer": "^0.3",
 		"phpunit/phpunit": "^13.0",
 		"vimeo/psalm": "6.19.0"
@@ -58,7 +57,7 @@
 			"@php vendor/bin/mago lint"
 		],
 		"docs:format": "npx prettier@3.6.2 --write --config docs/.prettierrc README.md CHANGELOG.md LICENSE.md docs/",
-		"docs:lint": "npx markdownlint-cli2@0.22.1 --config vendor/celema/dev/config/markdownlint.jsonc README.md CHANGELOG.md LICENSE.md docs/",
+		"docs:lint": "npx markdownlint-cli2@0.22.1 README.md CHANGELOG.md LICENSE.md docs/",
 		"ci": [
 			"composer lint",
 			"composer coverage",

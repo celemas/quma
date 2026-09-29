@@ -1,0 +1,39 @@
+{
+	"default": true,
+
+	// Heading style - require atx style (#)
+	"MD003": { "style": "atx" },
+
+	// List styles
+	"MD004": { "style": "dash" },
+	"MD007": { "indent": 2 },
+
+	// Allow hard tabs
+	"MD010": false,
+
+	// Line length - disable for flexibility
+	"MD013": false,
+
+	// Allow duplicate headings in different sections
+	"MD024": { "siblings_only": true },
+
+	// Ignore frontmatter title - it's metadata, not a document heading
+	"MD025": { "front_matter_title": "" },
+
+	// Allow inline HTML (for Vue components and special syntax)
+	"MD033": false,
+
+	// Allow bare URLs (for import paths)
+	"MD034": false,
+
+	// Frontmatter titles count as page titles
+	"MD041": false,
+
+	// Code blocks
+	"MD040": true, // Require language in fenced code
+	"MD046": { "style": "fenced" },
+
+	// Emphasis styles
+	"MD049": { "style": "underscore" }, // _ <em>
+	"MD050": { "style": "asterisk" }, // ** <strong>
+}
