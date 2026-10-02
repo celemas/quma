@@ -144,9 +144,7 @@ class MigrationsCommandTest extends TestCase
 					false,
 					true,
 					false,
-					static function () use ($conn): int {
-						return (new CreateMigrationsTable($conn))(new Io('php://output', 'php://output'));
-					},
+					static fn(): int => (new CreateMigrationsTable($conn))(new Io('php://output', 'php://output')),
 				),
 			);
 			ob_end_clean();
