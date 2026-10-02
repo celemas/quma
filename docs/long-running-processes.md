@@ -18,7 +18,9 @@ try {
 }
 ```
 
-`reset()` rolls back a transaction the unit left open. If the rollback fails, for example because the server closed the connection, the connection is dropped instead of throwing, and the next statement connects anew. It returns whether an open connection is kept.
+`reset()` rolls back a transaction the unit left open. If a query or a transaction call failed during the unit, it also pings the connection, as the failure may have been a lost connection. If the rollback or the ping fails, for example because the server closed the connection, the connection is dropped instead of throwing, and the next statement connects anew. It returns whether an open connection is kept.
+
+Until `reset()`, Quma keeps a lost connection, so the rest of the unit fails as well instead of continuing on a new connection outside its transaction. Quma only notices failures of its own queries and transaction calls: if a statement you run on the PDO instance from `getConn()` fails because the connection was lost, call `disconnect()`.
 
 On PostgreSQL, `reset()` also notices transactions opened with plain SQL (`BEGIN`), as PDO asks the server for the transaction state. Other drivers only track transactions started with `begin()`.
 

@@ -5,7 +5,7 @@
 ### Breaking
 
 - `QUMA_DEBUG_PRINT` writes to PHP's error log (stderr in the CLI unless `error_log` is configured) instead of stdout. Without `SERVER_SOFTWARE`, for example in a FrankenPHP worker at boot or a RoadRunner worker, the output went to stdout and corrupted responses.
-- `Database::reset()` returns whether an open connection is kept. It no longer throws when the rollback fails; the broken connection is dropped and the next statement connects anew.
+- `Database::reset()` returns whether an open connection is kept. It no longer throws when the rollback fails; the broken connection is dropped and the next statement connects anew. If a query or a transaction call failed since the last reset, `reset()` also pings the connection and drops it if it is broken, which replaces a lost MySQL connection even while it is used continuously.
 
 ### Added
 

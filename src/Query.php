@@ -11,6 +11,7 @@ use Generator;
 use InvalidArgumentException;
 use JsonException;
 use PDO;
+use PDOException;
 use PDOStatement;
 
 /** @api */
@@ -129,20 +130,14 @@ class Query
 		$this->executeFresh();
 
 		try {
-			if ($map === null) {
-				/**
-				 * @mago-expect lint:inline-variable-return Psalm makes this necessary
-				 * @var list<array<array-key, mixed>> $records
-				 */
-				$records = $this->stmt->fetchAll($fetchMode);
+			$records = $this->fetchAllRecords($fetchMode);
 
+			if ($map === null) {
 				return $records;
 			}
 
 			/** @var list<T> $result */
 			$result = [];
-			/** @var list<array<array-key, mixed>> $records */
-			$records = $this->stmt->fetchAll($fetchMode);
 
 			foreach ($records as $record) {
 				/** @var T $object */
@@ -209,20 +204,41 @@ class Query
 
 	private function executeFresh(): void
 	{
-		$this->useCurrentConnection();
-		$this->stmt->closeCursor();
-		$this->stmt->execute();
+		$this->executeStatement();
 		$this->executed = false;
 	}
 
 	private function executeForFetch(): void
 	{
 		if (!$this->executed) {
-			$this->useCurrentConnection();
-			$this->stmt->closeCursor();
-			$this->stmt->execute();
+			$this->executeStatement();
 			$this->executed = true;
 		}
+	}
+
+	private function executeStatement(): bool
+	{
+		$this->useCurrentConnection();
+
+		try {
+			$this->stmt->closeCursor();
+
+			return $this->stmt->execute();
+		} catch (PDOException $e) {
+			$this->fail($this->pdo, $e);
+		}
+	}
+
+	/**
+	 * Lets the database verify the connection before it is reused, as the
+	 * failure may mean that the connection was lost. The failed operation
+	 * itself is never retried.
+	 */
+	private function fail(PDO $pdo, PDOException $e): never
+	{
+		$this->db->markSuspect($pdo);
+
+		throw $e;
 	}
 
 	/**
@@ -254,11 +270,9 @@ class Query
 
 	public function run(): bool
 	{
-		$this->useCurrentConnection();
-		$this->stmt->closeCursor();
 		$this->executed = false;
 
-		return $this->stmt->execute();
+		return $this->executeStatement();
 	}
 
 	public function len(): int
@@ -287,8 +301,16 @@ class Query
 
 	private function prepare(PDO $pdo): void
 	{
+		try {
+			$stmt = $pdo->prepare($this->query);
+		} catch (PDOException $e) {
+			$this->fail($pdo, $e);
+		}
+
+		// Only a prepared statement switches the query to the connection;
+		// otherwise its next execution would not prepare it again.
 		$this->pdo = $pdo;
-		$this->stmt = $pdo->prepare($this->query);
+		$this->stmt = $stmt;
 
 		if ($this->args->count() > 0) {
 			$this->bindArgs($this->args->get(), $this->args->type());
@@ -372,7 +394,27 @@ class Query
 
 	protected function fetchArrayRecord(int $fetchMode): ?array
 	{
-		return $this->nullIfNot($this->stmt->fetch($fetchMode));
+		try {
+			return $this->nullIfNot($this->stmt->fetch($fetchMode));
+		} catch (PDOException $e) {
+			$this->fail($this->pdo, $e);
+		}
+	}
+
+	/** @return list<array<array-key, mixed>> */
+	private function fetchAllRecords(int $fetchMode): array
+	{
+		try {
+			/**
+			 * @mago-expect lint:inline-variable-return Psalm makes this necessary
+			 * @var list<array<array-key, mixed>> $records
+			 */
+			$records = $this->stmt->fetchAll($fetchMode);
+
+			return $records;
+		} catch (PDOException $e) {
+			$this->fail($this->pdo, $e);
+		}
 	}
 
 	protected function nullIfNot(mixed $value): ?array

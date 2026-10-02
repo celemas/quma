@@ -6,6 +6,7 @@ namespace Celema\Quma;
 
 use Closure;
 use PDO;
+use PDOException;
 use RuntimeException;
 use Throwable;
 
@@ -16,6 +17,8 @@ class Database
 	protected ?PDO $pdo = null;
 	protected ?int $connectedAt = null;
 	protected ?int $lastUsedAt = null;
+	/** Whether an operation failed on the connection since the last reset. */
+	protected bool $suspect = false;
 	/** @var array<string, LoadedScript> */
 	protected array $compiledScripts = [];
 
@@ -179,6 +182,12 @@ class Database
 	 * back. A connection that cannot be rolled back is dropped instead of
 	 * throwing; the next statement connects anew.
 	 *
+	 * If an operation failed during the unit of work, the connection is
+	 * pinged and dropped if it is broken. The failure may have been an
+	 * ordinary SQL error or a lost connection, and MySQL does not reflect a
+	 * lost connection in its transaction state, so without the ping a
+	 * connection used continuously would never be replaced.
+	 *
 	 * Returns whether an open connection is kept for reuse.
 	 */
 	public function reset(): bool
@@ -187,20 +196,59 @@ class Database
 			return false;
 		}
 
+		if ($this->rollBackOpenTransaction($this->pdo) && $this->checkAfterFailure()) {
+			return true;
+		}
+
+		$this->drop();
+
+		return false;
+	}
+
+	/**
+	 * Pings the connection if an operation failed on it since the last
+	 * reset. Returns whether the connection can be kept.
+	 */
+	private function checkAfterFailure(): bool
+	{
+		if (!$this->suspect) {
+			return true;
+		}
+
+		$this->suspect = false;
+
+		return $this->ping();
+	}
+
+	/** Returns false if the rollback failed. */
+	private function rollBackOpenTransaction(PDO $pdo): bool
+	{
 		try {
-			if ($this->pdo->inTransaction()) {
-				$this->pdo->rollBack();
+			if ($pdo->inTransaction()) {
+				$pdo->rollBack();
 				// Only the rollback reached the server; a reset without one
 				// must not hide a long idle period from the idle check.
 				$this->touchConnection();
 			}
-		} catch (Throwable) {
-			$this->drop();
 
+			return true;
+		} catch (Throwable) {
 			return false;
 		}
+	}
 
-		return true;
+	/**
+	 * Records that an operation failed on the given connection, so that the
+	 * next reset() verifies it. A query may still hold a connection that was
+	 * replaced since; its failures do not concern the current one.
+	 *
+	 * @internal
+	 */
+	public function markSuspect(PDO $pdo): void
+	{
+		if ($pdo === $this->pdo) {
+			$this->suspect = true;
+		}
 	}
 
 	public function quote(string $value): string
@@ -210,17 +258,31 @@ class Database
 
 	public function begin(): bool
 	{
-		return $this->requirePdo()->beginTransaction();
+		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
 	}
 
 	public function commit(): bool
 	{
-		return $this->requirePdo()->commit();
+		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->commit());
 	}
 
 	public function rollback(): bool
 	{
-		return $this->requirePdo()->rollback();
+		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->rollBack());
+	}
+
+	/** @param Closure(PDO): bool $call */
+	private function transactionCall(Closure $call): bool
+	{
+		$pdo = $this->requirePdo();
+
+		try {
+			return $call($pdo);
+		} catch (PDOException $e) {
+			$this->markSuspect($pdo);
+
+			throw $e;
+		}
 	}
 
 	public function getConn(): PDO
@@ -278,6 +340,7 @@ class Database
 		$this->pdo = null;
 		$this->connectedAt = null;
 		$this->lastUsedAt = null;
+		$this->suspect = false;
 	}
 
 	protected function markConnected(): void

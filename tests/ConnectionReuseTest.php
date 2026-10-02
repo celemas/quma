@@ -6,7 +6,12 @@ namespace Celema\Quma\Tests;
 
 use Celema\Quma\Database;
 use Celema\Quma\Tests\Util\BrokenPdo;
+use Celema\Quma\Tests\Util\FlakyPdo;
 use Celema\Quma\Tests\Util\InspectableDatabase;
+use Closure;
+use PDO;
+use PDOException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ValueError;
 
 /**
@@ -150,6 +155,134 @@ final class ConnectionReuseTest extends TestCase
 		$this->assertNotEquals($first, $second);
 	}
 
+	/** @param Closure(Database, FlakyPdo): mixed $operation */
+	#[DataProvider('lostConnectionProvider')]
+	public function testResetReplacesAConnectionLostWhile(Closure $operation): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$pdo = new FlakyPdo();
+		$db->setPdoPublic($pdo);
+
+		$this->assertPdoFailure(static fn() => $operation($db, $pdo));
+		$this->assertFalse($db->reset());
+		$this->assertNotSame($pdo, $db->getConn());
+	}
+
+	/** @return array<string, array{Closure(Database, FlakyPdo): mixed}> */
+	public static function lostConnectionProvider(): array
+	{
+		return [
+			'preparing' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$pdo->loseConnection();
+					$db->execute('SELECT 1');
+				},
+			],
+			'executing' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$query = $db->execute('SELECT 1');
+					$pdo->loseConnection();
+					$query->run();
+				},
+			],
+			'fetching a row' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$pdo->loseConnectionAfterExecute();
+					$db->execute('SELECT 1')->fetch();
+				},
+			],
+			'fetching all rows' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$pdo->loseConnectionAfterExecute();
+					$db->execute('SELECT 1')->all();
+				},
+			],
+			'iterating rows' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$pdo->loseConnectionAfterExecute();
+					iterator_to_array($db->execute('SELECT 1')->lazy());
+				},
+			],
+			'beginning a transaction' => [
+				static function (Database $db, FlakyPdo $pdo): void {
+					$pdo->loseConnection();
+					$db->begin();
+				},
+			],
+		];
+	}
+
+	public function testSqlErrorKeepsTheConnection(): void
+	{
+		$db = $this->getDb();
+		$pdo = $db->getConn();
+
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT * FROM missing_table')->all());
+		$this->assertTrue($db->reset());
+		$this->assertSame($pdo, $db->getConn());
+	}
+
+	public function testFailureOnAReplacedConnectionLeavesTheCurrentOneAlone(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$old = new FlakyPdo();
+		$db->setPdoPublic($old);
+		$query = $db->execute('SELECT 1 UNION ALL SELECT 2');
+		$query->fetch();
+		// A ping would fail on this connection: keeping it shows that none was sent.
+		$current = new BrokenPdo();
+		$db->setPdoPublic($current);
+		$old->loseConnection();
+
+		$this->assertPdoFailure($query->fetch(...));
+		$this->assertTrue($db->reset());
+		$this->assertSame($current, $db->getConn());
+	}
+
+	public function testQueryThatFailedToPrepareOnANewConnectionIsPreparedAgain(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$query = $db->members->list();
+		$lost = new FlakyPdo();
+		$lost->loseConnection();
+		$db->setPdoPublic($lost);
+
+		$this->assertPdoFailure($query->all(...));
+		// Must not fall back to the statement prepared on the replaced connection.
+		$this->assertPdoFailure($query->all(...));
+	}
+
+	#[DataProvider('serverDriverProvider')]
+	public function testResetReplacesAConnectionTheServerClosed(string $driver): void
+	{
+		$db = new Database($this->connection($this->serverDsn($driver)));
+		$pdo = $db->getConn();
+		$this->closeOnServer($pdo, $driver);
+
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT 1')->run());
+		$this->assertFalse($db->reset());
+		$this->assertNotSame($pdo, $db->getConn());
+		$this->assertTrue($db->execute('SELECT 1')->run());
+	}
+
+	#[DataProvider('serverDriverProvider')]
+	public function testLostTransactionIsNotContinuedOnANewConnection(string $driver): void
+	{
+		$db = new Database($this->connection($this->serverDsn($driver)));
+		$db->begin();
+		$this->closeOnServer($db->getConn(), $driver);
+
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT 1')->run());
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT 1')->run());
+		$this->assertFalse($db->reset());
+	}
+
+	/** @return array<string, array{string}> */
+	public static function serverDriverProvider(): array
+	{
+		return ['mysql' => ['mysql'], 'pgsql' => ['pgsql']];
+	}
+
 	public function testDefaultsPingAfterAMinuteAndKeepConnectionsRegardlessOfAge(): void
 	{
 		$config = $this->connection()->config;
@@ -172,5 +305,61 @@ final class ConnectionReuseTest extends TestCase
 		$this->expectExceptionMessage('maxConnectionAge');
 
 		$this->connection()->maxConnectionAge(-1);
+	}
+
+	/** @param Closure(): mixed $operation */
+	private function assertPdoFailure(Closure $operation): void
+	{
+		try {
+			$operation();
+		} catch (PDOException) {
+			$this->addToAssertionCount(1);
+
+			return;
+		}
+
+		$this->fail('The operation did not fail.');
+	}
+
+	private function serverDsn(string $driver): string
+	{
+		foreach (self::getAvailableDsns() as $dsn) {
+			if (str_starts_with($dsn, $driver . ':')) {
+				return $dsn;
+			}
+		}
+
+		$this->markTestSkipped("{$driver} is not available.");
+	}
+
+	/** Ends the connection's session from a second connection, as a server restart would. */
+	private function closeOnServer(PDO $pdo, string $driver): void
+	{
+		$admin = new PDO($this->serverDsn($driver));
+
+		if ($driver === 'pgsql') {
+			$pid = (int) $pdo->query('SELECT pg_backend_pid()')->fetchColumn();
+			// Waits up to five seconds for the session to end.
+			$admin->query("SELECT pg_terminate_backend({$pid}, 5000)");
+
+			return;
+		}
+
+		$id = (int) $pdo->query('SELECT CONNECTION_ID()')->fetchColumn();
+		$admin->exec("KILL {$id}");
+		$open = $admin->prepare('SELECT COUNT(*) FROM information_schema.PROCESSLIST WHERE ID = ?');
+
+		// KILL returns before the session has ended.
+		for ($i = 0; $i < 500; $i++) {
+			$open->execute([$id]);
+
+			if ((int) $open->fetchColumn() === 0) {
+				return;
+			}
+
+			usleep(10_000);
+		}
+
+		$this->fail('The MySQL session did not end.');
 	}
 }
