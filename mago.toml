@@ -29,5 +29,6 @@ literal-named-argument = { enabled = false }
 no-boolean-flag-parameter = { enabled = false }
 no-else-clause = { enabled = false }
 no-shorthand-ternary = { exclude = ['tests'] }
+prefer-early-continue = { enabled = false }
 single-class-per-file = { exclude = ['tests'] }
 too-many-methods = { enabled = false }
