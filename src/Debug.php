@@ -95,21 +95,17 @@ final class Debug
 		return self::env(self::ENV_INTERPOLATED) !== null;
 	}
 
+	/**
+	 * Goes to PHP's error log, which is stderr in the CLI unless `error_log`
+	 * is configured. Never stdout: in a server it would corrupt responses.
+	 */
 	private static function printQuery(string $query): void
 	{
-		$msg =
+		error_log(
 			"\n\n-----------------------------------------------\n\n"
-			. $query
-			. "\n------------------------------------------------\n";
-
-		if (($_SERVER['SERVER_SOFTWARE'] ?? null) !== null) {
-			// @codeCoverageIgnoreStart
-			error_log($msg);
-
-			// @codeCoverageIgnoreEnd
-		} else {
-			echo $msg;
-		}
+				. $query
+				. "\n------------------------------------------------\n",
+		);
 	}
 
 	private static function value(mixed $value): string

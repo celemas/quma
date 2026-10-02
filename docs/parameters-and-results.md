@@ -278,13 +278,13 @@ $sql = (string) $query;
 
 You can also enable debug output without changing application code.
 
-> **⚠ Warning — Development only.** Never enable debug output in production. Interpolated SQL writes real query data to disk or stdout, including secrets, credentials, tokens, and PII. There is no production guard — the debug system activates purely from environment variables.
+> **⚠ Warning — Development only.** Never enable debug output in production. Interpolated SQL writes real query data to disk or the error log, including secrets, credentials, tokens, and PII. There is no production guard — the debug system activates purely from environment variables.
 
 ```bash
 QUMA_DEBUG=1 QUMA_DEBUG_PRINT=1 php app.php
 QUMA_DEBUG=1 QUMA_DEBUG_INTERPOLATED=/tmp/quma/interpolated php app.php
 ```
 
-`QUMA_DEBUG` enables debug handling for new `Database` instances when set to `1`, `true`, `yes`, or `on` case-insensitively. Set it before creating the `Database`, then choose one or more output channels. `QUMA_DEBUG_PRINT` prints interpolated SQL when set to a true flag value. `QUMA_DEBUG_TRANSLATED` writes runtime SQL before parameter interpolation, and `QUMA_DEBUG_INTERPOLATED` writes interpolated SQL. Debug files are written below `<dir>/<session>/0001--...`. Add driver or output-type directories to the environment variable value if you want them. HTTP sessions include request time, method, a sanitized URI path, and a short hash. CLI sessions include process start time and a short hash. The four-digit counter preserves query order inside the session.
+`QUMA_DEBUG` enables debug handling for new `Database` instances when set to `1`, `true`, `yes`, or `on` case-insensitively. Set it before creating the `Database`, then choose one or more output channels. `QUMA_DEBUG_PRINT` writes interpolated SQL to PHP's error log (stderr in the CLI unless `error_log` is configured) when set to a true flag value. `QUMA_DEBUG_TRANSLATED` writes runtime SQL before parameter interpolation, and `QUMA_DEBUG_INTERPOLATED` writes interpolated SQL. Debug files are written below `<dir>/<session>/0001--...`. Add driver or output-type directories to the environment variable value if you want them. HTTP sessions include request time, method, a sanitized URI path, and a short hash. CLI sessions include process start time and a short hash. The four-digit counter preserves query order inside the session.
 
 This interpolation is intended for debugging, not for constructing executable SQL. It can contain secrets or user data, so keep output outside the public web root and do not commit it.

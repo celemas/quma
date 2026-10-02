@@ -2,7 +2,9 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.5.0...HEAD)
 
-No notable changes since the last release.
+### Breaking
+
+- `QUMA_DEBUG_PRINT` writes to PHP's error log (stderr in the CLI unless `error_log` is configured) instead of stdout. Without `SERVER_SOFTWARE`, for example in a FrankenPHP worker at boot or a RoadRunner worker, the output went to stdout and corrupted responses.
 
 ## [0.5.0](https://codefloe.com/celema/quma/src/tag/0.5.0) (2026-09-27)
 

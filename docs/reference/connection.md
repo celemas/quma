@@ -189,7 +189,7 @@ Quma uses these names when it creates the metadata table, checks applied migrati
 
 ## Debug output
 
-> **⚠ Warning — Development only.** Never enable debug output in production. `QUMA_DEBUG_INTERPOLATED` writes real query data (secrets, credentials, tokens, PII) to disk, and `QUMA_DEBUG_PRINT` prints it to stdout or error log. There is no built-in production guard — the debug system activates solely from environment variables.
+> **⚠ Warning — Development only.** Never enable debug output in production. `QUMA_DEBUG_INTERPOLATED` writes real query data (secrets, credentials, tokens, PII) to disk, and `QUMA_DEBUG_PRINT` writes it to the error log. There is no built-in production guard — the debug system activates solely from environment variables.
 
 Quma debug output is controlled through environment variables instead of connection methods. Set `QUMA_DEBUG` to a true flag value before creating the `Database` instance, then choose one or more output channels.
 
@@ -201,7 +201,7 @@ QUMA_DEBUG=1 QUMA_DEBUG_SESSION=manual-session-id QUMA_DEBUG_PRINT=1 php app.php
 ```
 
 - `QUMA_DEBUG` enables debug handling for new `Database` instances when set to `1`, `true`, `yes`, or `on` case-insensitively. Any other value disables it.
-- `QUMA_DEBUG_PRINT` prints interpolated SQL when set to a true flag value.
+- `QUMA_DEBUG_PRINT` writes interpolated SQL to PHP's error log when set to a true flag value. In the CLI that is stderr unless `error_log` is configured; it never goes to stdout, where it would end up in HTTP responses.
 - `QUMA_DEBUG_TRANSLATED` writes runtime SQL before parameter interpolation. For `.tpql` files, this is after template rendering with the current input.
 - `QUMA_DEBUG_INTERPOLATED` writes runtime SQL after template rendering and parameter interpolation.
 - `QUMA_DEBUG_SESSION` overrides automatic session naming.

@@ -170,12 +170,12 @@ Unmapped calls accept `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, a
 
 ## Debug environment variables
 
-> **⚠ Warning — Development only.** Never set these environment variables in production. `QUMA_DEBUG_INTERPOLATED` writes real query data (secrets, credentials, tokens, PII) to disk, and `QUMA_DEBUG_PRINT` prints it to stdout or error log. There is no built-in production guard — the debug system activates solely from environment variables.
+> **⚠ Warning — Development only.** Never set these environment variables in production. `QUMA_DEBUG_INTERPOLATED` writes real query data (secrets, credentials, tokens, PII) to disk, and `QUMA_DEBUG_PRINT` writes it to the error log. There is no built-in production guard — the debug system activates solely from environment variables.
 
 Quma debug output is controlled through environment variables, not connection code. Set `QUMA_DEBUG` to a true flag value before creating the `Database` instance, then choose one or more output channels.
 
 - `QUMA_DEBUG` enables debug handling for new `Database` instances when set to `1`, `true`, `yes`, or `on` case-insensitively. Any other value disables it.
-- `QUMA_DEBUG_PRINT` prints interpolated SQL when set to a true flag value.
+- `QUMA_DEBUG_PRINT` writes interpolated SQL to PHP's error log when set to a true flag value.
 - `QUMA_DEBUG_TRANSLATED=/path/to/dir` writes runtime SQL before parameter interpolation. For `.tpql` files, this is after template rendering with the current input.
 - `QUMA_DEBUG_INTERPOLATED=/path/to/dir` writes runtime SQL after template rendering and parameter interpolation.
 - `QUMA_DEBUG_SESSION=name` overrides automatic session naming.

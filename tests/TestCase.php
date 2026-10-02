@@ -148,6 +148,31 @@ class TestCase extends BaseTestCase
 	 * @param callable(): T $callback
 	 * @return T
 	 */
+	/**
+	 * Sends PHP's error log to a temporary file until stopErrorLog().
+	 *
+	 * @return array{file: string, previous: string}
+	 */
+	protected static function startErrorLog(): array
+	{
+		$file = (string) tempnam(sys_get_temp_dir(), 'quma-log');
+		// @mago-expect lint:no-ini-set
+		$previous = ini_set('error_log', $file);
+
+		return ['file' => $file, 'previous' => (string) $previous];
+	}
+
+	/** @param array{file: string, previous: string} $log */
+	protected static function stopErrorLog(array $log): string
+	{
+		// @mago-expect lint:no-ini-set
+		ini_set('error_log', $log['previous']);
+		$output = (string) file_get_contents($log['file']);
+		unlink($log['file']);
+
+		return $output;
+	}
+
 	protected function withEnv(string $name, ?string $value, callable $callback): mixed
 	{
 		$previous = getenv($name);

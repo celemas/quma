@@ -191,13 +191,12 @@ class DatabaseTest extends TestCase
 
 		$this->withEnv('QUMA_DEBUG', '1', function () use ($flag, &$output): void {
 			$this->withEnv('QUMA_DEBUG_PRINT', $flag, function () use (&$output): void {
-				ob_start();
+				$log = self::startErrorLog();
 
 				try {
 					$this->getDb()->execute('SELECT name FROM members WHERE member = ?', 1);
 				} finally {
-					$buffer = ob_get_clean();
-					$output = is_string($buffer) ? $buffer : '';
+					$output = self::stopErrorLog($log);
 				}
 			});
 		});
@@ -486,7 +485,7 @@ class DatabaseTest extends TestCase
 		$output = '';
 
 		$this->withEnv('QUMA_DEBUG_PRINT', '1', static function () use ($db, &$result, &$output): void {
-			ob_start();
+			$log = self::startErrorLog();
 
 			try {
 				$result = $db->members->joined([
@@ -495,8 +494,7 @@ class DatabaseTest extends TestCase
 					'interestedInNames' => true,
 				])->first();
 			} finally {
-				$buffer = ob_get_clean();
-				$output = is_string($buffer) ? $buffer : '';
+				$output = self::stopErrorLog($log);
 			}
 		});
 
@@ -516,13 +514,12 @@ class DatabaseTest extends TestCase
 		$output = '';
 
 		$this->withEnv('QUMA_DEBUG_PRINT', '1', static function () use ($db, &$result, &$output): void {
-			ob_start();
+			$log = self::startErrorLog();
 
 			try {
 				$result = $db->members->left(2001)->first();
 			} finally {
-				$buffer = ob_get_clean();
-				$output = is_string($buffer) ? $buffer : '';
+				$output = self::stopErrorLog($log);
 			}
 		});
 
