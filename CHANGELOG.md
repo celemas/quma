@@ -12,6 +12,10 @@
 - Before a connection that was idle for at least `pingAfterIdle` seconds (default 60) is reused, `Database` pings it and connects anew if it is broken. `Connection::maxConnectionAge()` replaces connections after a number of seconds (default 0, never). Neither check runs inside a transaction, and failed statements are never retried. A query built before its connection was replaced is prepared again on the new one.
 - Documentation for long-running processes: resetting between units of work, connection budgets, transaction-local session state, and cached scripts.
 
+### Fixed
+
+- Template queries accept no arguments or an empty array and render without parameters. Before, both threw `InvalidArgumentException` like positional arguments, so a template whose parameters are all optional could not be called without a dummy named parameter.
+
 ## [0.5.0](https://codefloe.com/celema/quma/src/tag/0.5.0) (2026-09-27)
 
 ### Breaking

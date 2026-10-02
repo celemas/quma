@@ -45,7 +45,10 @@ class Script
 		$args = new Args($argsArray);
 
 		if ($this->isTemplate) {
-			if ($args->type() === ArgType::Positional) {
+			// No arguments and an empty array classify as positional, but
+			// they mean "no parameters", which a template whose parameters
+			// are all optional must accept.
+			if ($args->type() === ArgType::Positional && $args->get() !== []) {
 				throw new InvalidArgumentException(
 					'Template queries `*.tpql` allow named parameters only',
 				);

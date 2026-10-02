@@ -451,6 +451,18 @@ class DatabaseTest extends TestCase
 		$db->members->joined(1983);
 	}
 
+	public function testTemplateQueryWithOnlyOptionalArgs(): void
+	{
+		$db = $this->getDb();
+
+		$this->assertCount(self::NUMBER_OF_MEMBERS, $db->members->filtered()->all());
+		$this->assertCount(self::NUMBER_OF_MEMBERS, $db->members->filtered([])->all());
+		$this->assertSame(
+			[['name' => 'Chuck Schuldiner'], ['name' => 'Rick Rozz']],
+			$db->members->filtered(['year' => 1983])->all(fetchMode: PDO::FETCH_ASSOC),
+		);
+	}
+
 	public function testTemplateQueryWithNoSqlArgs(): void
 	{
 		$db = $this->getDb();

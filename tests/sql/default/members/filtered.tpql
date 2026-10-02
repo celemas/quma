@@ -1,0 +1,7 @@
+SELECT
+    name
+FROM members
+<?php if (isset($year)) : ?>
+WHERE joined = :year
+<?php endif ?>
+ORDER BY member;

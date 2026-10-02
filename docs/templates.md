@@ -47,6 +47,23 @@ $users = $db->users->listActive([
 
 If you pass positional arguments to a template query, Quma throws `InvalidArgumentException`.
 
+A template whose parameters are all optional can be called without arguments or with an empty array. Both render the template without parameters. For a `users/search.tpql` like this:
+
+```php
+SELECT id, email
+FROM users
+<?php if (isset($active)) : ?>
+WHERE active = :active
+<?php endif ?>
+```
+
+both calls work:
+
+```php
+$all = $db->users->search()->all();
+$active = $db->users->search(['active' => true])->all();
+```
+
 ## Variables available inside templates
 
 Quma injects these values into a query template:
