@@ -52,6 +52,29 @@ class Connection
 		return $this;
 	}
 
+	/**
+	 * Before a connection that was idle for at least this many seconds is
+	 * used again, it is pinged and replaced if it is broken. 0 disables the
+	 * check. Default: 60.
+	 */
+	public function pingAfterIdle(int $seconds): static
+	{
+		$this->config->setPingAfterIdle($seconds);
+
+		return $this;
+	}
+
+	/**
+	 * A connection older than this many seconds is replaced before it is
+	 * used again. 0 keeps connections regardless of their age (default).
+	 */
+	public function maxConnectionAge(int $seconds): static
+	{
+		$this->config->setMaxConnectionAge($seconds);
+
+		return $this;
+	}
+
 	/** @psalm-param PlaceholderConfig $placeholders */
 	public function placeholders(Delimiters $delimiters, array $placeholders): static
 	{

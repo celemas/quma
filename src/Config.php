@@ -39,6 +39,12 @@ final class Config
 	public private(set) string $migrationsColumnMigration = 'migration';
 	public private(set) string $migrationsColumnApplied = 'applied';
 
+	/** Seconds a connection may be idle before it is pinged on reuse; 0 never pings. */
+	public private(set) int $pingAfterIdle = 60;
+
+	/** Seconds after which a connection is replaced on reuse; 0 keeps it. */
+	public private(set) int $maxConnectionAge = 0;
+
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(
 		public readonly string $dsn,
@@ -71,6 +77,25 @@ final class Config
 	public function setFetchMode(int $fetchMode): void
 	{
 		$this->pdo = $this->pdo->fetch($fetchMode);
+	}
+
+	public function setPingAfterIdle(int $seconds): void
+	{
+		$this->pingAfterIdle = self::seconds($seconds, 'pingAfterIdle');
+	}
+
+	public function setMaxConnectionAge(int $seconds): void
+	{
+		$this->maxConnectionAge = self::seconds($seconds, 'maxConnectionAge');
+	}
+
+	private static function seconds(int $seconds, string $setting): int
+	{
+		if ($seconds < 0) {
+			throw new ValueError("{$setting} must be a number of seconds, 0 to disable it: {$seconds}");
+		}
+
+		return $seconds;
 	}
 
 	/** @psalm-param PlaceholderConfig $placeholders */

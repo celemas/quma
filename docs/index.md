@@ -37,6 +37,7 @@ Start here, then move from the guides into the reference pages.
 - [Query files](query-files.md)
 - [Parameters and results](parameters-and-results.md)
 - [Templates](templates.md)
+- [Long-running processes](long-running-processes.md)
 - [CLI](cli.md)
 
 ### Migrations
@@ -62,7 +63,7 @@ Quma currently supports:
 - multiple SQL directories with driver-specific overrides
 - direct execution of ad-hoc SQL through `Database::execute()`
 - optional type-safe row hydration through `one()`, `first()`, `fetch()`, `all()`, and `lazy()`
-- explicit database lifecycle helpers such as `connected()`, `disconnect()`, `reconnect()`, `ping()`, and `reset()` for long-running PHP processes
+- connection hygiene for [long-running processes](long-running-processes.md): `reset()` between units of work, a ping before reusing an idle connection, and explicit `connected()`, `disconnect()`, `reconnect()`, and `ping()` helpers
 - migrations written in `.sql`, `.tpql`, or `.php`
 - environment-controlled debug output for translated and interpolated SQL
 - CLI helpers for creating and applying migrations

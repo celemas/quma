@@ -22,6 +22,8 @@ new Connection(string $dsn, string|array $sql)
 - `options(array $options): static` replaces PDO options
 - `option(int $attribute, mixed $value): static` sets one PDO option
 - `fetch(int $fetchMode): static` sets the default query fetch mode
+- `pingAfterIdle(int $seconds): static` pings a connection idle for at least this long before reuse (default 60, 0 disables it)
+- `maxConnectionAge(int $seconds): static` replaces connections older than this before reuse (default 0, never)
 - `migrations(string|array $migrations): static` sets migration directories
 - `addMigration(string $migrations): static` prepends one flat migration directory
 - `migrationNamespace(string $namespace, string|array $dirs): static` sets one namespaced migration entry
@@ -47,6 +49,8 @@ Common properties:
 - `migrationsColumnApplied: string`
 - `pdo: PdoConfig`
 - `placeholders: ?Placeholders`
+- `pingAfterIdle: int`
+- `maxConnectionAge: int`
 
 ## `Celema\Quma\PdoConfig`
 
@@ -92,7 +96,7 @@ new Database(Connection $conn)
 - `disconnect(): void` drops the current PDO connection and clears tracked connection state
 - `reconnect(): static` closes the current PDO connection and opens a fresh one
 - `ping(): bool` runs a lightweight `SELECT 1` health check against the active PDO connection; it returns `false` when disconnected or when the check fails
-- `reset(): void` rolls back any open transaction and keeps the connection available for reuse
+- `reset(): bool` rolls back any open transaction and keeps the connection available for reuse; a connection that cannot be rolled back is dropped instead of throwing. Returns whether an open connection is kept
 - `getConn(): PDO` returns the PDO instance
 - `quote(string $value): string` proxies to `PDO::quote()`
 - `begin(): bool` starts a transaction
@@ -103,7 +107,7 @@ new Database(Connection $conn)
 - `getPdoDriver(): string` returns the active PDO driver name
 - `getSqlDirs(): array` returns the resolved SQL directory list
 
-These lifecycle methods are especially useful when you keep one `Database` instance alive in a long-running PHP process and need explicit control over the underlying PDO handle.
+These lifecycle methods are especially useful when you keep one `Database` instance alive in a long-running PHP process and need explicit control over the underlying PDO handle. See [Long-running processes](../long-running-processes.md).
 
 ### Properties
 

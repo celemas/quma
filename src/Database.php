@@ -142,9 +142,7 @@ class Database
 			}
 		}
 
-		$this->pdo = null;
-		$this->connectedAt = null;
-		$this->lastUsedAt = null;
+		$this->drop();
 	}
 
 	public function reconnect(): static
@@ -175,17 +173,33 @@ class Database
 		}
 	}
 
-	public function reset(): void
+	/**
+	 * Brings the connection back to a clean state after a unit of work, such
+	 * as a request in a long-running worker: an open transaction is rolled
+	 * back. A connection that cannot be rolled back is dropped instead of
+	 * throwing; the next statement connects anew.
+	 *
+	 * Returns whether an open connection is kept for reuse.
+	 */
+	public function reset(): bool
 	{
 		if ($this->pdo === null) {
-			return;
+			return false;
 		}
 
-		if ($this->pdo->inTransaction()) {
-			$this->pdo->rollBack();
+		try {
+			if ($this->pdo->inTransaction()) {
+				$this->pdo->rollBack();
+			}
+		} catch (Throwable) {
+			$this->drop();
+
+			return false;
 		}
 
 		$this->touchConnection();
+
+		return true;
 	}
 
 	public function quote(string $value): string
@@ -215,6 +229,7 @@ class Database
 
 	protected function requirePdo(): PDO
 	{
+		$this->checkReuse();
 		$this->connect();
 
 		if ($this->pdo !== null) {
@@ -224,6 +239,44 @@ class Database
 		}
 
 		throw new RuntimeException('Database connection not initialized');
+	}
+
+	/**
+	 * Before an existing connection is used after a pause, replace it if it
+	 * reached the maximum age, or ping it if it was idle long enough and drop
+	 * it if it is broken. Never inside a transaction: a new connection would
+	 * silently lose the transaction's work, so a statement on a broken
+	 * connection fails instead. Statements themselves are never retried.
+	 */
+	protected function checkReuse(): void
+	{
+		if ($this->pdo === null || $this->pdo->inTransaction()) {
+			return;
+		}
+
+		$config = $this->conn->config;
+		$now = time();
+
+		if ($config->maxConnectionAge > 0 && ($now - ($this->connectedAt ?? $now)) >= $config->maxConnectionAge) {
+			$this->drop();
+
+			return;
+		}
+
+		if (
+			$config->pingAfterIdle > 0
+			&& ($now - ($this->lastUsedAt ?? $now)) >= $config->pingAfterIdle
+			&& !$this->ping()
+		) {
+			$this->drop();
+		}
+	}
+
+	protected function drop(): void
+	{
+		$this->pdo = null;
+		$this->connectedAt = null;
+		$this->lastUsedAt = null;
 	}
 
 	protected function markConnected(): void

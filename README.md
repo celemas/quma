@@ -89,6 +89,7 @@ Recommended pages:
 - [Query files](docs/query-files.md)
 - [Parameters and results](docs/parameters-and-results.md)
 - [Templates](docs/templates.md)
+- [Long-running processes](docs/long-running-processes.md)
 - [Migrations overview](docs/migrations/overview.md)
 - [CLI](docs/cli.md)
 - [Testing](docs/testing.md)

@@ -26,6 +26,12 @@ final class InspectableDatabase extends Database
 		$this->pdo = $pdo;
 	}
 
+	public function setTimesPublic(?int $connectedAt, ?int $lastUsedAt): void
+	{
+		$this->connectedAt = $connectedAt;
+		$this->lastUsedAt = $lastUsedAt;
+	}
+
 	public function disableConnect(): void
 	{
 		$this->connectDisabled = true;

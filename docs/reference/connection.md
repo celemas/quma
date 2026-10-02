@@ -102,6 +102,18 @@ The default is `PDO::FETCH_ASSOC`. Unmapped calls support `PDO::FETCH_ASSOC`, `P
 
 Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
 
+## Connection reuse
+
+### `pingAfterIdle(int $seconds): static`
+
+Before a connection that was idle for at least this many seconds is used again, it is pinged and replaced if the ping fails. The default is 60; `0` disables the check. The check never runs inside a transaction.
+
+### `maxConnectionAge(int $seconds): static`
+
+Replaces a connection older than this many seconds before it is used again. The default `0` keeps connections regardless of their age.
+
+See [Long-running processes](../long-running-processes.md).
+
 ## SQL directory methods
 
 ### `addSql(array|string $sql): static`

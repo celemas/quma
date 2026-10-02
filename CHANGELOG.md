@@ -5,6 +5,12 @@
 ### Breaking
 
 - `QUMA_DEBUG_PRINT` writes to PHP's error log (stderr in the CLI unless `error_log` is configured) instead of stdout. Without `SERVER_SOFTWARE`, for example in a FrankenPHP worker at boot or a RoadRunner worker, the output went to stdout and corrupted responses.
+- `Database::reset()` returns whether an open connection is kept. It no longer throws when the rollback fails; the broken connection is dropped and the next statement connects anew.
+
+### Added
+
+- Before a connection that was idle for at least `pingAfterIdle` seconds (default 60) is reused, `Database` pings it and connects anew if it is broken. `Connection::maxConnectionAge()` replaces connections after a number of seconds (default 0, never). Neither check runs inside a transaction, and failed statements are never retried.
+- Documentation for long-running processes: resetting between units of work, connection budgets, transaction-local session state, and cached scripts.
 
 ## [0.5.0](https://codefloe.com/celema/quma/src/tag/0.5.0) (2026-09-27)
 
