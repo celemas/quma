@@ -1,6 +1,10 @@
 # Changelog
 
-## [Unreleased](https://codefloe.com/celema/quma/compare/0.5.0...HEAD)
+## [Unreleased](https://codefloe.com/celema/quma/compare/0.6.0...HEAD)
+
+No notable changes since the last release.
+
+## [0.6.0](https://codefloe.com/celema/quma/src/tag/0.6.0) (2026-10-02)
 
 ### Breaking
 
