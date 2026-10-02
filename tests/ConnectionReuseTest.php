@@ -54,6 +54,17 @@ final class ConnectionReuseTest extends TestCase
 		$this->assertNotSame($broken, $db->getConn());
 	}
 
+	public function testResetWithoutRollbackDoesNotCountAsUse(): void
+	{
+		$db = new InspectableDatabase($this->connection()->pingAfterIdle(30));
+		$broken = new BrokenPdo();
+		$db->setPdoPublic($broken);
+		$db->setTimesPublic(time() - 60, time() - 31);
+
+		$this->assertTrue($db->reset());
+		$this->assertNotSame($broken, $db->getConn());
+	}
+
 	public function testBrokenIdleConnectionIsReplacedBeforeReuse(): void
 	{
 		$db = new InspectableDatabase($this->connection()->pingAfterIdle(30));

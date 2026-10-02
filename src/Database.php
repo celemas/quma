@@ -190,14 +190,15 @@ class Database
 		try {
 			if ($this->pdo->inTransaction()) {
 				$this->pdo->rollBack();
+				// Only the rollback reached the server; a reset without one
+				// must not hide a long idle period from the idle check.
+				$this->touchConnection();
 			}
 		} catch (Throwable) {
 			$this->drop();
 
 			return false;
 		}
-
-		$this->touchConnection();
 
 		return true;
 	}
