@@ -32,17 +32,16 @@ class Query
 	protected bool $executed = false;
 	protected ?Hydrator $hydrator = null;
 
+	/** The connection the statement was prepared on. */
+	private PDO $pdo;
+
 	public function __construct(
 		protected Database $db,
 		protected string $query,
 		protected Args $args,
 		protected ?string $sourcePath = null,
 	) {
-		$this->stmt = $this->db->getConn()->prepare($query);
-
-		if ($args->count() > 0) {
-			$this->bindArgs($args->get(), $args->type());
-		}
+		$this->prepare($this->db->getConn());
 
 		if ($this->db->debug) {
 			Debug::query($this->db, $this->query, $this->args, $this->sourcePath);
@@ -210,7 +209,7 @@ class Query
 
 	private function executeFresh(): void
 	{
-		$this->db->connect();
+		$this->useCurrentConnection();
 		$this->stmt->closeCursor();
 		$this->stmt->execute();
 		$this->executed = false;
@@ -218,9 +217,8 @@ class Query
 
 	private function executeForFetch(): void
 	{
-		$this->db->connect();
-
 		if (!$this->executed) {
+			$this->useCurrentConnection();
 			$this->stmt->closeCursor();
 			$this->stmt->execute();
 			$this->executed = true;
@@ -256,7 +254,7 @@ class Query
 
 	public function run(): bool
 	{
-		$this->db->connect();
+		$this->useCurrentConnection();
 		$this->stmt->closeCursor();
 		$this->executed = false;
 
@@ -285,6 +283,31 @@ class Query
 	public function interpolate(): string
 	{
 		return Debug::interpolate($this->query, $this->args);
+	}
+
+	private function prepare(PDO $pdo): void
+	{
+		$this->pdo = $pdo;
+		$this->stmt = $pdo->prepare($this->query);
+
+		if ($this->args->count() > 0) {
+			$this->bindArgs($this->args->get(), $this->args->type());
+		}
+	}
+
+	/**
+	 * Before an execution, prepares the statement again if the database
+	 * replaced its connection since, for example after the maximum age. The
+	 * statement would otherwise still run on the old connection, outside a
+	 * transaction begun on the new one.
+	 */
+	private function useCurrentConnection(): void
+	{
+		$pdo = $this->db->getConn();
+
+		if ($pdo !== $this->pdo) {
+			$this->prepare($pdo);
+		}
 	}
 
 	protected function bindArgs(array $args, ArgType $argType): void

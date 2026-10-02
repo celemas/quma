@@ -125,6 +125,31 @@ final class ConnectionReuseTest extends TestCase
 		$this->assertNotSame($pdo, $db->getConn());
 	}
 
+	public function testQueryBuiltBeforeTheConnectionWasReplacedRunsInItsTransaction(): void
+	{
+		$db = new InspectableDatabase($this->connection()->maxConnectionAge(30));
+		$insert = $db->members->add('Tim Aymar', 1998, 2001);
+		$db->setTimesPublic(time() - 31, time());
+		$db->begin();
+		$insert->run();
+		$db->rollback();
+
+		$this->assertCount(DatabaseTest::NUMBER_OF_MEMBERS, $db->members->list()->all());
+	}
+
+	public function testFetchingContinuesWhenTheConnectionAgesInBetween(): void
+	{
+		$db = new InspectableDatabase($this->connection()->maxConnectionAge(30));
+		$query = $db->members->list();
+		$first = $query->fetch();
+		$db->setTimesPublic(time() - 31, time());
+		$second = $query->fetch();
+
+		$this->assertNotNull($first);
+		$this->assertNotNull($second);
+		$this->assertNotEquals($first, $second);
+	}
+
 	public function testDefaultsPingAfterAMinuteAndKeepConnectionsRegardlessOfAge(): void
 	{
 		$config = $this->connection()->config;

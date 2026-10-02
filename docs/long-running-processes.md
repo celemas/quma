@@ -32,7 +32,7 @@ $conn = new Connection('pgsql:host=localhost;dbname=app', __DIR__ . '/sql')
 	->maxConnectionAge(3600); // default 0 keeps connections regardless of their age
 ```
 
-The check runs only between statements outside a transaction. Inside a transaction a new connection would silently lose the transaction's work, so a statement on a broken connection fails instead. Quma never retries a failed statement or commit.
+The check runs only between statements outside a transaction. Inside a transaction a new connection would silently lose the transaction's work, so a statement on a broken connection fails instead. Quma never retries a failed statement or commit. A query built before its connection was replaced is prepared again on the new connection when it runs next, so it joins a transaction begun there.
 
 ## Connection budget
 
