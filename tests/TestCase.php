@@ -143,12 +143,6 @@ class TestCase extends BaseTestCase
 	}
 
 	/**
-	 * @template T
-	 *
-	 * @param callable(): T $callback
-	 * @return T
-	 */
-	/**
 	 * Sends PHP's error log to a temporary file until stopErrorLog().
 	 *
 	 * @return array{file: string, previous: string}
@@ -173,6 +167,12 @@ class TestCase extends BaseTestCase
 		return $output;
 	}
 
+	/**
+	 * @template T
+	 *
+	 * @param callable(): T $callback
+	 * @return T
+	 */
 	protected function withEnv(string $name, ?string $value, callable $callback): mixed
 	{
 		$previous = getenv($name);
