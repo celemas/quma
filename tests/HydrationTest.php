@@ -732,6 +732,25 @@ class HydrationTest extends TestCase
 		new Hydrator()->hydrate(['value' => 'x'], HydrationInvalidColumn::class, null);
 	}
 
+	public function testUnknownTargetIsRejectedWhateverTheMetadataCache(): void
+	{
+		$cache = new class implements MetadataCache {
+			#[\Override]
+			public function metadata(string $class): ClassMetadata
+			{
+				return new ClassMetadata(stdClass::class, false, true, []);
+			}
+		};
+
+		$this->expectException(InvalidHydrationTarget::class);
+		$this->expectExceptionMessage(
+			"Invalid hydration target 'Celema\\Quma\\Tests\\NoSuchHydrationClass' from ad-hoc SQL: "
+				. 'target is not an existing class. Row keys: id.',
+		);
+
+		new Hydrator($cache)->hydrate(['id' => 1], 'Celema\\Quma\\Tests\\NoSuchHydrationClass', null);
+	}
+
 	public function testInconsistentHydratableMetadataIsRejected(): void
 	{
 		$cache = new class implements MetadataCache {
