@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
+use Celema\Console\BufferedIo;
 use Celema\Quma\Connection;
 use Celema\Quma\Contract\Migration as MigrationContract;
 use Celema\Quma\Database;
 use Celema\Quma\Delimiters;
+use Celema\Quma\Environment;
+use Celema\Quma\Migrations\MetadataTable;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -48,6 +51,24 @@ class MigrationsTest extends TestCase
 
 		$this->assertSame(0, $result);
 		$this->assertStringContainsString("Created table 'migrations'", $content);
+		$this->assertStringNotContainsString('Migration table could not be created.', $content);
+	}
+
+	public function testCreatingAnExistingMetadataTableAborts(): void
+	{
+		$_SERVER['argv'] = ['run'];
+		$env = new Environment(['default' => $this->connection()], []);
+		$io = new BufferedIo();
+		$table = new MetadataTable($env, $io);
+		$env->db->execute('DROP TABLE IF EXISTS migrations')->run();
+
+		try {
+			$this->assertSame(0, $table->create($env->db));
+			$this->assertSame(1, $table->create($env->db));
+			$this->assertSame("Table 'migrations' already exists. Aborting\n", $io->errorOutput());
+		} finally {
+			$env->db->execute('DROP TABLE IF EXISTS migrations')->run();
+		}
 	}
 
 	public function testWrongConnection(): void
@@ -98,7 +119,7 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		$this->assertSame(1, $result);
-		$this->assertStringContainsString('No migration directories defined', $content);
+		$this->assertSame("No migration directories defined in configuration\n", $content);
 	}
 
 	public function testRunMigrationsRejectsApplyAndTestRunTogether(): void
@@ -183,12 +204,16 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		$this->assertSame(1, $result);
-		$this->assertStringContainsString('--test-run executes migrations', $content);
-		$this->assertStringContainsString(
-			'Use --yes to confirm test-run execution in non-interactive shells',
+		$this->assertSame(
+			"\nWarning: --test-run executes migrations before rolling the database transaction back.\n"
+				. "SQL migrations are sent to the database.\n"
+				. "TPQL migrations are rendered, so PHP template code runs.\n"
+				. "PHP migrations are required and executed.\n"
+				. "Rollback only covers database changes in the transaction.\n"
+				. 'File writes, HTTP calls, queues, emails, logs, cache writes, and other external side effects are not undone.'
+				. "\n\nUse --yes to confirm test-run execution in non-interactive shells.\n",
 			$content,
 		);
-		$this->assertStringNotContainsString('successfully applied', $content);
 	}
 
 	#[DataProvider('transactionConnectionProvider')]
@@ -646,7 +671,7 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		$this->assertSame(1, $result);
-		$this->assertStringContainsString("Migration namespace 'nonexistent' does not exist", $content);
+		$this->assertSame("Migration namespace 'nonexistent' does not exist\n", $content);
 	}
 
 	public function testRunMigrationsWithoutDefaultNamespace(): void
@@ -666,8 +691,13 @@ class MigrationsTest extends TestCase
 		ob_end_clean();
 
 		$this->assertSame(1, $result);
-		$this->assertStringContainsString("Migration namespace 'default' does not exist", $content);
-		$this->assertStringContainsString('--namespace', $content);
+		$this->assertSame(
+			"Migration namespace 'default' does not exist\n"
+				. 'If you have defined namespaced migrations, you must either provide a namespace using the '
+				. "`--namespace` flag when running this command, or define a namespace named 'default' which "
+				. "will be used when no namespace is provided.\n",
+			$content,
+		);
 	}
 
 	public function testRunMigrationsUsesCustomMetadataNames(): void
@@ -787,16 +817,54 @@ class MigrationsTest extends TestCase
 			)->one(fetchMode: PDO::FETCH_ASSOC);
 
 			$this->assertSame(1, $result);
-			$this->assertStringContainsString(
-				"Duplicate migration id '000001-duplicate.sql' in namespace 'default'",
+			$this->assertSame(
+				"Duplicate migration id '000001-duplicate.sql' in namespace 'default'\n"
+					. '  - '
+					. realpath($firstMigration)
+					. "\n"
+					. '  - '
+					. realpath($secondMigration)
+					. "\n",
 				$content,
 			);
-			$this->assertStringContainsString($firstMigration, $content);
-			$this->assertStringContainsString($secondMigration, $content);
-			$this->assertStringNotContainsString("Created table 'migrations'", $content);
 			$this->assertSame(0, (int) ($metadataTable['available'] ?? 0));
 			$this->assertSame(0, (int) ($firstTable['available'] ?? 0));
 			$this->assertSame(0, (int) ($secondTable['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($firstDir);
+			$this->removeMigrationDir($secondDir);
+		}
+	}
+
+	public function testRunMigrationsRejectsDuplicateMigrationIdsInNamespace(): void
+	{
+		$firstDir = $this->createMigrationDir('duplicate-ns-first');
+		$secondDir = $this->createMigrationDir('duplicate-ns-second');
+		file_put_contents($firstDir . '/000001-duplicate.sql', 'SELECT 1;');
+		file_put_contents($secondDir . '/000001-duplicate.sql', 'SELECT 1;');
+
+		$conn = $this->connection(migrations: ['feature' => [$firstDir, $secondDir]]);
+
+		try {
+			$_SERVER['argv'] = ['run', 'migrations', '--namespace=feature', '--apply'];
+
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$content = ob_get_clean();
+
+			$lines = explode("\n", rtrim((string) $content, "\n"));
+			sort($lines);
+
+			$this->assertSame(1, $result);
+			// Both paths are listed; their order is not significant.
+			$this->assertSame(
+				[
+					'  - ' . realpath($firstDir . '/000001-duplicate.sql'),
+					'  - ' . realpath($secondDir . '/000001-duplicate.sql'),
+					"Duplicate migration id 'feature:000001-duplicate.sql' in namespace 'feature'",
+				],
+				$lines,
+			);
 		} finally {
 			$this->removeMigrationDir($firstDir);
 			$this->removeMigrationDir($secondDir);

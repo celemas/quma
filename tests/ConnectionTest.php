@@ -7,6 +7,7 @@ namespace Celema\Quma\Tests;
 use Celema\Quma\Connection;
 use Celema\Quma\Delimiters;
 use PDO;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use ValueError;
 
@@ -180,6 +181,29 @@ class ConnectionTest extends TestCase
 		$this->assertStringEndsWith('/default', $sql[1]);
 	}
 
+	public function testFlatDirsKeepEveryEntryKind(): void
+	{
+		$conn = new Connection(
+			$this->getDsn(),
+			[
+				TestCase::root() . 'sql/default',
+				[TestCase::root() . 'sql/more'],
+				TestCase::root() . 'sql/additional',
+				['sqlite' => TestCase::root() . 'sql/additional/members'],
+			],
+		);
+
+		$this->assertSame(
+			[
+				TestCase::root() . 'sql/additional/members',
+				TestCase::root() . 'sql/additional',
+				TestCase::root() . 'sql/more',
+				TestCase::root() . 'sql/default',
+			],
+			$conn->config->sql,
+		);
+	}
+
 	public function testDriverSpecificArrayDirs(): void
 	{
 		$conn = new Connection(
@@ -271,6 +295,27 @@ class ConnectionTest extends TestCase
 		$this->assertArrayHasKey('valid', $migrations);
 		$this->assertStringEndsWith('/migrations', $migrations['valid'][0]);
 		$this->assertStringEndsWith('/default', $migrations['valid'][1]);
+	}
+
+	public function testDriverOnlyMigrationConfigIsNotANamespace(): void
+	{
+		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
+			->migrations(['sqlite' => TestCase::root() . 'migrations']);
+
+		$this->assertSame([TestCase::root() . 'migrations'], $conn->config->migrations);
+	}
+
+	public function testNamespacedMigrationDirectoriesWithDriverSpecificEntry(): void
+	{
+		$conn = new Connection($this->getDsn(), TestCase::root() . 'sql/default')
+			->migrations([
+				'ns' => [TestCase::root() . 'migrations', ['sqlite' => TestCase::root() . 'sql/more']],
+			]);
+
+		$this->assertSame(
+			['ns' => [TestCase::root() . 'migrations', TestCase::root() . 'sql/more']],
+			$conn->config->migrations,
+		);
 	}
 
 	public function testAddMigrationDirectoriesLater(): void
@@ -381,7 +426,7 @@ class ConnectionTest extends TestCase
 	public function testUnsupportedDsn(): void
 	{
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('driver not supported');
+		$this->expectExceptionMessage('PDO driver not supported: notsupported');
 
 		new Connection('notsupported:host=localhost;dbname=chuck', $this->getSqlDirs());
 	}
@@ -421,16 +466,41 @@ class ConnectionTest extends TestCase
 	public function testWrongMigrationsTableName(): void
 	{
 		$this->expectException(ValueError::class);
-		$this->expectExceptionMessage('Invalid migrations table name');
+		$this->expectExceptionMessage('Invalid migrations table name: new migrations');
 
 		$conn = new Connection($this->getDsn(), $this->getSqlDirs());
 		$conn->migrationTable('new migrations');
 	}
 
+	public function testPostgresMigrationsTableMayHaveASchema(): void
+	{
+		$conn = new Connection('pgsql:host=localhost;dbname=quma', $this->getSqlDirs());
+
+		$this->assertSame('audit.log', $conn->migrationTable('audit.log')->config->migrationsTable);
+	}
+
+	#[DataProvider('invalidPostgresTableProvider')]
+	public function testRejectsInvalidPostgresMigrationsTableNames(string $table): void
+	{
+		$this->expectException(ValueError::class);
+		$this->expectExceptionMessage('Invalid migrations table name: ' . $table);
+
+		new Connection('pgsql:host=localhost;dbname=quma', $this->getSqlDirs())->migrationTable($table);
+	}
+
+	/** @return array<string, array{string}> */
+	public static function invalidPostgresTableProvider(): array
+	{
+		return [
+			'leading junk' => ['; public.migrations'],
+			'trailing junk' => ['public.migrations;'],
+		];
+	}
+
 	public function testWrongMigrationColumnName(): void
 	{
 		$this->expectException(ValueError::class);
-		$this->expectExceptionMessage('Invalid migrations table column name');
+		$this->expectExceptionMessage('Invalid migrations table column name: new migration');
 
 		$conn = new Connection($this->getDsn(), $this->getSqlDirs());
 		$conn->migrationColumns('new migration');

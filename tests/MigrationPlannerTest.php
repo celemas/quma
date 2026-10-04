@@ -93,4 +93,17 @@ class MigrationPlannerTest extends TestCase
 			$result,
 		);
 	}
+
+	public function testDuplicatesAfterAnUnsupportedMigrationAreFound(): void
+	{
+		$planner = new Planner(new DriverPolicy('sqlite'));
+
+		$duplicates = $planner->duplicateMigrationIds('default', [
+			'/a/000001-pg-only-[pgsql].sql',
+			'/a/000002-dup.sql',
+			'/b/000002-dup.sql',
+		]);
+
+		$this->assertSame(['000002-dup.sql' => ['/a/000002-dup.sql', '/b/000002-dup.sql']], $duplicates);
+	}
 }

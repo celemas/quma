@@ -90,9 +90,12 @@ class PlaceholdersTest extends TestCase
 	public function testCustomDelimiterErrorsUseConfiguredSyntax(): void
 	{
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('Malformed static placeholder in query.sql:1:15');
-		$this->expectExceptionMessage('Expected [[name]]');
-		$this->expectExceptionMessage('[[tenant-prefix]]');
+		$this->expectExceptionMessage(
+			"Malformed static placeholder in query.sql:1:15.\n"
+				. 'Expected [[name]] where name matches: [A-Za-z_][A-Za-z0-9_.:-]*.'
+				. "\n"
+				. 'Examples: [[prefix]], [[schema.name]], [[tenant-prefix]], [[cms:prefix]].',
+		);
 
 		$placeholders = $this->placeholders([], new Delimiters('[[', ']]'));
 		$placeholders->compileSql('SELECT * FROM [[table name]]', 'query.sql');
@@ -102,10 +105,12 @@ class PlaceholdersTest extends TestCase
 	{
 		$this->expectException(RuntimeException::class);
 		$this->expectExceptionMessage(
-			'Unknown static placeholder [::table::] in query.sql:1:15 for driver "sqlite"',
-		);
-		$this->expectExceptionMessage(
-			"Add placeholders['all']['table'] or placeholders['sqlite']['table']",
+			'Unknown static placeholder [::table::] in query.sql:1:15 for driver "sqlite".'
+				. "\n"
+				. 'No value was configured for "table".'
+				. "\n"
+				. "Add placeholders['all']['table'] or placeholders['sqlite']['table'].\n"
+				. 'Static placeholders are raw SQL fragments. Use them only for trusted configuration, never for user input.',
 		);
 
 		$placeholders = $this->placeholders();
@@ -115,8 +120,12 @@ class PlaceholdersTest extends TestCase
 	public function testMalformedPlaceholderThrowsHelpfulException(): void
 	{
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('Malformed static placeholder in query.sql:1:15');
-		$this->expectExceptionMessage('Expected [::name::]');
+		$this->expectExceptionMessage(
+			"Malformed static placeholder in query.sql:1:15.\n"
+				. 'Expected [::name::] where name matches: [A-Za-z_][A-Za-z0-9_.:-]*.'
+				. "\n"
+				. 'Examples: [::prefix::], [::schema.name::], [::tenant-prefix::], [::cms:prefix::].',
+		);
 
 		$placeholders = $this->placeholders();
 		$placeholders->compileSql('SELECT * FROM [::table name::]', 'query.sql');
@@ -129,6 +138,24 @@ class PlaceholdersTest extends TestCase
 
 		$placeholders = $this->placeholders();
 		$placeholders->compileSql("SELECT 1\nFROM [::table::]", 'query.sql');
+	}
+
+	public function testPlaceholderExceptionReportsLocationOnFirstOfSeveralLines(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Unknown static placeholder [::table::] in query.sql:1:15 ');
+
+		$placeholders = $this->placeholders();
+		$placeholders->compileSql("SELECT * FROM [::table::]\nWHERE 1 = 1", 'query.sql');
+	}
+
+	public function testMalformedPlaceholderReportsLocationAfterValidPlaceholders(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Malformed static placeholder in query.sql:1:26.');
+
+		$placeholders = $this->placeholders(['all' => ['table' => 'members']]);
+		$placeholders->compileSql('SELECT * FROM [::table::][::bad name::]', 'query.sql');
 	}
 
 	public function testDefaultScopeIsRejected(): void
@@ -192,7 +219,9 @@ class PlaceholdersTest extends TestCase
 	public function testInvalidPlaceholderNameIsRejected(): void
 	{
 		$this->expectException(InvalidArgumentException::class);
-		$this->expectExceptionMessage('Invalid static placeholder name');
+		$this->expectExceptionMessage(
+			"Invalid static placeholder name in scope 'all'. Names must match [A-Za-z_][A-Za-z0-9_.:-]*.",
+		);
 
 		$this->placeholders([
 			'all' => ['table name' => 'members'],

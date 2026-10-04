@@ -283,6 +283,105 @@ final class ConnectionReuseTest extends TestCase
 		return ['mysql' => ['mysql'], 'pgsql' => ['pgsql']];
 	}
 
+	public function testDisconnectRollsBackAConnectionThatIsStillReferenced(): void
+	{
+		$db = $this->getDb();
+		$pdo = $db->getConn();
+		$db->begin();
+
+		$db->disconnect();
+
+		$this->assertFalse($pdo->inTransaction());
+		$this->assertFalse($db->connected());
+	}
+
+	public function testResetAfterARollbackCountsAsUse(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$db->getConn();
+		$db->begin();
+		$db->setTimesPublic(time() - 60, time() - 60);
+
+		$this->assertTrue($db->reset());
+		$this->assertGreaterThanOrEqual(time() - 1, $db->lastUsedAtPublic());
+	}
+
+	public function testUsingAConnectionCountsAsUseWithoutAnIdleCheck(): void
+	{
+		$db = new InspectableDatabase($this->connection()->pingAfterIdle(0));
+		$db->getConn();
+		$db->setTimesPublic(time() - 60, time() - 60);
+		$db->getConn();
+
+		$this->assertGreaterThanOrEqual(time() - 1, $db->lastUsedAtPublic());
+	}
+
+	public function testSuccessfulPingCountsAsUse(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$db->getConn();
+		$db->setTimesPublic(time() - 60, time() - 60);
+
+		$this->assertTrue($db->ping());
+		$this->assertGreaterThanOrEqual(time() - 1, $db->lastUsedAtPublic());
+	}
+
+	public function testResetOnlyChecksAFailedConnectionOnce(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT * FROM missing_table')->all());
+		$this->assertTrue($db->reset());
+
+		// A ping would fail on this connection: keeping it shows that none was sent.
+		$broken = new BrokenPdo();
+		$db->setPdoPublic($broken);
+
+		$this->assertTrue($db->reset());
+		$this->assertSame($broken, $db->getConn());
+	}
+
+	public function testDroppingAConnectionForgetsItsFailures(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$this->assertPdoFailure(static fn() => $db->execute('SELECT * FROM missing_table')->all());
+		$db->disconnect();
+		$db->getConn();
+
+		// A ping would fail on this connection: keeping it shows that none was sent.
+		$broken = new BrokenPdo();
+		$db->setPdoPublic($broken);
+
+		$this->assertTrue($db->reset());
+	}
+
+	public function testConnectionYoungerThanTheMaximumAgeIsKept(): void
+	{
+		$db = new InspectableDatabase($this->connection()->maxConnectionAge(30));
+		$pdo = $db->getConn();
+		$db->setTimesPublic(time() - 5, time());
+
+		$this->assertSame($pdo, $db->getConn());
+	}
+
+	public function testConnectionReachingTheMaximumAgeIsReplaced(): void
+	{
+		$db = new InspectableDatabase($this->connection()->maxConnectionAge(30));
+		$pdo = $db->getConn();
+		$db->setTimesPublic(time() - 30, time());
+
+		$this->assertNotSame($pdo, $db->getConn());
+	}
+
+	public function testConnectionIdleForExactlyTheThresholdIsPinged(): void
+	{
+		$db = new InspectableDatabase($this->connection()->pingAfterIdle(30));
+		$broken = new BrokenPdo();
+		$db->setPdoPublic($broken);
+		$db->setTimesPublic(time() - 60, time() - 30);
+
+		$this->assertNotSame($broken, $db->getConn());
+	}
+
 	public function testDefaultsPingAfterAMinuteAndKeepConnectionsRegardlessOfAge(): void
 	{
 		$config = $this->connection()->config;

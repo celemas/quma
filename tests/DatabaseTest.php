@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
+use Celema\Quma\Connection;
 use Celema\Quma\Database;
 use Celema\Quma\Exception\UnexpectedResultCount;
+use Celema\Quma\Folder;
 use Celema\Quma\Tests\Util\InspectableDatabase;
 use InvalidArgumentException;
 use PDO;
@@ -582,14 +584,15 @@ class DatabaseTest extends TestCase
 
 	public function testLoadScriptThrowsWhenFileIsMissing(): void
 	{
+		$path = sys_get_temp_dir() . '/quma-missing-script-' . uniqid() . '.sql';
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('Could not read SQL script');
+		$this->expectExceptionMessage('Could not read SQL script: ' . $path);
 
 		$db = new Database($this->connection());
 		$handler = set_error_handler(static fn(): bool => true);
 
 		try {
-			$db->loadScript(sys_get_temp_dir() . '/quma-missing-script-' . uniqid() . '.sql', false);
+			$db->loadScript($path, false);
 		} finally {
 			if ($handler !== null) {
 				restore_error_handler();
@@ -599,11 +602,27 @@ class DatabaseTest extends TestCase
 
 	public function testLoadTemplateScriptThrowsWhenFileIsMissing(): void
 	{
+		$path = sys_get_temp_dir() . '/quma-missing-script-' . uniqid() . '.tpql';
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('Could not read SQL script');
+		$this->expectExceptionMessage('Could not read SQL script: ' . $path);
 
 		$db = new Database($this->connection());
-		$db->loadScript(sys_get_temp_dir() . '/quma-missing-script-' . uniqid() . '.tpql', true);
+		$db->loadScript($path, true);
+	}
+
+	public function testLoadScriptCachesTemplatesAndPlainScriptsSeparately(): void
+	{
+		$db = new Database($this->connection());
+		$path = self::root() . 'sql/default/members/byId.sql';
+
+		$plain = $db->loadScript($path, false);
+		$template = $db->loadScript($path, true);
+
+		$this->assertNotSame($plain, $template);
+		$this->assertNull($plain->compile);
+		$this->assertNotNull($template->compile);
+		$this->assertSame($plain, $db->loadScript($path, false));
+		$this->assertSame($template, $db->loadScript($path, true));
 	}
 
 	public function testDatabaseExecute(): void
@@ -663,9 +682,19 @@ class DatabaseTest extends TestCase
 	public function testAccessingNonExistentNamespaceFolder(): void
 	{
 		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('The SQL folder does not exist: doesNotExist');
 
 		$db = $this->getDb();
 		$db->doesNotExist;
+	}
+
+	public function testAccessingAFolderWithoutSqlDirectories(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('The SQL folder does not exist: members');
+
+		$db = new Database(new Connection($this->getDsn(), []));
+		$db->members;
 	}
 
 	public function testAccessingNonExistentScriptQuery(): void
@@ -674,6 +703,22 @@ class DatabaseTest extends TestCase
 
 		$db = $this->getDb();
 		$db->members->doesNotExist;
+	}
+
+	public function testFolderRejectsInvalidNames(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Invalid SQL folder name: ..');
+
+		new Folder($this->getDb(), '..');
+	}
+
+	public function testInvalidSegmentsShowNulBytesReadably(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Invalid SQL folder name: a\\0b');
+
+		$this->getDb()->{"a\0b"};
 	}
 
 	#[DataProvider('invalidPathSegmentProvider')]

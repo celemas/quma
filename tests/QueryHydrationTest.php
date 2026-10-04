@@ -177,8 +177,13 @@ class QueryHydrationTest extends TestCase
 
 	public function testScriptHydrationIncludesSourcePath(): void
 	{
-		$this->expectExceptionMessage(TestCase::root() . 'sql/default/members/byId.sql');
-		$this->expectExceptionMessage("missing required column 'joined'");
+		$this->expectExceptionMessage(
+			'Could not hydrate '
+				. QueryHydrationMember::class
+				. ' from '
+				. TestCase::root()
+				. "sql/default/members/byId.sql: missing required column 'joined' for parameter '\$joined'.",
+		);
 
 		$this->getDb()->members->byId(1)->one(QueryHydrationMember::class);
 	}
@@ -198,8 +203,11 @@ class QueryHydrationTest extends TestCase
 
 	public function testAdHocHydrationMentionsAdHocSql(): void
 	{
-		$this->expectExceptionMessage('from ad-hoc SQL');
-		$this->expectExceptionMessage("missing required column 'name'");
+		$this->expectExceptionMessage(
+			'Could not hydrate '
+				. QueryHydrationMember::class
+				. " from ad-hoc SQL: missing required column 'name' for parameter '\$name'. Row keys: member.",
+		);
 
 		$this->getDb()->execute('SELECT 1 AS member')->one(QueryHydrationMember::class);
 	}

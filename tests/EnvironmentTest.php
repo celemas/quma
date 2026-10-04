@@ -81,6 +81,74 @@ class EnvironmentTest extends TestCase
 		$this->removeMigrationDir($namespacedDir);
 	}
 
+	public function testGetMigrationsSortsFilesOfAllDirsByName(): void
+	{
+		$first = $this->createMigrationDir('sorted-first');
+		$second = $this->createMigrationDir('sorted-second');
+		file_put_contents($first . '/20240101-000005-e.sql', 'SELECT 1;');
+		file_put_contents($first . '/20240101-000001-a.tpql', '<?php');
+		file_put_contents($first . '/20240101-000003-c.php', '<?php');
+		file_put_contents($second . '/20240101-000004-d.php', '<?php');
+		file_put_contents($second . '/20240101-000002-b.sql', 'SELECT 1;');
+
+		try {
+			$_SERVER['argv'] = ['run'];
+			$env = new Environment(['default' => $this->connection(migrations: [$first, $second])], []);
+			$migrations = $env->getMigrations();
+
+			$this->assertIsArray($migrations);
+			$this->assertSame(
+				[
+					'20240101-000001-a.tpql',
+					'20240101-000002-b.sql',
+					'20240101-000003-c.php',
+					'20240101-000004-d.php',
+					'20240101-000005-e.sql',
+				],
+				array_map('basename', $migrations['default']),
+			);
+		} finally {
+			$this->removeMigrationDir($first);
+			$this->removeMigrationDir($second);
+		}
+	}
+
+	public function testGetMigrationsSkipsDirectoriesNamedLikeMigrations(): void
+	{
+		$dir = $this->createMigrationDir('subdirs');
+		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
+
+		foreach (['20240101-000001-b.php', '20240101-000002-c.sql', '20240101-000003-d.tpql'] as $subdir) {
+			mkdir($dir . '/' . $subdir);
+		}
+
+		try {
+			$_SERVER['argv'] = ['run'];
+			$env = new Environment(['default' => $this->connection(migrations: [$dir])], []);
+			$migrations = $env->getMigrations();
+
+			$this->assertIsArray($migrations);
+			$this->assertSame(['20240101-000000-a.sql'], array_map('basename', $migrations['default']));
+		} finally {
+			foreach (['20240101-000001-b.php', '20240101-000002-c.sql', '20240101-000003-d.tpql'] as $subdir) {
+				rmdir($dir . '/' . $subdir);
+			}
+
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testPostgresMigrationsTableDdlUsesSchema(): void
+	{
+		$_SERVER['argv'] = ['run'];
+		$dsn = 'pgsql:host=localhost;dbname=quma;user=quma;password=quma';
+		$plain = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('migrations')], []);
+		$audit = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('audit.log')], []);
+
+		$this->assertStringContainsString('CREATE TABLE public.migrations', (string) $plain->getMigrationsTableDDL());
+		$this->assertStringContainsString('CREATE TABLE audit.log', (string) $audit->getMigrationsTableDDL());
+	}
+
 	public function testGetMigrationsSkipsNonStringNamespaceKeys(): void
 	{
 		$dir = $this->createMigrationDir('namespaced-skip');

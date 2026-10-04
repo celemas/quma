@@ -61,12 +61,52 @@ class HydrationTest extends TestCase
 	{
 		$this->expectException(MissingColumn::class);
 		$this->expectExceptionMessage(
-			'Could not hydrate ' . HydrationCountry::class . ' from sql/country.sql',
+			'Could not hydrate '
+				. HydrationCountry::class
+				. " from sql/country.sql: missing required column 'name' for parameter '\$name'. Row keys: id.",
 		);
-		$this->expectExceptionMessage("missing required column 'name' for parameter '\$name'");
-		$this->expectExceptionMessage('Row keys: id');
 
 		new Hydrator()->hydrate(['id' => 49], HydrationCountry::class, 'sql/country.sql');
+	}
+
+	public function testNullableParametersKeepPresentValues(): void
+	{
+		$object = new Hydrator()->hydrate(['id' => 1, 'name' => 'Chuck'], HydrationOptionalValue::class, null);
+
+		$this->assertInstanceOf(HydrationOptionalValue::class, $object);
+		$this->assertSame('Chuck', $object->name);
+	}
+
+	public function testParametersAfterNullAndDefaultedOnesAreHydrated(): void
+	{
+		$hydrator = new Hydrator();
+
+		$afterNull = $hydrator->hydrate(['first' => null, 'second' => '2'], HydrationNullableFirst::class, null);
+		$afterDefault = $hydrator->hydrate(['id' => 1, 'last' => 'z'], HydrationDefaultedMiddle::class, null);
+
+		$this->assertInstanceOf(HydrationNullableFirst::class, $afterNull);
+		$this->assertNull($afterNull->first);
+		$this->assertSame(2, $afterNull->second);
+		$this->assertInstanceOf(HydrationDefaultedMiddle::class, $afterDefault);
+		$this->assertSame('x', $afterDefault->middle);
+		$this->assertSame('z', $afterDefault->last);
+	}
+
+	#[DataProvider('unknownTargetProvider')]
+	public function testRejectsTargetsThatAreNotClasses(string $target, string $reason): void
+	{
+		$this->expectException(InvalidHydrationTarget::class);
+		$this->expectExceptionMessage("Invalid hydration target '{$target}' from sql/x.sql: {$reason}. Row keys: id.");
+
+		new Hydrator()->hydrate(['id' => 1], $target, 'sql/x.sql');
+	}
+
+	public static function unknownTargetProvider(): array
+	{
+		return [
+			'builtin type' => ['Int', 'built-in type names cannot be hydrated'],
+			'unknown class' => ['Celema\\Quma\\Tests\\NoSuchHydrationClass', 'target is not an existing class'],
+		];
 	}
 
 	public function testMissingOptionalColumnUsesDefaultButPresentNullDoesNot(): void
@@ -104,11 +144,21 @@ class HydrationTest extends TestCase
 			'int from int' => [HydrationIntValue::class, 42, 42],
 			'int from string' => [HydrationIntValue::class, '-7', -7],
 			'int from zero string' => [HydrationIntValue::class, '000', 0],
+			'int from max string' => [HydrationIntValue::class, '9223372036854775807', PHP_INT_MAX],
+			'int from min string' => [HydrationIntValue::class, '-9223372036854775808', PHP_INT_MIN],
+			'int from zero-padded max string' => [
+				HydrationIntValue::class,
+				'0009223372036854775807',
+				PHP_INT_MAX,
+			],
 			'float from float' => [HydrationFloatValue::class, 1.5, 1.5],
 			'float from int' => [HydrationFloatValue::class, 1, 1.0],
 			'float from exponent string' => [HydrationFloatValue::class, '1e3', 1000.0],
 			'bool from bool' => [HydrationBoolValue::class, true, true],
 			'bool from int' => [HydrationBoolValue::class, 0, false],
+			'bool from int one' => [HydrationBoolValue::class, 1, true],
+			'bool from zero string' => [HydrationBoolValue::class, '0', false],
+			'bool from one string' => [HydrationBoolValue::class, '1', true],
 			'bool from false string' => [HydrationBoolValue::class, 'false', false],
 			'bool from f string' => [HydrationBoolValue::class, 'f', false],
 			'bool from true string' => [HydrationBoolValue::class, 'true', true],
@@ -134,17 +184,30 @@ class HydrationTest extends TestCase
 			'int rejects decimal string' => [HydrationIntValue::class, '1.2'],
 			'int rejects exponent string' => [HydrationIntValue::class, '1e3'],
 			'int rejects overflow' => [HydrationIntValue::class, '999999999999999999999999999999'],
+			'int rejects max plus one' => [HydrationIntValue::class, '9223372036854775808'],
+			'int rejects min minus one' => [HydrationIntValue::class, '-9223372036854775809'],
 			'int rejects bool' => [HydrationIntValue::class, true],
 			'float rejects empty string' => [HydrationFloatValue::class, ''],
 			'float rejects text' => [HydrationFloatValue::class, 'nope'],
+			'float rejects leading whitespace' => [HydrationFloatValue::class, ' 1.5'],
+			'float rejects trailing whitespace' => [HydrationFloatValue::class, '1.5 '],
 			'float rejects infinity' => [HydrationFloatValue::class, INF],
 			'bool rejects empty string' => [HydrationBoolValue::class, ''],
 			'bool rejects yes' => [HydrationBoolValue::class, 'yes'],
 			'bool rejects two' => [HydrationBoolValue::class, '2'],
+			'bool rejects int two' => [HydrationBoolValue::class, 2],
 			'bool rejects array' => [HydrationBoolValue::class, []],
 			'string rejects array' => [HydrationStringValue::class, []],
 			'string rejects object' => [HydrationStringValue::class, new RuntimeException('nope')],
 		];
+	}
+
+	public function testRejectsNonFiniteFloatsWithReason(): void
+	{
+		$this->expectException(InvalidTypeCoercion::class);
+		$this->expectExceptionMessage('; float must be finite.');
+
+		new Hydrator()->hydrate(['value' => INF], HydrationFloatValue::class, null);
 	}
 
 	public function testHydratesBackedEnums(): void
@@ -224,6 +287,17 @@ class HydrationTest extends TestCase
 		];
 	}
 
+	public function testDateOnlyValuesHydrateAtMidnight(): void
+	{
+		$hydrator = new Hydrator();
+
+		$immutable = $hydrator->hydrate(['value' => '2024-01-02'], HydrationImmutableDateValue::class, null);
+		$mutable = $hydrator->hydrate(['value' => '2024-01-02'], HydrationMutableDateValue::class, null);
+
+		$this->assertSame('2024-01-02 00:00:00.000000', $immutable->value->format('Y-m-d H:i:s.u'));
+		$this->assertSame('2024-01-02 00:00:00.000000', $mutable->value->format('Y-m-d H:i:s.u'));
+	}
+
 	public function testHydratesExistingImmutableDate(): void
 	{
 		$date = new DateTimeImmutable('2024-01-02 03:04:05');
@@ -252,20 +326,28 @@ class HydrationTest extends TestCase
 	}
 
 	#[DataProvider('dateFailureProvider')]
-	public function testRejectsInvalidDateStrings(string $class, mixed $value): void
+	public function testRejectsInvalidDateStrings(string $class, mixed $value, string $reason): void
 	{
 		$this->expectException(InvalidTypeCoercion::class);
+		$this->expectExceptionMessage("; {$reason}.");
 
 		new Hydrator()->hydrate(['value' => $value], $class, null);
 	}
 
 	public static function dateFailureProvider(): array
 	{
+		$unsupported = 'unsupported date/time format';
+		$notString = 'expected non-empty date string';
+
 		return [
-			'immutable invalid date' => [HydrationImmutableDateValue::class, '2024-02-31'],
-			'immutable empty string' => [HydrationImmutableDateValue::class, ''],
-			'mutable invalid date' => [HydrationMutableDateValue::class, '2024-02-31'],
-			'mutable empty string' => [HydrationMutableDateValue::class, ''],
+			'immutable invalid date' => [HydrationImmutableDateValue::class, '2024-02-31', $unsupported],
+			'immutable unparsable' => [HydrationImmutableDateValue::class, 'not a date', $unsupported],
+			'immutable empty string' => [HydrationImmutableDateValue::class, '', $notString],
+			'immutable int' => [HydrationImmutableDateValue::class, 5, $notString],
+			'mutable invalid date' => [HydrationMutableDateValue::class, '2024-02-31', $unsupported],
+			'mutable unparsable' => [HydrationMutableDateValue::class, 'not a date', $unsupported],
+			'mutable empty string' => [HydrationMutableDateValue::class, '', $notString],
+			'mutable int' => [HydrationMutableDateValue::class, 5, $notString],
 		];
 	}
 
@@ -284,6 +366,10 @@ class HydrationTest extends TestCase
 		$exactFloat = $hydrator->hydrate(['value' => 1.5], HydrationIntFloatValue::class, null);
 		$boolInt = $hydrator->hydrate(['value' => true], HydrationBoolIntValue::class, null);
 		$stringInt = $hydrator->hydrate(['value' => '42'], HydrationStringIntValue::class, null);
+		$intBeforeBool = $hydrator->hydrate(['value' => '1'], HydrationBoolIntValue::class, null);
+		$boolFromToken = $hydrator->hydrate(['value' => 't'], HydrationBoolIntValue::class, null);
+		$stringFromFloat = $hydrator->hydrate(['value' => 1.5], HydrationStringIntValue::class, null);
+		$enumFromString = $hydrator->hydrate(['value' => 'active'], HydrationStatusOrIntValue::class, null);
 
 		$this->assertNull($nullable->value);
 		$this->assertNull($explicitNullable->value);
@@ -292,6 +378,41 @@ class HydrationTest extends TestCase
 		$this->assertSame(1.5, $exactFloat->value);
 		$this->assertTrue($boolInt->value);
 		$this->assertSame('42', $stringInt->value);
+		$this->assertSame(1, $intBeforeBool->value);
+		$this->assertTrue($boolFromToken->value);
+		$this->assertSame('1.5', $stringFromFloat->value);
+		$this->assertSame(HydrationStatus::Active, $enumFromString->value);
+	}
+
+	public function testUnionObjectArmsCoerceValuesThatAreNotInstances(): void
+	{
+		$hydrator = new Hydrator();
+
+		$immutable = $hydrator->hydrate(['value' => '5'], HydrationImmutableDateOrIntValue::class, null);
+		$mutable = $hydrator->hydrate(['value' => '5'], HydrationMutableDateOrIntValue::class, null);
+		$enum = $hydrator->hydrate(['value' => '5'], HydrationStatusOrIntValue::class, null);
+
+		$this->assertSame(5, $immutable->value);
+		$this->assertSame(5, $mutable->value);
+		$this->assertSame(5, $enum->value);
+	}
+
+	public function testUnionsPreferEnumAndDateArmsOverScalarArms(): void
+	{
+		$hydrator = new Hydrator();
+		$value = '2024-01-02 03:04:05';
+
+		$immutable = $hydrator->hydrate(['value' => $value], HydrationImmutableDateOrIntValue::class, null);
+		$mutable = $hydrator->hydrate(['value' => $value], HydrationMutableDateOrIntValue::class, null);
+		$enum = $hydrator->hydrate(['value' => '1'], HydrationRankOrFloatValue::class, null);
+		$bothDates = $hydrator->hydrate(['value' => $value], HydrationAnyDateValue::class, null);
+
+		$this->assertInstanceOf(DateTimeImmutable::class, $immutable->value);
+		$this->assertSame($value, $immutable->value->format('Y-m-d H:i:s'));
+		$this->assertInstanceOf(DateTime::class, $mutable->value);
+		$this->assertSame($value, $mutable->value->format('Y-m-d H:i:s'));
+		$this->assertSame(HydrationRank::First, $enum->value);
+		$this->assertInstanceOf(DateTimeImmutable::class, $bothDates->value);
 	}
 
 	public function testHydratesUnionTypesWithExactObjectMatches(): void
@@ -323,10 +444,16 @@ class HydrationTest extends TestCase
 
 	public function testRejectsUnionValuesThatMatchNoArm(): void
 	{
-		$this->expectException(InvalidTypeCoercion::class);
-		$this->expectExceptionMessage('no union arm accepted');
-
-		new Hydrator()->hydrate(['value' => []], HydrationIntFloatValue::class, null);
+		try {
+			new Hydrator()->hydrate(['value' => []], HydrationIntFloatValue::class, null);
+			$this->fail('InvalidTypeCoercion was not thrown');
+		} catch (InvalidTypeCoercion $e) {
+			$this->assertStringContainsString(
+				'; no union arm accepted the value; last failure: Could not hydrate ',
+				$e->getMessage(),
+			);
+			$this->assertStringContainsString('; expected finite float, int, or numeric string.', $e->getMessage());
+		}
 	}
 
 	public function testTypeCoercerAllowsNullWhenMetadataAllowsNull(): void
@@ -366,6 +493,7 @@ class HydrationTest extends TestCase
 		);
 
 		$this->assertSame(1, new TypeCoercer()->coerce(1, $type, $this->coercionContext()));
+		$this->assertSame(1, new TypeCoercer()->coerce('1', $type, $this->coercionContext()));
 	}
 
 	public function testTypeCoercerRejectsUnbackedEnumMetadata(): void
@@ -415,8 +543,11 @@ class HydrationTest extends TestCase
 	public function testMissingAttributeColumnReportsColumnAndParameter(): void
 	{
 		$this->expectException(MissingColumn::class);
-		$this->expectExceptionMessage("column 'email_address'");
-		$this->expectExceptionMessage("parameter '\$email'");
+		$this->expectExceptionMessage(
+			'Could not hydrate '
+				. HydrationColumnUser::class
+				. " from ad-hoc SQL: missing required column 'email_address' for parameter '\$email'. Row keys: id.",
+		);
 
 		new Hydrator()->hydrate(['id' => 1], HydrationColumnUser::class, null);
 	}
@@ -446,8 +577,12 @@ class HydrationTest extends TestCase
 			new Hydrator()->hydrate(['id' => 1], HydrationFactoryThrowsRuntime::class, 'sql/factory.sql');
 			$this->fail('Expected a hydration exception.');
 		} catch (HydrationFailure $e) {
-			$this->assertStringContainsString('from sql/factory.sql', $e->getMessage());
-			$this->assertStringContainsString('Hydratable::fromRow() failed', $e->getMessage());
+			$this->assertSame(
+				'Could not hydrate '
+					. HydrationFactoryThrowsRuntime::class
+					. ' from sql/factory.sql: Hydratable::fromRow() failed. Row keys: id.',
+				$e->getMessage(),
+			);
 			$this->assertInstanceOf(RuntimeException::class, $e->getPrevious());
 		}
 	}
@@ -500,6 +635,28 @@ class HydrationTest extends TestCase
 
 		$this->assertInstanceOf(HydrationConstructorlessFactory::class, $object);
 		$this->assertSame('CHUCK', $object->name);
+	}
+
+	public function testRejectsBlankColumnNames(): void
+	{
+		$this->expectException(InvalidHydrationTarget::class);
+		$this->expectExceptionMessage(
+			"Invalid hydration target '"
+				. HydrationBlankColumn::class
+				. "': parameter '\$value' has an empty #[Column] name.",
+		);
+
+		new StaticReflectionCache()->metadata(HydrationBlankColumn::class);
+	}
+
+	public function testRejectsUnknownTargetInReflectionCache(): void
+	{
+		$this->expectException(InvalidHydrationTarget::class);
+		$this->expectExceptionMessage(
+			"Invalid hydration target 'Celema\\Quma\\Tests\\NoSuchHydrationClass' from ad-hoc SQL: target is not an existing class.",
+		);
+
+		new StaticReflectionCache()->metadata('Celema\\Quma\\Tests\\NoSuchHydrationClass');
 	}
 
 	public function testRejectsBuiltinTargetInReflectionCache(): void
@@ -575,7 +732,12 @@ class HydrationTest extends TestCase
 			new Hydrator()->hydrate(['value' => 1], HydrationConstructorThrowsTypeError::class, null);
 			$this->fail('Expected a type coercion exception.');
 		} catch (InvalidTypeCoercion $e) {
-			$this->assertStringContainsString('constructor rejected hydrated arguments', $e->getMessage());
+			$this->assertSame(
+				'Could not hydrate '
+					. HydrationConstructorThrowsTypeError::class
+					. ' from ad-hoc SQL: constructor rejected hydrated arguments. Row keys: value.',
+				$e->getMessage(),
+			);
 			$this->assertInstanceOf(TypeError::class, $e->getPrevious());
 		}
 	}
@@ -609,9 +771,48 @@ class HydrationTest extends TestCase
 	public function testClosureReturningNullThrows(): void
 	{
 		$this->expectException(InvalidHydrationTarget::class);
-		$this->expectExceptionMessage('expected class-string, got null');
+		$this->expectExceptionMessage(
+			'Invalid hydration target returned by resolver from sql/x.sql: expected class-string, got null. Row keys: id, x.',
+		);
 
-		new Hydrator()->hydrate(['id' => 1], static fn(array $row): null => null, null);
+		new Hydrator()->hydrate(['id' => 1, 'x' => 2], static fn(array $row): null => null, 'sql/x.sql');
+	}
+
+	public function testInvalidHydrationTargetMessages(): void
+	{
+		$this->assertSame(
+			"Invalid hydration target 'Target' from sql/x.sql: broken. Row keys: a, b.",
+			InvalidHydrationTarget::forTarget('Target', 'sql/x.sql', ['a', 'b'], 'broken')->getMessage(),
+		);
+		$this->assertSame(
+			"Invalid hydration target 'Target' from ad-hoc SQL.",
+			InvalidHydrationTarget::forTarget('Target')->getMessage(),
+		);
+	}
+
+	public function testCoercionFailureMessage(): void
+	{
+		$this->expectException(InvalidTypeCoercion::class);
+		$this->expectExceptionMessage(
+			'Could not hydrate '
+				. HydrationIntValue::class
+				. " from sql/int.sql: could not coerce column 'value' for parameter '\$value' to int; "
+				. 'value type: string; expected int or decimal integer string. Row keys: value.',
+		);
+
+		new Hydrator()->hydrate(['value' => 'x'], HydrationIntValue::class, 'sql/int.sql');
+	}
+
+	public function testMissingColumnMessageWithoutRowKeys(): void
+	{
+		$this->expectException(MissingColumn::class);
+		$this->expectExceptionMessage(
+			'Could not hydrate '
+				. HydrationCountry::class
+				. " from ad-hoc SQL: missing required column 'id' for parameter '\$id'. Row keys: (none).",
+		);
+
+		new Hydrator()->hydrate([], HydrationCountry::class, null);
 	}
 
 	public function testStaticReflectionCacheReusesMetadataInstance(): void
@@ -700,6 +901,23 @@ final readonly class HydrationCountry
 		public int $id,
 		public string $name,
 		public int $population = 0,
+	) {}
+}
+
+final readonly class HydrationNullableFirst
+{
+	public function __construct(
+		public ?string $first,
+		public int $second,
+	) {}
+}
+
+final readonly class HydrationDefaultedMiddle
+{
+	public function __construct(
+		public int $id,
+		public string $middle = 'x',
+		public string $last = 'y',
 	) {}
 }
 
@@ -852,6 +1070,41 @@ final readonly class HydrationStatusOrStringValue
 	) {}
 }
 
+final readonly class HydrationStatusOrIntValue
+{
+	public function __construct(
+		public HydrationStatus|int $value,
+	) {}
+}
+
+final readonly class HydrationAnyDateValue
+{
+	public function __construct(
+		public DateTimeImmutable|DateTime $value,
+	) {}
+}
+
+final readonly class HydrationRankOrFloatValue
+{
+	public function __construct(
+		public HydrationRank|float $value,
+	) {}
+}
+
+final readonly class HydrationImmutableDateOrIntValue
+{
+	public function __construct(
+		public DateTimeImmutable|int $value,
+	) {}
+}
+
+final readonly class HydrationMutableDateOrIntValue
+{
+	public function __construct(
+		public DateTime|int $value,
+	) {}
+}
+
 final readonly class HydrationColumnUser
 {
 	public function __construct(
@@ -953,6 +1206,11 @@ final class HydrationDnfParameter
 final class HydrationEmptyColumn
 {
 	public function __construct(#[Column('')] string $value) {}
+}
+
+final class HydrationBlankColumn
+{
+	public function __construct(#[Column('  ')] string $value) {}
 }
 
 final class HydrationInvalidColumn

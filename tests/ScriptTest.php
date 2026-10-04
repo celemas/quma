@@ -7,6 +7,7 @@ namespace Celema\Quma\Tests;
 use Celema\Quma\Args;
 use Celema\Quma\Database;
 use Celema\Quma\LoadedScript;
+use Celema\Quma\Script;
 use Celema\Quma\Tests\Util\TestableScript;
 use InvalidArgumentException;
 use RuntimeException;
@@ -112,5 +113,43 @@ class ScriptTest extends TestCase
 		);
 
 		$this->assertSame('', $script->evaluateTemplatePublic($missingFile, new Args([])));
+	}
+
+	public function testRenderingTemplateSourceRemovesItsTemporaryFile(): void
+	{
+		$before = $this->temporaryTemplates();
+		$script = new Script(
+			new Database($this->connection()),
+			new LoadedScript('SELECT <?= 1 ?> AS value', '/virtual.tpql'),
+			true,
+		);
+
+		$this->assertSame('SELECT 1 AS value', (string) $script->invoke());
+		$this->assertSame($before, $this->temporaryTemplates());
+	}
+
+	public function testFailingTemplateSourceRemovesItsTemporaryFile(): void
+	{
+		$before = $this->temporaryTemplates();
+		$script = new Script(
+			new Database($this->connection()),
+			new LoadedScript('<?php throw new RuntimeException("boom");', '/virtual.tpql'),
+			true,
+		);
+
+		try {
+			$script->invoke();
+			$this->fail('RuntimeException was not thrown');
+		} catch (RuntimeException $e) {
+			$this->assertSame('boom', $e->getMessage());
+		}
+
+		$this->assertSame($before, $this->temporaryTemplates());
+	}
+
+	/** @return list<string> */
+	private function temporaryTemplates(): array
+	{
+		return (array) glob(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-tpql-*');
 	}
 }
