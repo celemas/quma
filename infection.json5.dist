@@ -1,0 +1,18 @@
+{
+	$schema: 'vendor/infection/infection/resources/schema.json',
+	source: {
+		directories: ['src'],
+	},
+	tmpDir: '.infection',
+	logs: {
+		text: '.infection/infection.log',
+		html: '.infection/infection.html',
+		summary: '.infection/summary.log',
+	},
+	// CI mutates only the lines changed by a push; pushes without source
+	// changes produce no mutants and must not fail the threshold.
+	ignoreMsiWithNoMutations: true,
+	mutators: {
+		'@default': true,
+	},
+}

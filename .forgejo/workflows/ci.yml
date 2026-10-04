@@ -3,6 +3,9 @@ name: ci
 on:
   push:
   workflow_dispatch:
+  # Weekly full mutation run; pushes only mutate the changed lines.
+  schedule:
+    - cron: '0 4 * * 1'
 
 jobs:
   ci:
@@ -35,6 +38,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: https://code.forgejo.org/actions/checkout@v5
+        with:
+          # Full history so mutation tests can diff against the pushed range.
+          fetch-depth: 0
 
       - name: Install packages with composer
         run: composer install --prefer-dist --no-interaction
@@ -54,6 +60,23 @@ jobs:
 
       - name: Analyze coverage
         run: composer coverage:analyze
+
+      - name: Run mutation tests
+        env:
+          EVENT: ${{ forgejo.event_name }}
+          BEFORE: ${{ forgejo.event.before }}
+        run: |
+          # Infection collects its own line coverage instead of reusing the
+          # coverage step's: its JUnit test times are inflated by coverage
+          # collection and would make Infection skip mutants as too slow.
+          set --
+          # Pushes mutate only changed lines. New branches and force pushes
+          # have no usable base commit and run the full suite, as do
+          # scheduled and manual runs.
+          if [ "$EVENT" = push ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            set -- "$@" --git-diff-lines --git-diff-base="$BEFORE"
+          fi
+          composer mutation -- "$@"
 
       - name: Deploy code coverage report
         if: ${{ always() && forgejo.ref == 'refs/heads/main' }}

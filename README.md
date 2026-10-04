@@ -108,6 +108,16 @@ composer test:all
 
 For database setup and environment variables, see [docs/testing.md](docs/testing.md).
 
+### Mutation testing
+
+Mutation testing with [Infection](https://infection.github.io/) is not part of `composer ci`, but the CI workflow runs it after the coverage step against all three drivers and enforces the minimum mutation score from `infection.json5.dist`. Pushes only mutate the changed lines; a weekly scheduled run covers the whole codebase. Run it locally with:
+
+```bash
+composer mutation
+```
+
+It runs one PHPUnit process at a time because the tests share their SQLite files, migration fixtures, and MySQL/PostgreSQL databases. Set `QUMA_TEST_DRIVERS` and the database hosts as for `composer test:all` to include MySQL and PostgreSQL. Reports are written to `.infection/`.
+
 ## License
 
 This project is licensed under the [MIT license](LICENSE.md).

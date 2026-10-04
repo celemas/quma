@@ -1,4 +1,5 @@
 /.coverage
+/.infection
 /data
 /site
 /tests/migratons/2*
@@ -11,5 +12,6 @@
 __pycache__
 clover.xml
 composer.lock
+infection.json5
 phpunit.xml
 psalm.xml
