@@ -9,10 +9,169 @@
 		html: '.infection/infection.html',
 		summary: '.infection/summary.log',
 	},
+	// Ratchet: raise these with the reached score, never lower them.
+	// Measured with all three drivers, as in CI.
+	minMsi: 98,
+	minCoveredMsi: 98,
 	// CI mutates only the lines changed by a push; pushes without source
 	// changes produce no mutants and must not fail the threshold.
 	ignoreMsiWithNoMutations: true,
+	// Ignores below cover equivalent mutants: they change no observable behavior.
+	// They are scoped to a method, or to a source line by regex
+	// (`ignoreSourceCodeByRegex` matches the removed diff lines), never to a
+	// line number.
 	mutators: {
 		'@default': true,
+
+		// Extension points of the non-final @api classes.
+		ProtectedVisibility: {
+			ignore: [
+				'Celema\\Quma\\Database',
+				'Celema\\Quma\\Environment',
+				'Celema\\Quma\\Folder',
+				'Celema\\Quma\\Query',
+				'Celema\\Quma\\Script::buildTemplateContext',
+				'Celema\\Quma\\Script::renderTemplateFile',
+				'Celema\\Quma\\Script::renderTemplateSource',
+				'Celema\\Quma\\Script::prepareTemplateVars',
+			],
+		},
+		PublicVisibility: {
+			ignore: ['Celema\\Quma\\Query::interpolate'],
+		},
+
+		// Caches and fast paths that recompute the same value.
+		AssignCoalesce: {
+			ignore: ['Celema\\Quma\\Query::hydrator'],
+		},
+		Identical: {
+			// Exact instances are returned unchanged by coercion as well.
+			ignore: ['Celema\\Quma\\Hydration\\TypeCoercer::satisfiesSpecial'],
+		},
+		ReturnRemoval: {
+			ignore: [
+				'Celema\\Quma\\Hydration\\TypeCoercer::satisfiesSpecial',
+				// Skipping the return for translated-only output just interpolates
+				// a query nobody reads.
+				'Celema\\Quma\\Debug::query',
+			],
+		},
+		Ternary: {
+			ignore: [
+				// Swapping the cache key prefixes still keeps both kinds apart.
+				'Celema\\Quma\\Database::loadScript',
+			],
+			// SQL directories from Config are already canonical.
+			ignoreSourceCodeByRegex: ['\\$root = \\$realRoot !== false \\? \\$realRoot : \\$root;'],
+		},
+		Coalesce: {
+			ignore: [
+				// The session label is stable for a session key.
+				'Celema\\Quma\\Debug::session',
+				// argv only feeds the session hash.
+				'Celema\\Quma\\Debug::argv',
+			],
+		},
+
+		// Casts of values that are strings or ints already.
+		CastString: {
+			ignore: [
+				// positional() with a '' default never returns null; Psalm needs the cast.
+				'Celema\\Quma\\Commands\\Add::fileName',
+				'Celema\\Quma\\Debug::sessionInfo',
+				'Celema\\Quma\\Migrations\\Log::applied',
+			],
+		},
+		CastInt: {
+			ignore: ['Celema\\Quma\\Query::bindArgs'],
+		},
+
+		// The session key stays unique per explicit session value.
+		Concat: {
+			ignoreSourceCodeByRegex: ["return \\['env:' \\. \\$explicit, self::sessionLabel\\(\\$explicit\\)\\];"],
+		},
+		// The request time is part of the session label already.
+		ArrayItemRemoval: {
+			ignoreSourceCodeByRegex: [
+				'\\$hash = self::hash\\(\\[\\$time, \\$method, \\$uri, \\(string\\) getmypid\\(\\)\\]\\);',
+				'\\$hash = self::hash\\(\\[\\$time, \\(string\\) getmypid\\(\\), self::argv\\(\\)\\]\\);',
+			],
+		},
+
+		// The default exception code is not part of the contract.
+		DecrementInteger: {
+			ignore: [
+				'Celema\\Quma\\Exception\\HydrationFailure::fromHydratableFailure',
+				'Celema\\Quma\\Exception\\InvalidHydrationTarget::forTarget',
+				'Celema\\Quma\\Exception\\InvalidTypeCoercion::constructorFailure',
+			],
+			// Swap token names in Debug::prepareQuery() only need to be unique.
+			ignoreSourceCodeByRegex: ['\\$i = 0;'],
+		},
+		IncrementInteger: {
+			ignore: [
+				'Celema\\Quma\\Exception\\HydrationFailure::fromHydratableFailure',
+				'Celema\\Quma\\Exception\\InvalidHydrationTarget::forTarget',
+				'Celema\\Quma\\Exception\\InvalidTypeCoercion::constructorFailure',
+				// PHP's sort only checks whether the comparison is greater than 0.
+				'Celema\\Quma\\Environment::collectMigrations',
+			],
+		},
+		// Swap token names only need to be unique; the scan order keeps the
+		// pattern priority.
+		Increment: {
+			ignore: ['Celema\\Quma\\Debug::prepareQuery'],
+		},
+		Break_: {
+			ignore: ['Celema\\Quma\\Debug::prepareQuery'],
+		},
+
+		// Substring at exactly the limit is a no-op.
+		LessThanOrEqualTo: {
+			ignore: ['Celema\\Quma\\Debug::sessionLabel', 'Celema\\Quma\\Debug::uriLabel'],
+		},
+
+		// Defensive guards for values Config or Args never produce.
+		LogicalAnd: {
+			ignore: [
+				'Celema\\Quma\\Debug::interpolateNamed',
+				'Celema\\Quma\\Environment::normalizeMigrationDirs',
+			],
+		},
+		LogicalOr: {
+			ignore: ['Celema\\Quma\\Debug::relativeToRoots', 'Celema\\Quma\\Debug::safeRelativePath'],
+		},
+		UnwrapRtrim: {
+			ignore: ['Celema\\Quma\\Debug::relativeToRoots'],
+		},
+		GreaterThan: {
+			// Binding no arguments is a no-op.
+			ignore: ['Celema\\Quma\\Query::prepare'],
+		},
+		Continue_: {
+			// Reflection lists the null arm of a union last.
+			ignore: ['Celema\\Quma\\Hydration\\StaticReflectionCache::typeMetadata'],
+		},
+		FalseValue: {
+			ignore: [
+				// Callers only check the result with is_string().
+				'Celema\\Quma\\Folder::scriptPath',
+				// run() executes the statement itself; a later fetch() reads its rows.
+				'Celema\\Quma\\Query::run',
+			],
+		},
+
+		// fetchAll() consumes the cursor; an unbound parameter is NULL anyway.
+		UnwrapFinally: {
+			ignore: ['Celema\\Quma\\Query::all'],
+		},
+		MethodCallRemoval: {
+			ignoreSourceCodeByRegex: ['\\$this->stmt->bindValue\\(\\$arg, \\$value, PDO::PARAM_NULL\\);'],
+		},
+
+		// Interactive prompts need a real TTY, which tests do not have.
+		LogicalAndAllSubExprNegation: {
+			ignore: ['Celema\\Quma\\Migrations\\TestRunConfirmation::inputIsInteractive'],
+		},
 	},
 }
