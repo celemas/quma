@@ -149,6 +149,25 @@ class EnvironmentTest extends TestCase
 		$this->assertStringContainsString('CREATE TABLE audit.log', (string) $audit->getMigrationsTableDDL());
 	}
 
+	public function testPostgresTableCheckWorksWithoutSchema(): void
+	{
+		$dsns = array_values(array_filter(
+			self::getAvailableDsns(),
+			static fn(string $dsn): bool => str_starts_with($dsn, 'pgsql:'),
+		));
+
+		if ($dsns === []) {
+			$this->markTestSkipped('pgsql is not available.');
+		}
+
+		$_SERVER['argv'] = ['run'];
+		$env = new Environment([
+			'default' => $this->connection(dsn: $dsns[0])->migrationTable('quma_missing_table'),
+		], []);
+
+		$this->assertFalse($env->checkIfMigrationsTableExists($env->db));
+	}
+
 	public function testGetMigrationsSkipsNonStringNamespaceKeys(): void
 	{
 		$dir = $this->createMigrationDir('namespaced-skip');
