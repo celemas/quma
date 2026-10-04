@@ -62,7 +62,7 @@ final class TypeCoercer
 				try {
 					return $this->coerceNamed($value, $name, $context, $type->describe());
 				} catch (InvalidTypeCoercion $e) {
-					$lastFailure = $e->getMessage();
+					$lastFailure = $e->reason();
 				}
 			}
 		}
@@ -294,7 +294,7 @@ final class TypeCoercer
 	{
 		return match ($name->scalar) {
 			'int' => is_int($value),
-			'float' => is_float($value),
+			'float' => is_float($value) && is_finite($value),
 			'bool' => is_bool($value),
 			'string' => is_string($value),
 			default => $this->satisfiesSpecial($value, $name),

@@ -27,7 +27,7 @@ final class InvalidTypeCoercion extends HydrationFailure
 				. '. Row keys: '
 				. self::formatRowKeys($context->rowKeys)
 				. '.',
-		));
+		))->withReason($reason);
 	}
 
 	/**

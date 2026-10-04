@@ -47,7 +47,7 @@ final class Hydrator
 				$class,
 				$sourcePath,
 				$rowKeys,
-				$e->getMessage(),
+				$e->reason(),
 				$e,
 			);
 		}

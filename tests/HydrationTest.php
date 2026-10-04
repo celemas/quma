@@ -448,12 +448,42 @@ class HydrationTest extends TestCase
 			new Hydrator()->hydrate(['value' => []], HydrationIntFloatValue::class, null);
 			$this->fail('InvalidTypeCoercion was not thrown');
 		} catch (InvalidTypeCoercion $e) {
-			$this->assertStringContainsString(
-				'; no union arm accepted the value; last failure: Could not hydrate ',
+			$this->assertSame(
+				'Could not hydrate '
+					. HydrationIntFloatValue::class
+					. " from ad-hoc SQL: could not coerce column 'value' for parameter '\$value' to int|float; "
+					. 'value type: array; no union arm accepted the value; '
+					. 'last failure: expected finite float, int, or numeric string. Row keys: value.',
 				$e->getMessage(),
 			);
-			$this->assertStringContainsString('; expected finite float, int, or numeric string.', $e->getMessage());
 		}
+	}
+
+	/** @return iterable<string, array{float}> */
+	public static function nonFiniteFloats(): iterable
+	{
+		yield 'INF' => [INF];
+		yield '-INF' => [-INF];
+		yield 'NAN' => [NAN];
+	}
+
+	#[DataProvider('nonFiniteFloats')]
+	public function testUnionRejectsNonFiniteFloatsLikeFloat(float $value): void
+	{
+		$this->expectException(InvalidTypeCoercion::class);
+		$this->expectExceptionMessage(
+			'no union arm accepted the value; last failure: float must be finite. Row keys: value.',
+		);
+
+		new Hydrator()->hydrate(['value' => $value], HydrationIntFloatValue::class, null);
+	}
+
+	public function testCoercionFailureNamesAnonymousClassesCleanly(): void
+	{
+		$this->expectException(InvalidTypeCoercion::class);
+		$this->expectExceptionMessage('to int; value type: class@anonymous; expected int or decimal integer string.');
+
+		new Hydrator()->hydrate(['value' => new class {}], HydrationIntValue::class, null);
 	}
 
 	public function testTypeCoercerAllowsNullWhenMetadataAllowsNull(): void
@@ -681,7 +711,11 @@ class HydrationTest extends TestCase
 	public function testMetadataRejectsPrivateConstructors(): void
 	{
 		$this->expectException(InvalidHydrationTarget::class);
-		$this->expectExceptionMessage('target is not instantiable');
+		$this->expectExceptionMessage(
+			"Invalid hydration target '"
+				. HydrationPrivateConstructor::class
+				. "' from ad-hoc SQL: target is not instantiable.",
+		);
 
 		new Hydrator()->hydrate([], HydrationPrivateConstructor::class, null);
 	}
@@ -689,7 +723,11 @@ class HydrationTest extends TestCase
 	public function testInvalidColumnAttributeArgumentsThrow(): void
 	{
 		$this->expectException(InvalidHydrationTarget::class);
-		$this->expectExceptionMessage('has an invalid #[Column] attribute');
+		$this->expectExceptionMessage(
+			"Invalid hydration target '"
+				. HydrationInvalidColumn::class
+				. "' from ad-hoc SQL: parameter '\$value' has an invalid #[Column] attribute. Row keys: value.",
+		);
 
 		new Hydrator()->hydrate(['value' => 'x'], HydrationInvalidColumn::class, null);
 	}

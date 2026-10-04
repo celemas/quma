@@ -2,7 +2,11 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.6.0...HEAD)
 
-No notable changes since the last release.
+### Fixed
+
+- Hydrating `INF`, `-INF` or `NAN` into a union with `float`, such as `int|float`, fails like a plain `float` parameter does. Before, the union accepted the value as is.
+- Hydration failures that wrap another failure embed only its reason. Before, the union "last failure" and invalid targets repeated the inner message with its own prefix and row keys.
+- Hydration failures name anonymous classes `class@anonymous`, without a NUL byte and the declaring file.
 
 ## [0.6.0](https://codefloe.com/celema/quma/src/tag/0.6.0) (2026-10-02)
 

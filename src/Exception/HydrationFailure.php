@@ -10,6 +10,26 @@ use Throwable;
 /** @api */
 class HydrationFailure extends RuntimeException
 {
+	private string $reason = '';
+
+	/**
+	 * The failure detail without target, source and row keys, so that an
+	 * enclosing failure can embed it without repeating its own context.
+	 *
+	 * @internal
+	 */
+	public function reason(): string
+	{
+		return $this->reason;
+	}
+
+	protected function withReason(string $reason): static
+	{
+		$this->reason = $reason;
+
+		return $this;
+	}
+
 	/**
 	 * @param class-string $class
 	 * @param list<string> $rowKeys
@@ -50,10 +70,6 @@ class HydrationFailure extends RuntimeException
 
 	protected static function valueType(mixed $value): string
 	{
-		if (is_object($value)) {
-			return $value::class;
-		}
-
 		if (is_resource($value)) {
 			return get_resource_type($value) . ' resource';
 		}

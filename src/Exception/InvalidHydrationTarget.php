@@ -27,7 +27,7 @@ final class InvalidHydrationTarget extends HydrationFailure
 			$message .= '. Row keys: ' . self::formatRowKeys($rowKeys);
 		}
 
-		return new self($message . '.', 0, $previous);
+		return new self($message . '.', 0, $previous)->withReason($reason);
 	}
 
 	/**
@@ -39,7 +39,9 @@ final class InvalidHydrationTarget extends HydrationFailure
 		string $parameter,
 		string $reason,
 	): self {
-		return new self("Invalid hydration target '{$class}': parameter '\${$parameter}' {$reason}.");
+		$reason = "parameter '\${$parameter}' {$reason}";
+
+		return new self("Invalid hydration target '{$class}': {$reason}.")->withReason($reason);
 	}
 
 	/** @param list<string> $rowKeys */
