@@ -69,6 +69,7 @@
 			"composer docs:lint"
 		],
 		"mutation": [
+			"Composer\\Config::disableProcessTimeout",
 			"@putenv XDEBUG_MODE=coverage",
 			"@php vendor/bin/infection --threads=1"
 		]
