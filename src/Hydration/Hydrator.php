@@ -19,10 +19,10 @@ final class Hydrator
 	private MetadataCache $cache;
 	private TypeCoercer $coercer;
 
-	public function __construct(?MetadataCache $cache = null, ?TypeCoercer $coercer = null)
+	public function __construct(?MetadataCache $cache = null)
 	{
 		$this->cache = $cache ?? new StaticReflectionCache();
-		$this->coercer = $coercer ?? new TypeCoercer();
+		$this->coercer = new TypeCoercer();
 	}
 
 	public static function default(): self

@@ -204,10 +204,6 @@ final class Config
 			return [$this->preparePath($config)];
 		}
 
-		if (count($config) === 0) {
-			return [];
-		}
-
 		if (Util::isAssoc($config)) {
 			return $this->readAssocDirs($config);
 		}
@@ -248,15 +244,9 @@ final class Config
 	 */
 	private function readAssocDirs(array $entry): array
 	{
-		$hasDriver = array_key_exists($this->driver, $entry);
-		$hasAll = array_key_exists('all', $entry);
-		$dirs = [];
+		$dirs = array_key_exists($this->driver, $entry) ? $this->readDirsEntry($entry[$this->driver]) : [];
 
-		if ($hasDriver) {
-			$dirs = array_merge($dirs, $this->readDirsEntry($entry[$this->driver]));
-		}
-
-		if ($hasAll) {
+		if (array_key_exists('all', $entry)) {
 			$dirs = array_merge($dirs, $this->readDirsEntry($entry['all']));
 		}
 
@@ -324,10 +314,6 @@ final class Config
 	{
 		if (is_string($config)) {
 			return [$this->preparePath($config)];
-		}
-
-		if (count($config) === 0) {
-			return [];
 		}
 
 		if (Util::isAssoc($config) && !$this->isDriverConfig($config)) {

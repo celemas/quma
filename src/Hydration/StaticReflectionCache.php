@@ -43,7 +43,8 @@ final class StaticReflectionCache implements MetadataCache
 	/** @param class-string $class */
 	private function build(string $class): ClassMetadata
 	{
-		if ($this->isBuiltinTypeName($class) || !class_exists($class)) {
+		// Builtin type names like `int` are never class names.
+		if (!class_exists($class)) {
 			throw InvalidHydrationTarget::forTarget(
 				$class,
 				reason: 'target is not an existing class',
@@ -71,14 +72,10 @@ final class StaticReflectionCache implements MetadataCache
 
 		$parameters = [];
 
+		// Reflection lists the parameters in declaration order.
 		foreach ($constructor->getParameters() as $parameter) {
 			$parameters[] = $this->parameterMetadata($class, $parameter);
 		}
-
-		usort(
-			$parameters,
-			static fn(ParameterMetadata $a, ParameterMetadata $b): int => $a->position <=> $b->position,
-		);
 
 		return new ClassMetadata($class, false, true, $parameters);
 	}
@@ -114,7 +111,6 @@ final class StaticReflectionCache implements MetadataCache
 			$type->allowsNull(),
 			$hasDefault,
 			$hasDefault ? $parameter->getDefaultValue() : null,
-			$parameter->getPosition(),
 		);
 	}
 
@@ -184,7 +180,7 @@ final class StaticReflectionCache implements MetadataCache
 					);
 				}
 
-				if (strtolower($inner->getName()) === 'null') {
+				if ($inner->getName() === 'null') {
 					continue;
 				}
 
@@ -216,61 +212,29 @@ final class StaticReflectionCache implements MetadataCache
 		string $parameterName,
 		ReflectionNamedType $type,
 	): NamedTypeMetadata {
+		// Reflection reports builtin type names in lowercase.
 		$name = $type->getName();
-		$lower = strtolower($name);
 
-		if ($type->isBuiltin()) {
-			if (in_array($lower, ['int', 'float', 'bool', 'string'], true)) {
-				return new NamedTypeMetadata($lower, true, null, $lower, null, null);
-			}
-
-			throw InvalidHydrationTarget::forParameter(
-				$class,
-				$parameterName,
-				"uses unsupported type {$name}",
-			);
+		if ($type->isBuiltin() && in_array($name, ['int', 'float', 'bool', 'string'], true)) {
+			return new NamedTypeMetadata($name, $name, null, null);
 		}
 
 		if ($name === DateTimeImmutable::class) {
-			return new NamedTypeMetadata($name, false, DateTimeImmutable::class, null, 'immutable', null);
+			return new NamedTypeMetadata($name, null, 'immutable', null);
 		}
 
 		if ($name === DateTime::class) {
-			return new NamedTypeMetadata($name, false, DateTime::class, null, 'mutable', null);
+			return new NamedTypeMetadata($name, null, 'mutable', null);
 		}
 
 		if (is_subclass_of($name, BackedEnum::class)) {
-			return new NamedTypeMetadata($name, false, $name, null, null, $name);
+			return new NamedTypeMetadata($name, null, null, $name);
 		}
 
 		throw InvalidHydrationTarget::forParameter(
 			$class,
 			$parameterName,
 			"uses unsupported type {$name}",
-		);
-	}
-
-	private function isBuiltinTypeName(string $target): bool
-	{
-		return in_array(
-			strtolower($target),
-			[
-				'array',
-				'bool',
-				'callable',
-				'false',
-				'float',
-				'int',
-				'iterable',
-				'mixed',
-				'never',
-				'null',
-				'object',
-				'string',
-				'true',
-				'void',
-			],
-			true,
 		);
 	}
 }

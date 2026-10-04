@@ -31,11 +31,8 @@ final class Args
 	 */
 	public function getNamed(): array
 	{
-		if ($this->type !== ArgType::Named || !Util::isAssoc($this->args)) {
-			return [];
-		}
-
-		return $this->args;
+		// Named arguments are always an associative array.
+		return $this->type === ArgType::Named ? $this->args : [];
 	}
 
 	public function count(): int

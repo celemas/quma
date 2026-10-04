@@ -123,12 +123,6 @@ final readonly class Executor
 
 			$script = $conn->config->placeholders?->compileSql($script, $migration) ?? $script;
 
-			if (trim($script) === '') {
-				$this->showEmptyMessage($migration);
-
-				return self::WARNING;
-			}
-
 			return $this->migrateCompiledSQL($namespace, $migration, $script);
 		} catch (Throwable $e) {
 			$this->showMessage($migration, $e, $showStacktrace);

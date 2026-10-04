@@ -334,7 +334,7 @@ class HydrationTest extends TestCase
 		$type = new TypeMetadata(
 			'named',
 			true,
-			[new NamedTypeMetadata('int', true, null, 'int', null, null)],
+			[new NamedTypeMetadata('int', 'int', null, null)],
 		);
 
 		$this->assertNull(new TypeCoercer()->coerce(null, $type, $this->coercionContext()));
@@ -345,7 +345,7 @@ class HydrationTest extends TestCase
 		$type = new TypeMetadata(
 			'named',
 			false,
-			[new NamedTypeMetadata('unknown', false, null, null, null, null)],
+			[new NamedTypeMetadata('unknown', null, null, null)],
 		);
 
 		$this->expectException(InvalidTypeCoercion::class);
@@ -360,8 +360,8 @@ class HydrationTest extends TestCase
 			'union',
 			false,
 			[
-				new NamedTypeMetadata('unknown', false, null, null, null, null),
-				new NamedTypeMetadata('int', true, null, 'int', null, null),
+				new NamedTypeMetadata('unknown', null, null, null),
+				new NamedTypeMetadata('int', 'int', null, null),
 			],
 		);
 
@@ -373,14 +373,7 @@ class HydrationTest extends TestCase
 		$type = new TypeMetadata(
 			'named',
 			false,
-			[new NamedTypeMetadata(
-				HydrationUnit::class,
-				false,
-				HydrationUnit::class,
-				null,
-				null,
-				HydrationUnit::class,
-			)],
+			[new NamedTypeMetadata(HydrationUnit::class, null, null, HydrationUnit::class)],
 		);
 
 		$this->expectException(InvalidTypeCoercion::class);

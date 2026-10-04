@@ -59,12 +59,9 @@ class Environment
 
 		// Check if migrations is a flat list or namespaced
 		if (array_is_list($migrationDirs)) {
-			// Flat list: wrap in 'default' namespace
-			$dirs = $this->normalizeMigrationDirs($migrationDirs);
-
-			if (count($dirs) > 0) {
-				$migrations['default'] = $this->collectMigrations($dirs);
-			}
+			// Flat list: wrap in 'default' namespace. Config only keeps
+			// non-empty directories, and an empty list returned above.
+			$migrations['default'] = $this->collectMigrations($this->normalizeMigrationDirs($migrationDirs));
 		} else {
 			// Namespaced: process each namespace
 			array_walk(
@@ -177,11 +174,7 @@ class Environment
                 AND tablename = '{$table}';",
 		};
 
-		if ($query && ($db->execute($query)->one(fetchMode: PDO::FETCH_ASSOC)['available'] ?? 0) === 1) {
-			return true;
-		}
-
-		return false;
+		return ($db->execute($query)->one(fetchMode: PDO::FETCH_ASSOC)['available'] ?? null) === 1;
 	}
 
 	public function getMigrationsTableDDL(): string|false

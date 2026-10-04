@@ -29,7 +29,7 @@ final class Placeholders
 		$open = preg_quote($this->delimiters->open, '/');
 		$close = preg_quote($this->delimiters->close, '/');
 		$this->tokenPattern = '/' . $open . '(' . self::NAME_PATTERN . ')' . $close . '/';
-		$this->tokenStartPattern = '/^' . $open . '(' . self::NAME_PATTERN . ')' . $close . '/';
+		$this->tokenStartPattern = '/^' . $open . self::NAME_PATTERN . $close . '/';
 
 		$normalized = $this->normalizeConfig($config);
 		$this->values = array_replace(
@@ -40,7 +40,7 @@ final class Placeholders
 
 	public function compileSql(string $source, string $path): string
 	{
-		return $this->substituteFragment($source, $path, $source, 0);
+		return $this->substitute($source, $path);
 	}
 
 	/**
@@ -113,25 +113,12 @@ final class Placeholders
 		return $normalized;
 	}
 
-	private function substituteFragment(
-		string $fragment,
-		string $path,
-		string $source,
-		int $baseOffset,
-	): string {
-		$this->assertNoMalformedTokens($fragment, $path, $source, $baseOffset);
+	private function substitute(string $source, string $path): string
+	{
+		$this->assertNoMalformedTokens($source, $path);
 
 		$matches = [];
-		$result = preg_match_all(
-			$this->tokenPattern,
-			$fragment,
-			$matches,
-			PREG_SET_ORDER | PREG_OFFSET_CAPTURE,
-		);
-
-		if ($result === false || $result === 0) {
-			return $fragment;
-		}
+		preg_match_all($this->tokenPattern, $source, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE);
 
 		$compiled = '';
 		$cursor = 0;
@@ -141,33 +128,29 @@ final class Placeholders
 			$offset = $match[0][1];
 			$name = $match[1][0];
 
-			$compiled .= substr($fragment, $cursor, $offset - $cursor);
+			$compiled .= substr($source, $cursor, $offset - $cursor);
 
 			if (!array_key_exists($name, $this->values)) {
-				throw $this->unknownPlaceholder($placeholder, $name, $path, $source, $baseOffset + $offset);
+				throw $this->unknownPlaceholder($placeholder, $name, $path, $source, $offset);
 			}
 
 			$compiled .= $this->values[$name];
 			$cursor = $offset + strlen($placeholder);
 		}
 
-		return $compiled . substr($fragment, $cursor);
+		return $compiled . substr($source, $cursor);
 	}
 
-	private function assertNoMalformedTokens(
-		string $fragment,
-		string $path,
-		string $source,
-		int $baseOffset,
-	): void {
+	private function assertNoMalformedTokens(string $source, string $path): void
+	{
 		$offset = 0;
 
-		while (($position = strpos($fragment, $this->delimiters->open, $offset)) !== false) {
+		while (($position = strpos($source, $this->delimiters->open, $offset)) !== false) {
 			$matches = [];
-			$tail = substr($fragment, $position);
+			$tail = substr($source, $position);
 
 			if (preg_match($this->tokenStartPattern, $tail, $matches) !== 1) {
-				throw $this->malformedPlaceholder($path, $source, $baseOffset + $position);
+				throw $this->malformedPlaceholder($path, $source, $position);
 			}
 
 			$offset = $position + strlen($matches[0]);

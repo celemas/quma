@@ -30,11 +30,6 @@ final class Debug
 		$print = self::prints();
 		$writeTranslated = self::writesTranslated();
 		$writeInterpolated = self::writesInterpolated();
-
-		if (!$print && !$writeTranslated && !$writeInterpolated) {
-			return;
-		}
-
 		$path = $writeTranslated || $writeInterpolated
 			? self::sessionPath($sourcePath, $db->getSqlDirs())
 			: null;
@@ -78,19 +73,19 @@ final class Debug
 		return $value !== null && self::flag($value);
 	}
 
-	public static function prints(): bool
+	private static function prints(): bool
 	{
 		$value = self::env(self::ENV_PRINT);
 
 		return $value !== null && self::flag($value);
 	}
 
-	public static function writesTranslated(): bool
+	private static function writesTranslated(): bool
 	{
 		return self::env(self::ENV_TRANSLATED) !== null;
 	}
 
-	public static function writesInterpolated(): bool
+	private static function writesInterpolated(): bool
 	{
 		return self::env(self::ENV_INTERPOLATED) !== null;
 	}

@@ -215,7 +215,8 @@ final class TypeCoercer
 		foreach (self::DATE_FORMATS as $format) {
 			$date = DateTimeImmutable::createFromFormat('!' . $format, $value, $timezone);
 
-			if ($date !== false && !$this->dateHasErrors() && $date->format($format) === $value) {
+			// The round trip also rejects input that parsed with warnings or errors.
+			if ($date !== false && $date->format($format) === $value) {
 				return $date;
 			}
 		}
@@ -241,7 +242,8 @@ final class TypeCoercer
 		foreach (self::DATE_FORMATS as $format) {
 			$date = DateTime::createFromFormat('!' . $format, $value, $timezone);
 
-			if ($date !== false && !$this->dateHasErrors() && $date->format($format) === $value) {
+			// The round trip also rejects input that parsed with warnings or errors.
+			if ($date !== false && $date->format($format) === $value) {
 				return $date;
 			}
 		}
@@ -321,8 +323,7 @@ final class TypeCoercer
 		return match ($kind) {
 			'enum' => $name->enum !== null,
 			'immutable', 'mutable' => $name->date === $kind,
-			'int', 'float', 'bool', 'string' => $name->scalar === $kind,
-			default => false,
+			default => $name->scalar === $kind,
 		};
 	}
 
@@ -344,27 +345,12 @@ final class TypeCoercer
 		$negative = str_starts_with($value, '-');
 		$digits = $negative ? substr($value, 1) : $value;
 		$digits = ltrim($digits, '0');
-
-		if ($digits === '') {
-			return true;
-		}
-
 		$limit = $negative ? substr((string) PHP_INT_MIN, 1) : (string) PHP_INT_MAX;
 
 		return (
 			strlen($digits) < strlen($limit)
 				|| strlen($digits) === strlen($limit)
 				&& strcmp($digits, $limit) <= 0
-		);
-	}
-
-	private function dateHasErrors(): bool
-	{
-		$errors = DateTimeImmutable::getLastErrors();
-
-		return (
-			is_array($errors)
-				&& (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0)
 		);
 	}
 

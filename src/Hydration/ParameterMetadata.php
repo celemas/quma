@@ -19,6 +19,5 @@ final readonly class ParameterMetadata
 		public bool $nullable,
 		public bool $hasDefault,
 		public mixed $defaultValue,
-		public int $position,
 	) {}
 }

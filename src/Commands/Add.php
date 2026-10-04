@@ -38,7 +38,8 @@ final class Add
 			return 1;
 		}
 
-		$ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+		// fileName() returns a lowercase name.
+		$ext = pathinfo($fileName, PATHINFO_EXTENSION);
 		$migrations = $env->conn->config->migrations;
 
 		if (count($migrations) === 0) {
@@ -114,7 +115,7 @@ final class Add
 		}
 
 		$fileName = strtolower(str_replace([' ', '_'], '-', $fileName));
-		$ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+		$ext = pathinfo($fileName, PATHINFO_EXTENSION);
 
 		if (!$ext) {
 			return $fileName . '.sql';
@@ -167,12 +168,8 @@ return Migration::class;";
 			return 'Migration';
 		}
 
-		$words = array_map(
-			static fn(string $part): string => ucfirst(strtolower($part)),
-			$parts,
-		);
-
-		return implode('', $words);
+		// The file name is already lowercase.
+		return implode('', array_map(ucfirst(...), $parts));
 	}
 
 	private function getTpqlContent(): string
