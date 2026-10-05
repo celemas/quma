@@ -384,6 +384,13 @@ class HydrationTest extends TestCase
 		$this->assertSame(HydrationStatus::Active, $enumFromString->value);
 	}
 
+	public function testUnionPreservesIntegerInsteadOfCoercingToEnum(): void
+	{
+		$object = new Hydrator()->hydrate(['value' => 1], HydrationRankOrIntValue::class, null);
+
+		$this->assertSame(1, $object->value);
+	}
+
 	public function testUnionObjectArmsCoerceValuesThatAreNotInstances(): void
 	{
 		$hydrator = new Hydrator();
@@ -1138,6 +1145,13 @@ final readonly class HydrationAnyDateValue
 {
 	public function __construct(
 		public DateTimeImmutable|DateTime $value,
+	) {}
+}
+
+final readonly class HydrationRankOrIntValue
+{
+	public function __construct(
+		public HydrationRank|int $value,
 	) {}
 }
 
