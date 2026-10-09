@@ -152,10 +152,9 @@ final readonly class Executor
 
 	private function showEmptyMessage(string $migration): void
 	{
-		$this->io->echolnErr(
-			"<yellow>Warning</yellow>: Migration '<bright-yellow>"
-				. basename($migration)
-				. "</bright-yellow>' is empty. Skipped",
+		$this->io->warn(
+			"Warning: Migration '<bright-yellow>%s</bright-yellow>' is empty. Skipped",
+			basename($migration),
 		);
 	}
 
@@ -167,24 +166,22 @@ final readonly class Executor
 		$io = $this->io;
 
 		if ($e) {
-			$io->echolnErr(
-				"<bright-red>Error</bright-red>: while working on migration '<bright-yellow>"
-					. basename($migration)
-					. "</bright-yellow>'",
+			$io->error(
+				"Error: while working on migration '<bright-yellow>%s</bright-yellow>'",
+				basename($migration),
 			);
-			$io->echolnErr($io->escape($e->getMessage()));
+			$io->error('%s', $e->getMessage());
 
 			if ($showStacktrace) {
-				$io->echolnErr($io->escape($e->getTraceAsString()));
+				$io->error('%s', $e->getTraceAsString());
 			}
 
 			return;
 		}
 
-		$io->echoln(
-			"<bright-green>Success</bright-green>: Migration '<bright-yellow>"
-				. basename($migration)
-				. "</bright-yellow>' successfully applied",
+		$io->line(
+			"<bright-green>Success</bright-green>: Migration '<bright-yellow>%s</bright-yellow>' successfully applied",
+			basename($migration),
 		);
 	}
 }

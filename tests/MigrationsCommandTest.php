@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\Args;
+use Celema\Console\Buffer;
 use Celema\Console\Io;
+use Celema\Console\Stdio;
 use Celema\Quma\Commands\CreateMigrationsTable;
 use Celema\Quma\Commands\Migrations;
 use Celema\Quma\Connection;
@@ -69,26 +70,21 @@ class MigrationsCommandTest extends TestCase
 			'CREATE TABLE mysql_test_run_should_not_run (id integer);',
 		);
 
-		$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
 		$conn = new Connection(
 			'mysql:host=localhost;dbname=quma;user=quma;password=quma',
 			$this->getSqlDirs(),
 		)->migrations($dir);
-		$command = new Migrations($conn);
-		$args = new Args(array_slice($_SERVER['argv'], offset: 2));
+		$buffer = new Buffer();
 
 		try {
-			ob_start();
-			$result = $command($args, new Io('php://output', 'php://output'));
-			$output = ob_get_contents();
-			ob_end_clean();
+			$result = (new Migrations($conn))(new Io($buffer), testRun: true, yes: true);
 		} finally {
 			$this->removeMigrationDir($dir);
 		}
 
 		$this->assertSame(1, $result);
-		$this->assertStringContainsString('Test runs are only supported', (string) $output);
-		$this->assertStringContainsString('implicit commits', (string) $output);
+		$this->assertStringContainsString('Test runs are only supported', $buffer->errorOutput());
+		$this->assertStringContainsString('implicit commits', $buffer->errorOutput());
 	}
 
 	public function testMysqlApplyValidatesNamespaceBeforeOpeningConnection(): void
@@ -144,7 +140,10 @@ class MigrationsCommandTest extends TestCase
 					false,
 					true,
 					false,
-					static fn(): int => (new CreateMigrationsTable($conn))(new Io('php://output', 'php://output')),
+					static fn(): int => (new CreateMigrationsTable($conn))(new Io(new Stdio(
+						'php://output',
+						'php://output',
+					))),
 				),
 			);
 			ob_end_clean();
@@ -207,7 +206,7 @@ class MigrationsCommandTest extends TestCase
 		$policy = new DriverPolicy($env->driver);
 		$planner = new Planner($policy);
 
-		return new Plan($env, $planner, new Log($env, $planner), new Io('php://output', 'php://output'));
+		return new Plan($env, $planner, new Log($env, $planner), new Io(new Stdio('php://output', 'php://output')));
 	}
 
 	private function runner(Environment $env, DriverPolicy $policy): MigrationRunner
@@ -215,7 +214,7 @@ class MigrationsCommandTest extends TestCase
 		$planner = new Planner($policy);
 		$log = new Log($env, $planner);
 
-		$io = new Io('php://output', 'php://output');
+		$io = new Io(new Stdio('php://output', 'php://output'));
 
 		return new MigrationRunner(
 			$env,

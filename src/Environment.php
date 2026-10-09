@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
-use Celema\Console\Args;
 use PDO;
 use RuntimeException;
 
@@ -15,29 +14,29 @@ class Environment
 {
 	public readonly Connection $conn;
 	public readonly string $driver;
-	public readonly bool $showStacktrace;
 	public readonly string $table;
 	public readonly string $columnMigration;
 	public readonly string $columnApplied;
 	public readonly Database $db;
 
-	/** @param array<non-empty-string, Connection>|Connection $connections */
+	/**
+	 * @param array<non-empty-string, Connection>|Connection $connections
+	 * @param string $connection The key of the connection to use; a single
+	 *     connection is `default`
+	 */
 	public function __construct(
 		array|Connection $connections,
 		public readonly array $options = [],
+		string $connection = 'default',
+		public readonly bool $showStacktrace = false,
 	) {
 		$connections = $connections instanceof Connection ? ['default' => $connections] : $connections;
-		$argv = $_SERVER['argv'] ?? [];
-		$args = new Args($argv);
 
-		$key = $args->opt('--conn', 'default');
-
-		if (!array_key_exists($key, $connections)) {
-			throw new RuntimeException("Connection '{$key}' does not exist");
+		if (!array_key_exists($connection, $connections)) {
+			throw new RuntimeException("Connection '{$connection}' does not exist");
 		}
 
-		$this->conn = $connections[$key];
-		$this->showStacktrace = $args->has('--stacktrace');
+		$this->conn = $connections[$connection];
 		$this->db = new Database($this->conn);
 		$this->driver = $this->conn->config->driver;
 		$this->table = $this->conn->config->migrationsTable;

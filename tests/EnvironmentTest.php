@@ -6,6 +6,7 @@ namespace Celema\Quma\Tests;
 
 use Celema\Quma\Environment;
 use Celema\Quma\Tests\Util\FakeDatabase;
+use RuntimeException;
 
 /**
  * @internal
@@ -14,7 +15,6 @@ class EnvironmentTest extends TestCase
 {
 	public function testGetMigrationsReturnsFalseWithoutDirs(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection(migrations: [])], []);
 
 		ob_start();
@@ -38,7 +38,6 @@ class EnvironmentTest extends TestCase
 		file_put_contents($flatDir . '/20240101-000002-c.tpql', '<?php');
 		file_put_contents($namespacedDir . '/20240101-000003-d.sql', 'SELECT 1;');
 
-		$_SERVER['argv'] = ['run'];
 		$flatEnv = new Environment(['default' => $this->connection(migrations: [$flatDir])], []);
 		$flatMigrations = $flatEnv->getMigrations();
 		$this->assertIsArray($flatMigrations);
@@ -92,7 +91,6 @@ class EnvironmentTest extends TestCase
 		file_put_contents($second . '/20240101-000002-b.sql', 'SELECT 1;');
 
 		try {
-			$_SERVER['argv'] = ['run'];
 			$env = new Environment(['default' => $this->connection(migrations: [$first, $second])], []);
 			$migrations = $env->getMigrations();
 
@@ -123,7 +121,6 @@ class EnvironmentTest extends TestCase
 		}
 
 		try {
-			$_SERVER['argv'] = ['run'];
 			$env = new Environment(['default' => $this->connection(migrations: [$dir])], []);
 			$migrations = $env->getMigrations();
 
@@ -140,7 +137,6 @@ class EnvironmentTest extends TestCase
 
 	public function testPostgresMigrationsTableDdlUsesSchema(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$dsn = 'pgsql:host=localhost;dbname=quma;user=quma;password=quma';
 		$plain = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('migrations')], []);
 		$audit = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('audit.log')], []);
@@ -160,7 +156,6 @@ class EnvironmentTest extends TestCase
 			$this->markTestSkipped('pgsql is not available.');
 		}
 
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment([
 			'default' => $this->connection(dsn: $dsns[0])->migrationTable('quma_missing_table'),
 		], []);
@@ -173,7 +168,6 @@ class EnvironmentTest extends TestCase
 		$dir = $this->createMigrationDir('namespaced-skip');
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment([
 			'default' => $this->connection(migrations: [
 				0 => $dir,
@@ -194,7 +188,6 @@ class EnvironmentTest extends TestCase
 		$dir = $this->createMigrationDir('namespaced-invalid-dirs');
 		file_put_contents($dir . '/20240101-000000-a.sql', 'SELECT 1;');
 
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment([
 			'default' => $this->connection(migrations: [
 				'valid' => [$dir],
@@ -214,7 +207,6 @@ class EnvironmentTest extends TestCase
 
 	public function testCheckIfMigrationsTableExistsForDrivers(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$mysqlEnv = new Environment([
 			'default' => $this->connection(dsn: 'mysql:host=localhost;dbname=quma;user=quma;password=quma'),
 		], []);
@@ -230,7 +222,6 @@ class EnvironmentTest extends TestCase
 
 	public function testGetMigrationsTableDDLForDrivers(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$mysqlEnv = new Environment([
 			'default' => $this->connection(dsn: 'mysql:host=localhost;dbname=quma;user=quma;password=quma'),
 		], []);
@@ -271,5 +262,27 @@ class EnvironmentTest extends TestCase
 		if (is_dir($dir)) {
 			rmdir($dir);
 		}
+	}
+
+	public function testUsesTheGivenConnectionAndStacktraceFlag(): void
+	{
+		$second = $this->connection($this->getDsn(self::getSqliteDbPath2()));
+		$env = new Environment(
+			['default' => $this->connection(), 'second' => $second],
+			connection: 'second',
+			showStacktrace: true,
+		);
+
+		$this->assertSame($second, $env->conn);
+		$this->assertTrue($env->showStacktrace);
+		$this->assertFalse(new Environment($this->connection())->showStacktrace);
+	}
+
+	public function testUnknownConnectionThrows(): void
+	{
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage("Connection 'missing' does not exist");
+
+		new Environment($this->connection(), connection: 'missing');
 	}
 }

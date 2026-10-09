@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\BufferedIo;
+use Celema\Console\Buffer;
+use Celema\Console\Io;
 use Celema\Quma\Connection;
 use Celema\Quma\Environment;
 use Celema\Quma\Migrations\DriverPolicy;
@@ -22,7 +23,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 final class MigrationRunnerTest extends TestCase
 {
 	private string $dir;
-	private BufferedIo $io;
+	private Buffer $buffer;
+	private Io $io;
 	private Environment $env;
 
 	protected function setUp(): void
@@ -31,7 +33,8 @@ final class MigrationRunnerTest extends TestCase
 		$this->dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-runner-' . uniqid();
 		mkdir($this->dir, 0o700);
 		$_SERVER['argv'] = ['run'];
-		$this->io = new BufferedIo();
+		$this->buffer = new Buffer();
+		$this->io = new Io($this->buffer);
 		$this->env = new Environment(
 			['default' => new Connection('sqlite:' . $this->dir . '/db.sqlite3', self::root() . 'sql/default')],
 			[],
@@ -65,8 +68,8 @@ final class MigrationRunnerTest extends TestCase
 
 		$this->assertSame($exit, $this->runner('sqlite')->finish($db, $result, $apply, $numApplied));
 		$this->assertFalse($db->getConn()->inTransaction());
-		$this->assertSame($output, $this->io->output());
-		$this->assertSame($errors, $this->io->errorOutput());
+		$this->assertSame($output, $this->buffer->output());
+		$this->assertSame($errors, $this->buffer->errorOutput());
 	}
 
 	/** @return array<string, array{array{string, bool, int}, int, string, string}> */
@@ -96,8 +99,8 @@ final class MigrationRunnerTest extends TestCase
 		[$result, $apply, $numApplied] = $state;
 
 		$this->assertSame($exit, $this->runner('mysql')->finish($this->env->db, $result, $apply, $numApplied));
-		$this->assertSame($output, $this->io->output());
-		$this->assertSame($errors, $this->io->errorOutput());
+		$this->assertSame($output, $this->buffer->output());
+		$this->assertSame($errors, $this->buffer->errorOutput());
 	}
 
 	/** @return array<string, array{array{string, bool, int}, int, string, string}> */
@@ -122,7 +125,7 @@ final class MigrationRunnerTest extends TestCase
 		);
 
 		$this->assertSame(1, $exit);
-		$this->assertStringNotContainsString('000002-next.sql', $this->io->output());
+		$this->assertStringNotContainsString('000002-next.sql', $this->buffer->output());
 		$this->assertSame(
 			[],
 			$this->env->db->execute("SELECT name FROM sqlite_master WHERE name = 'next_table'")->all(),

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Commands;
 
-use Celema\Console\Args;
 use Celema\Console\Command;
+use Celema\Console\Exception\InvalidUsage;
 use Celema\Console\Io;
 use Celema\Console\Opt;
 use Celema\Quma\Connection;
@@ -23,57 +23,50 @@ use Celema\Quma\Migrations\RunOptions;
 use Celema\Quma\Migrations\TestRunConfirmation;
 
 #[Command('db:migrations', 'Apply missing database migrations', group: 'Database')]
-#[Opt('--apply', 'Apply the pending migrations instead of only planning them')]
-#[Opt(
-	'--test-run',
-	'Run pending migrations inside a transaction and roll back (sqlite/pgsql only)',
-)]
-#[Opt('--namespace', 'Migration namespace to run', value: 'name')]
-#[Opt('--conn', 'Connection to use', value: 'name')]
-#[Opt('--stacktrace', 'Show stack traces for failing migrations')]
-#[Opt('--yes', 'Skip the test-run confirmation prompt')]
 final class Migrations
 {
-	private readonly Environment $env;
-	private readonly ?Contract\MigrationFactory $migrationFactory;
+	/** @psalm-suppress PropertyNotSetInConstructor Assigned first thing in __invoke() */
+	private Environment $env;
 
 	/** @psalm-suppress PropertyNotSetInConstructor Assigned first thing in __invoke() */
 	private Io $io;
 
-	/** @param array<non-empty-string, Connection>|Connection $conn */
+	/** @param array<non-empty-string, Connection>|Connection $connections */
 	public function __construct(
-		array|Connection $conn,
-		array $options = [],
-		?Contract\MigrationFactory $migrationFactory = null,
-	) {
-		$this->env = new Environment($conn, $options);
-		$this->migrationFactory = $migrationFactory;
-	}
+		private readonly array|Connection $connections,
+		private readonly array $options = [],
+		private readonly ?Contract\MigrationFactory $migrationFactory = null,
+	) {}
 
-	public function __invoke(Args $args, Io $io): int
-	{
-		$this->io = $io;
-		$env = $this->env;
-		$namespace = $args->opt('--namespace', '');
-		$showStacktrace = $args->has('--stacktrace');
-		$apply = $args->has('--apply');
-		$testRun = $args->has('--test-run');
-		$yes = $args->has('--yes');
-		$driverSupported = $this->driverPolicy()->isKnown();
-
+	// The parameters are the command line's options.
+	// @mago-expect lint:excessive-parameter-list
+	public function __invoke(
+		Io $io,
+		#[Opt('Apply the pending migrations instead of only planning them')]
+		bool $apply = false,
+		#[Opt('Run pending migrations inside a transaction and roll back (sqlite/pgsql only)')]
+		bool $testRun = false,
+		#[Opt('Migration namespace to run', value: 'name')]
+		string $namespace = '',
+		#[Opt('Connection to use', value: 'name')]
+		string $conn = 'default',
+		#[Opt('Show stack traces for failing migrations')]
+		bool $stacktrace = false,
+		#[Opt('Skip the test-run confirmation prompt')]
+		bool $yes = false,
+	): int {
 		if ($apply && $testRun) {
-			$io->echolnErr(
-				'<bright-red>Error</bright-red>: Options --apply and --test-run cannot be used together.',
-			);
-
-			return 1;
+			throw new InvalidUsage('Options --apply and --test-run cannot be used together');
 		}
 
+		$this->io = $io;
+		$this->env = new Environment($this->connections, $this->options, $conn, $stacktrace);
+		$env = $this->env;
+		$driverSupported = $this->driverPolicy()->isKnown();
+
 		if ($testRun && (!$driverSupported || !$this->supportsTransactions())) {
-			$io->echolnErr(
-				'<bright-red>Error</bright-red>: Test runs are only supported for transactional drivers: sqlite and pgsql.',
-			);
-			$io->echolnErr(
+			$io->error('Error: Test runs are only supported for transactional drivers: sqlite and pgsql.');
+			$io->error(
 				'MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.',
 			);
 
@@ -114,7 +107,7 @@ final class Migrations
 		return $this->migrate(
 			$migrationNamespace,
 			$migrations,
-			$showStacktrace,
+			$stacktrace,
 			$apply,
 			$tableExists,
 		);
@@ -178,7 +171,7 @@ final class Migrations
 
 		if ($namespace) {
 			if (!array_key_exists($namespace, $migrationNamespaces)) {
-				$this->io->error("Migration namespace '{$namespace}' does not exist");
+				$this->io->error("Migration namespace '%s' does not exist", $namespace);
 
 				return false;
 			}
@@ -190,7 +183,7 @@ final class Migrations
 
 		if (!array_key_exists('default', $migrationNamespaces)) {
 			$this->io->error("Migration namespace 'default' does not exist");
-			$this->io->info(
+			$this->io->line(
 				'If you have defined namespaced migrations, you must either provide a namespace using the '
 					. "`--namespace` flag when running this command, or define a namespace named 'default' which "
 					. 'will be used when no namespace is provided.',
@@ -210,10 +203,10 @@ final class Migrations
 		$duplicates = $this->planner()->duplicateMigrationIds($namespace, $migrations);
 
 		foreach ($duplicates as $id => $paths) {
-			$this->io->error("Duplicate migration id '{$id}' in namespace '{$namespace}'");
+			$this->io->error("Duplicate migration id '%s' in namespace '%s'", $id, $namespace);
 
 			foreach ($paths as $path) {
-				$this->io->echolnErr("  - {$path}");
+				$this->io->error('  - %s', $path);
 			}
 		}
 

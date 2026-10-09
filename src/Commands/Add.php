@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Celema\Quma\Commands;
 
 use Celema\Console\Arg;
-use Celema\Console\Args;
 use Celema\Console\Command;
 use Celema\Console\Io;
 use Celema\Console\Opt;
@@ -13,26 +12,23 @@ use Celema\Quma\Connection;
 use Celema\Quma\Environment;
 
 #[Command('db:add-migration', 'Initialize a new migration', group: 'Database')]
-#[Arg(
-	'name',
-	'Name of the migration script; prompted for interactively when omitted',
-	optional: true,
-)]
-#[Opt('--conn', 'Connection to use', value: 'name')]
 final class Add
 {
-	private readonly Environment $env;
+	/** @param array<non-empty-string, Connection>|Connection $connections */
+	public function __construct(
+		private readonly array|Connection $connections,
+		private readonly array $options = [],
+	) {}
 
-	/** @param array<non-empty-string, Connection>|Connection $conn */
-	public function __construct(array|Connection $conn, array $options = [])
-	{
-		$this->env = new Environment($conn, $options);
-	}
-
-	public function __invoke(Args $args, Io $io): int
-	{
-		$env = $this->env;
-		$fileName = $this->fileName($args, $io);
+	public function __invoke(
+		Io $io,
+		#[Arg('Name of the migration script; prompted for interactively when omitted')]
+		string $name = '',
+		#[Opt('Connection to use', value: 'name')]
+		string $conn = 'default',
+	): int {
+		$env = new Environment($this->connections, $this->options, $conn);
+		$fileName = $this->fileName($name, $io);
 
 		if ($fileName === null) {
 			return 1;
@@ -43,7 +39,7 @@ final class Add
 		$migrations = $env->conn->config->migrations;
 
 		if (count($migrations) === 0) {
-			$io->echoln('No migration directories configured. Aborting.');
+			$io->line('No migration directories configured. Aborting.');
 
 			return 1;
 		}
@@ -53,21 +49,19 @@ final class Add
 		$migrationsDir = $this->getFirstMigrationDir($migrations);
 
 		if ($migrationsDir === null) {
-			$io->echoln('No valid migration directory found. Aborting.');
+			$io->line('No valid migration directory found. Aborting.');
 
 			return 1;
 		}
 
 		if (str_contains($migrationsDir, '/vendor')) {
-			$io->echoln(
-				"The migrations directory is inside './vendor'.\n  -> {$migrationsDir}\nAborting.",
-			);
+			$io->line("The migrations directory is inside './vendor'.\n  -> %s\nAborting.", $migrationsDir);
 
 			return 1;
 		}
 
 		if (!is_writable($migrationsDir)) {
-			$io->echoln("Migrations directory is not writable\n  -> {$migrationsDir}\nAborting. ");
+			$io->line("Migrations directory is not writable\n  -> %s\nAborting. ", $migrationsDir);
 
 			return 1;
 		}
@@ -78,7 +72,7 @@ final class Add
 		$f = fopen($migration, 'w');
 
 		if ($f === false) {
-			$io->echoln("Could not create migration file: {$migration}\nAborting.");
+			$io->line("Could not create migration file: %s\nAborting.", $migration);
 
 			return 1;
 		}
@@ -90,7 +84,7 @@ final class Add
 		}
 
 		fclose($f);
-		$io->echoln("Migration created:\n{$migration}");
+		$io->line("Migration created:\n%s", $migration);
 
 		return 0;
 	}
@@ -100,15 +94,13 @@ final class Add
 	 *
 	 * Returns null when no name was provided or the extension is invalid.
 	 */
-	private function fileName(Args $args, Io $io): ?string
+	private function fileName(string $fileName, Io $io): ?string
 	{
-		$fileName = (string) $args->positional(0, '');
-
 		if ($fileName === '') {
 			$fileName = $io->ask('Name of the migration script:');
 
 			if ($fileName === '') {
-				$io->echoln('No input provided. Aborting.');
+				$io->line('No input provided. Aborting.');
 
 				return null;
 			}
@@ -122,7 +114,7 @@ final class Add
 		}
 
 		if (!in_array($ext, ['sql', 'php', 'tpql'], strict: true)) {
-			$io->echoln("Wrong file extension '{$ext}'. Use 'sql', 'php' or 'tpql' instead.\nAborting.");
+			$io->line("Wrong file extension '%s'. Use 'sql', 'php' or 'tpql' instead.\nAborting.", $ext);
 
 			return null;
 		}

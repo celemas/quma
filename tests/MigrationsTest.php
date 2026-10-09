@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\BufferedIo;
+use Celema\Console\Buffer;
+use Celema\Console\Io;
 use Celema\Quma\Connection;
 use Celema\Quma\Contract\Migration as MigrationContract;
 use Celema\Quma\Database;
@@ -58,14 +59,15 @@ class MigrationsTest extends TestCase
 	{
 		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection()], []);
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 		$table = new MetadataTable($env, $io);
 		$env->db->execute('DROP TABLE IF EXISTS migrations')->run();
 
 		try {
 			$this->assertSame(0, $table->create($env->db));
 			$this->assertSame(1, $table->create($env->db));
-			$this->assertSame("Table 'migrations' already exists. Aborting\n", $io->errorOutput());
+			$this->assertSame("Table 'migrations' already exists. Aborting\n", $buffer->errorOutput());
 		} finally {
 			$env->db->execute('DROP TABLE IF EXISTS migrations')->run();
 		}
@@ -131,7 +133,7 @@ class MigrationsTest extends TestCase
 		$content = ob_get_contents();
 		ob_end_clean();
 
-		$this->assertSame(1, $result);
+		$this->assertSame(2, $result);
 		$this->assertStringContainsString(
 			'Options --apply and --test-run cannot be used together',
 			$content,

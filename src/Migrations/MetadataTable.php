@@ -22,7 +22,7 @@ final readonly class MetadataTable
 		$io = $this->io;
 
 		if ($env->checkIfMigrationsTableExists($db)) {
-			$io->echolnErr("Table '{$env->table}' already exists. Aborting");
+			$io->error("Table '%s' already exists. Aborting", $env->table);
 
 			return 1;
 		}
@@ -32,7 +32,7 @@ final readonly class MetadataTable
 		if ($ddl !== false) {
 			try {
 				$db->execute($ddl)->run();
-				$io->echoln("<bright-green>Success</bright-green>: Created table '{$env->table}'");
+				$io->line("<bright-green>Success</bright-green>: Created table '%s'", $env->table);
 
 				return 0;
 
@@ -40,11 +40,11 @@ final readonly class MetadataTable
 				// setup a different test database. Too much effort.
 				// @codeCoverageIgnoreStart
 			} catch (Throwable $e) {
-				$io->echolnErr("<bright-red>Error</bright-red>: While trying to create table '{$env->table}'");
-				$io->echolnErr($io->escape($e->getMessage()));
+				$io->error("Error: While trying to create table '%s'", $env->table);
+				$io->error('%s', $e->getMessage());
 
 				if ($env->showStacktrace) {
-					$io->echolnErr($io->escape($e->getTraceAsString()));
+					$io->error('%s', $e->getTraceAsString());
 				}
 
 				return 1;
@@ -56,7 +56,7 @@ final readonly class MetadataTable
 		// Cannot be reliably tested.
 		// Would require an unsupported driver to be installed.
 		// @codeCoverageIgnoreStart
-		$io->echolnErr("PDO driver '{$env->driver}' not supported. Aborting");
+		$io->error("PDO driver '%s' not supported. Aborting", $env->driver);
 
 		return 1;
 

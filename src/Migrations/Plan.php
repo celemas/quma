@@ -29,33 +29,31 @@ final readonly class Plan
 		$numPending = count($pendingMigrations);
 		$plural = $numPending > 1 ? 's' : '';
 
-		$io->echoln("\n<bright-red>Notice</bright-red>: Plan only");
+		$io->line("\n<bright-red>Notice</bright-red>: Plan only");
 
 		if (!$tableExists) {
-			$io->echoln("Would create migrations table '{$this->env->table}'");
+			$io->line("Would create migrations table '%s'", $this->env->table);
 		}
 
 		if ($numPending === 0) {
-			$io->echoln("\nNo pending migrations");
+			$io->line("\nNo pending migrations");
 		} else {
-			$io->echoln("Would apply {$numPending} migration{$plural}:");
+			$io->line("Would apply {$numPending} migration{$plural}:");
 
 			foreach ($pendingMigrations as $migration) {
-				$io->echoln('  - ' . basename($migration));
+				$io->line('  - %s', basename($migration));
 			}
 		}
 
-		$io->echo("\nNo migrations were executed. ");
+		$io->write("\nNo migrations were executed. ");
 
 		if ($this->env->driver === 'mysql') {
-			$io->echoln(
+			$io->line(
 				'MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.',
 			);
-			$io->echoln('Use --apply to run them.');
+			$io->line('Use --apply to run them.');
 		} else {
-			$io->echoln(
-				'Use --test-run --yes to execute inside a rollback transaction, or --apply to commit.',
-			);
+			$io->line('Use --test-run --yes to execute inside a rollback transaction, or --apply to commit.');
 		}
 
 		return 0;

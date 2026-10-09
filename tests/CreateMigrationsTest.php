@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\Commands;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -129,7 +128,7 @@ class CreateMigrationsTest extends TestCase
 
 		return $this->runCommand(
 			$argv,
-			fn(): Commands => $this->commands(
+			fn(): array => $this->commands(
 				dsn: $dsn,
 				multipleConnections: $multipleConnections,
 				firstMultipleConnectionsKey: $firstMultipleConnectionsKey,
@@ -139,7 +138,7 @@ class CreateMigrationsTest extends TestCase
 
 	/**
 	 * @param list<string> $argv
-	 * @param callable(): Commands $commandFactory
+	 * @param callable(): array $commandFactory
 	 * @return array{0: string|int, 1: string}
 	 */
 	private function runCommand(array $argv, callable $commandFactory): array

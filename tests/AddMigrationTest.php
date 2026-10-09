@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\BufferedIo;
+use Celema\Console\Buffer;
+use Celema\Console\Io;
 use Celema\Console\Runner;
 
 /**
@@ -23,9 +24,10 @@ class AddMigrationTest extends TestCase
 		$migration = null;
 
 		try {
-			$out = new BufferedIo("prompted migration\n");
+			$buffer = new Buffer("prompted migration\n");
+			$out = new Io($buffer);
 			$exit = new Runner($this->commands(migrations: ['temp' => $dir]), $out)->run();
-			$output = $out->output();
+			$output = $buffer->output();
 
 			preg_match('/Migration created:\s*(\S+)/', $output, $matches);
 			$migration = $matches[1] ?? '';
@@ -47,21 +49,23 @@ class AddMigrationTest extends TestCase
 	public function testAddMigrationAbortsWithoutPromptInput(): void
 	{
 		$_SERVER['argv'] = ['run', 'add-migration'];
-		$out = new BufferedIo();
+		$buffer = new Buffer();
+		$out = new Io($buffer);
 		$exit = new Runner($this->commands(migrations: []), $out)->run();
 
 		$this->assertSame(1, $exit);
-		$this->assertStringContainsString('No input provided. Aborting.', $out->output());
+		$this->assertStringContainsString('No input provided. Aborting.', $buffer->output());
 	}
 
 	public function testAddMigrationRejectsSurplusArguments(): void
 	{
 		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql', 'extra'];
-		$out = new BufferedIo();
+		$buffer = new Buffer();
+		$out = new Io($buffer);
 		$exit = new Runner($this->commands(migrations: []), $out)->run();
 
-		$this->assertSame(1, $exit);
-		$this->assertStringContainsString("Unexpected argument 'extra'", $out->errorOutput());
+		$this->assertSame(2, $exit);
+		$this->assertStringContainsString("Unexpected argument 'extra'", $buffer->errorOutput());
 	}
 
 	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
@@ -257,10 +261,11 @@ class AddMigrationTest extends TestCase
 	private function add(array $args, array $migrations, string $input = ''): array
 	{
 		$_SERVER['argv'] = ['run', 'add-migration', ...$args];
-		$io = new BufferedIo($input);
+		$buffer = new Buffer($input);
+		$io = new Io($buffer);
 		$exit = new Runner($this->commands(migrations: $migrations), $io)->run();
 
-		return [$exit, $io->output(), $io->errorOutput()];
+		return [$exit, $buffer->output(), $buffer->errorOutput()];
 	}
 
 	/** @return list<string> */

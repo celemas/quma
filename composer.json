@@ -30,7 +30,7 @@
 		"ext-json": "*",
 		"ext-pdo": "*",
 		"ext-readline": "*",
-		"celema/console": "^0.5"
+		"celema/console": "dev-main"
 	},
 	"require-dev": {
 		"carthage-software/mago": "1.50.0",

@@ -84,45 +84,45 @@ final readonly class Runner
 		if ($this->driverPolicy->supportsTransactions()) {
 			if ($result === Executor::ERROR) {
 				$db->rollback();
-				$io->echolnErr("\nDue to errors no migrations applied");
+				$io->error("\nDue to errors no migrations applied");
 
 				return 1;
 			}
 
 			if ($numApplied === 0) {
 				$db->rollback();
-				$io->echoln("\nNo migrations applied");
+				$io->line("\nNo migrations applied");
 
 				return 0;
 			}
 
 			if ($apply) {
 				$db->commit();
-				$io->echoln("\n{$numApplied} migration{$plural} successfully applied");
+				$io->line("\n{$numApplied} migration{$plural} successfully applied");
 
 				return 0;
 			}
-			$io->echoln("\n<bright-red>Notice</bright-red>: Test run only");
-			$io->echo("Rolled back {$numApplied} migration{$plural}. ");
-			$io->echoln('Use --apply to commit them');
+			$io->line("\n<bright-red>Notice</bright-red>: Test run only");
+			$io->write("Rolled back {$numApplied} migration{$plural}. ");
+			$io->line('Use --apply to commit them');
 			$db->rollback();
 
 			return 0;
 		}
 
 		if ($result === Executor::ERROR) {
-			$io->echolnErr("\n{$numApplied} migration{$plural} applied until the error occured");
+			$io->error("\n{$numApplied} migration{$plural} applied until the error occured");
 
 			return 1;
 		}
 
 		if ($numApplied > 0) {
-			$io->echoln("\n{$numApplied} migration{$plural} successfully applied");
+			$io->line("\n{$numApplied} migration{$plural} successfully applied");
 
 			return 0;
 		}
 
-		$io->echoln("\nNo migrations applied");
+		$io->line("\nNo migrations applied");
 
 		return 0;
 	}

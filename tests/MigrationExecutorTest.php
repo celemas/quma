@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\BufferedIo;
+use Celema\Console\Buffer;
 use Celema\Console\Io;
+use Celema\Console\Stdio;
 use Celema\Quma\Connection;
 use Celema\Quma\Database;
 use Celema\Quma\Delimiters;
@@ -55,13 +56,14 @@ class MigrationExecutorTest extends TestCase
 	public function testSkipsMigrationsWithoutStatements(string $file, string $content): void
 	{
 		$path = $this->migration($file, $content);
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 
 		$result = $this->executorWithIo($io, ['all' => ['blank' => " \n"]])->migrate('default', $path, false);
 
 		$this->assertSame(Executor::WARNING, $result);
-		$this->assertSame("Warning: Migration '{$file}' is empty. Skipped\n", $io->errorOutput());
-		$this->assertSame('', $io->output());
+		$this->assertSame("Warning: Migration '{$file}' is empty. Skipped\n", $buffer->errorOutput());
+		$this->assertSame('', $buffer->output());
 		$this->assertSame([], $this->applied());
 	}
 
@@ -84,13 +86,14 @@ class MigrationExecutorTest extends TestCase
 			$class,
 			'$env->db->execute("CREATE TABLE created (id INTEGER)")->run();',
 		);
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 
 		$result = $this->executorWithIo($io)->migrate('default', $path, false);
 
 		$this->assertSame(Executor::SUCCESS, $result);
-		$this->assertSame("Success: Migration 'create.php' successfully applied\n", $io->output());
-		$this->assertSame('', $io->errorOutput());
+		$this->assertSame("Success: Migration 'create.php' successfully applied\n", $buffer->output());
+		$this->assertSame('', $buffer->errorOutput());
 		$this->assertSame(['create.php'], $this->applied());
 		$this->assertSame([], $this->db()->execute('SELECT * FROM created')->all());
 	}
@@ -99,27 +102,29 @@ class MigrationExecutorTest extends TestCase
 	{
 		$class = 'QumaExecutorTest\\M' . uniqid() . '\\Migration';
 		$path = $this->phpMigration('fail.php', $class, 'throw new \\RuntimeException("boom");');
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 
 		$result = $this->executorWithIo($io)->migrate('default', $path, false);
 
 		$this->assertSame(Executor::ERROR, $result);
-		$this->assertSame("Error: while working on migration 'fail.php'\nboom\n", $io->errorOutput());
-		$this->assertSame('', $io->output());
+		$this->assertSame("Error: while working on migration 'fail.php'\nboom\n", $buffer->errorOutput());
+		$this->assertSame('', $buffer->output());
 		$this->assertSame([], $this->applied());
 	}
 
 	public function testFailingTemplateClosesItsOutputBuffer(): void
 	{
 		$path = $this->migration('fail.tpql', 'SELECT 1;<?php throw new RuntimeException("boom"); ?>');
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 		$level = ob_get_level();
 
 		$result = $this->executorWithIo($io)->migrate('default', $path, false);
 
 		$this->assertSame(Executor::ERROR, $result);
 		$this->assertSame($level, ob_get_level());
-		$this->assertSame("Error: while working on migration 'fail.tpql'\nboom\n", $io->errorOutput());
+		$this->assertSame("Error: while working on migration 'fail.tpql'\nboom\n", $buffer->errorOutput());
 	}
 
 	protected function setUp(): void
@@ -226,7 +231,7 @@ class MigrationExecutorTest extends TestCase
 			$env,
 			$this->log($env),
 			new PhpLoader($env),
-			new Io('php://output', 'php://output'),
+			new Io(new Stdio('php://output', 'php://output')),
 		);
 	}
 

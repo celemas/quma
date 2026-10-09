@@ -221,6 +221,8 @@ Quma hydration exceptions live in `Celema\Quma\Exception`.
 
 Provides the runtime context for migration commands and PHP migrations.
 
+The commands create it from their `--conn` and `--stacktrace` options. To create one yourself, pass the connection key and the stack trace flag: `new Environment($connections, $options, connection: 'reporting', showStacktrace: true)`. A single `Connection` is named `default`.
+
 ### Public properties
 
 - `$conn`
@@ -274,10 +276,10 @@ Commands::get(
     array|Connection $conn,
     array $options = [],
     ?MigrationFactory $migrationFactory = null,
-): Celema\Console\Commands
+): array
 ```
 
-Pass either one `Connection` or an array of named connections. Pass a migration factory when PHP migrations need constructor dependency injection.
+Returns the commands as lazy factories keyed by class name, the registration array a console `Runner` takes: `new Runner(Commands::get($conn))` or `$runner->add(Commands::get($conn))`. Pass either one `Connection` or an array of named connections. Pass a migration factory when PHP migrations need constructor dependency injection.
 
 ## Internal helper types you will see in the codebase
 

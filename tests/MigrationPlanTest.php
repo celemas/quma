@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\BufferedIo;
+use Celema\Console\Buffer;
+use Celema\Console\Io;
 use Celema\Quma\Environment;
 use Celema\Quma\Migrations\DriverPolicy;
 use Celema\Quma\Migrations\Log;
@@ -18,7 +19,8 @@ final class MigrationPlanTest extends TestCase
 {
 	public function testListsASinglePendingMigration(): void
 	{
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 
 		$exit = $this->plan('sqlite:' . self::getDbFile(), $io)->show(
 			'default',
@@ -34,13 +36,14 @@ final class MigrationPlanTest extends TestCase
 				. "  - 000001-users.sql\n"
 				. "\nNo migrations were executed. "
 				. "Use --test-run --yes to execute inside a rollback transaction, or --apply to commit.\n",
-			$io->output(),
+			$buffer->output(),
 		);
 	}
 
 	public function testMysqlPlanPointsToApply(): void
 	{
-		$io = new BufferedIo();
+		$buffer = new Buffer();
+		$io = new Io($buffer);
 
 		$this->plan('mysql:host=localhost;dbname=quma', $io)->show('default', [], false);
 
@@ -48,11 +51,11 @@ final class MigrationPlanTest extends TestCase
 			"\nNo migrations were executed. "
 				. "MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.\n"
 				. "Use --apply to run them.\n",
-			$io->output(),
+			$buffer->output(),
 		);
 	}
 
-	private function plan(string $dsn, BufferedIo $io): Plan
+	private function plan(string $dsn, Io $io): Plan
 	{
 		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('migrations')], []);

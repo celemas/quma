@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
-use Celema\Console\Commands;
+use Celema\Console\Io;
 use Celema\Console\Runner;
+use Celema\Console\Stdio;
 use Celema\Quma\Commands as QumaCommands;
 use Celema\Quma\Connection;
 use Celema\Quma\Database;
@@ -418,7 +419,7 @@ class TestCase extends BaseTestCase
 		array|string|null $migrations = null,
 		bool $multipleConnections = false,
 		string $firstMultipleConnectionsKey = 'default',
-	): Commands {
+	): array {
 		if ($multipleConnections) {
 			$conn = $this->connections($firstMultipleConnectionsKey);
 		} else {
@@ -428,16 +429,12 @@ class TestCase extends BaseTestCase
 		return QumaCommands::get($conn);
 	}
 
-	protected function consoleRunner(Commands $commands): Runner
+	protected function consoleRunner(array $commands): Runner
 	{
-		return new Runner(
-			$commands,
-			output: 'php://output',
-			errorOutput: 'php://output',
-		);
+		return new Runner($commands, new Io(new Stdio('php://output', 'php://output')));
 	}
 
-	protected function createMigration(Commands $commands): string
+	protected function createMigration(array $commands): string
 	{
 		ob_start();
 		$result = $this->consoleRunner($commands)->run();
