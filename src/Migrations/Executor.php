@@ -170,10 +170,10 @@ final readonly class Executor
 				"Error: while working on migration '<bright-yellow>%s</bright-yellow>'",
 				basename($migration),
 			);
-			$io->error('%s', $e->getMessage());
+			$io->stderr()->line('%s', $e->getMessage());
 
 			if ($showStacktrace) {
-				$io->error('%s', $e->getTraceAsString());
+				$io->stderr()->line('%s', $e->getTraceAsString());
 			}
 
 			return;

@@ -10,7 +10,7 @@
 
 ### Changed
 
-- Errors and warnings print as red and yellow lines through the new console output methods. The `db:migrations --test-run` confirmation prompts only when both input and output are terminals, instead of when only the input is one.
+- Errors and warnings print as red and yellow lines through the new console output methods; the lines below an error, such as the exception message, the stack trace, or a list of paths, stay plain. The `db:migrations --test-run` confirmation prompts only when both input and output are terminals, instead of when only the input is one.
 
 ## [0.6.1](https://codefloe.com/celema/quma/src/tag/0.6.1) (2026-10-06)
 

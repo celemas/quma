@@ -41,10 +41,10 @@ final readonly class MetadataTable
 				// @codeCoverageIgnoreStart
 			} catch (Throwable $e) {
 				$io->error("Error: While trying to create table '%s'", $env->table);
-				$io->error('%s', $e->getMessage());
+				$io->stderr()->line('%s', $e->getMessage());
 
 				if ($env->showStacktrace) {
-					$io->error('%s', $e->getTraceAsString());
+					$io->stderr()->line('%s', $e->getTraceAsString());
 				}
 
 				return 1;

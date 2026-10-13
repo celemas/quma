@@ -66,7 +66,7 @@ final class Migrations
 
 		if ($testRun && (!$driverSupported || !$this->supportsTransactions())) {
 			$io->error('Error: Test runs are only supported for transactional drivers: sqlite and pgsql.');
-			$io->error(
+			$io->stderr()->line(
 				'MySQL migrations are plan-only without --apply because DDL statements can cause implicit commits.',
 			);
 
@@ -206,7 +206,7 @@ final class Migrations
 			$this->io->error("Duplicate migration id '%s' in namespace '%s'", $id, $namespace);
 
 			foreach ($paths as $path) {
-				$this->io->error('  - %s', $path);
+				$this->io->stderr()->line('  - %s', $path);
 			}
 		}
 

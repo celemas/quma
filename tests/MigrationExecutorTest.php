@@ -113,6 +113,21 @@ class MigrationExecutorTest extends TestCase
 		$this->assertSame([], $this->applied());
 	}
 
+	public function testFailureDetailsPrintPlain(): void
+	{
+		$class = 'QumaExecutorTest\\M' . uniqid() . '\\Migration';
+		$path = $this->phpMigration('fail.php', $class, 'throw new \\RuntimeException("boom");');
+		$buffer = new Buffer(colors: true);
+
+		$this->executorWithIo(new Io($buffer))->migrate('default', $path, true);
+
+		[$headline, $details] = explode("\n", $buffer->errorOutput(), 2);
+
+		$this->assertStringStartsWith("\033[31mError: while working on migration", $headline);
+		$this->assertStringStartsWith("boom\n#0 ", $details);
+		$this->assertStringNotContainsString("\033", $details);
+	}
+
 	public function testFailingTemplateClosesItsOutputBuffer(): void
 	{
 		$path = $this->migration('fail.tpql', 'SELECT 1;<?php throw new RuntimeException("boom"); ?>');
