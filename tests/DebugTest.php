@@ -240,6 +240,13 @@ final class DebugTest extends TestCase
 		$this->assertMatchesRegularExpression('/--cli--[a-f0-9]{8}$/', $session);
 	}
 
+	public function testCliSessionIgnoresAnArgvThatIsNoList(): void
+	{
+		$session = $this->httpSession(['REQUEST_METHOD' => null, 'REQUEST_URI' => null, 'argv' => 'run']);
+
+		$this->assertMatchesRegularExpression('/--cli--[a-f0-9]{8}$/', $session);
+	}
+
 	public function testCliQueriesShareOneSession(): void
 	{
 		$translated = $this->tempDir();

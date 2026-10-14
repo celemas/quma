@@ -402,7 +402,9 @@ final class Debug
 
 	private static function argv(): string
 	{
-		return implode(' ', $_SERVER['argv'] ?? []);
+		$argv = $_SERVER['argv'] ?? null;
+
+		return is_array($argv) ? implode(' ', $argv) : '';
 	}
 
 	private static function sessionLabel(string $value): string
