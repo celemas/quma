@@ -27,8 +27,6 @@ class TestCase extends BaseTestCase
 	private static ?string $sqliteDbPath2 = null;
 
 	private bool $hasGlobalStateSnapshot = false;
-	private bool $hadArgv = false;
-	private mixed $argv = null;
 	private int $outputBufferLevel = 0;
 
 	protected function setUp(): void
@@ -36,8 +34,6 @@ class TestCase extends BaseTestCase
 		parent::setUp();
 
 		$this->hasGlobalStateSnapshot = true;
-		$this->hadArgv = array_key_exists('argv', $_SERVER);
-		$this->argv = $_SERVER['argv'] ?? null;
 		$this->outputBufferLevel = ob_get_level();
 	}
 
@@ -47,12 +43,6 @@ class TestCase extends BaseTestCase
 			if ($this->hasGlobalStateSnapshot) {
 				while (ob_get_level() > $this->outputBufferLevel) {
 					ob_end_clean();
-				}
-
-				if ($this->hadArgv) {
-					$_SERVER['argv'] = $this->argv;
-				} else {
-					unset($_SERVER['argv']);
 				}
 			}
 		} finally {
@@ -434,10 +424,11 @@ class TestCase extends BaseTestCase
 		return new Runner($commands, new Io(new Stdio('php://output', 'php://output')));
 	}
 
-	protected function createMigration(array $commands): string
+	/** @param list<string> $argv */
+	protected function createMigration(array $commands, array $argv): string
 	{
 		ob_start();
-		$result = $this->consoleRunner($commands)->run();
+		$result = $this->consoleRunner($commands)->run($argv);
 		$output = ob_get_clean();
 
 		$this->assertSame(0, $result);

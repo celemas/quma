@@ -34,7 +34,6 @@ class MigrationsCommandTest extends TestCase
 		mkdir($dir, 0o700, true);
 		file_put_contents($migration, 'CREATE TABLE mysql_plan_should_not_run (id integer);');
 
-		$_SERVER['argv'] = ['run'];
 		$conn = new Connection(
 			'mysql:host=localhost;dbname=quma;user=quma;password=quma',
 			$this->getSqlDirs(),
@@ -93,7 +92,6 @@ class MigrationsCommandTest extends TestCase
 		mkdir($dir, 0o700, true);
 		file_put_contents($dir . '/000001-validation.sql', 'SELECT 1;');
 
-		$_SERVER['argv'] = ['run', 'migrations', '--namespace=missing', '--apply'];
 		$conn = new Connection(
 			'mysql:unix_socket=/path/that/does/not/exist/quma.sock;dbname=quma',
 			$this->getSqlDirs(),
@@ -101,7 +99,12 @@ class MigrationsCommandTest extends TestCase
 
 		try {
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--namespace=missing',
+				'--apply',
+			]);
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {
@@ -124,7 +127,6 @@ class MigrationsCommandTest extends TestCase
 		mkdir($dir, 0o700, true);
 		file_put_contents($migration, 'CREATE TABLE mysql_run_apply_precreate (id integer);');
 
-		$_SERVER['argv'] = ['run'];
 		$conn = $this->connection(migrations: $dir);
 		$env = new Environment(['default' => $conn], []);
 		$db = new Database($conn);
@@ -170,7 +172,6 @@ class MigrationsCommandTest extends TestCase
 
 	public function testRunnerFinishHandlesNonTransactionalDrivers(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$conn = $this->connection();
 		$env = new Environment(['default' => $conn], []);
 		$runner = $this->runner($env, new DriverPolicy('mysql'));

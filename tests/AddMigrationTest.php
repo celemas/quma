@@ -18,7 +18,6 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationPromptsWhenFileNameIsOmitted(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration'];
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-migrations-prompt-' . uniqid();
 		mkdir($dir, 0o700, recursive: true);
 		$migration = null;
@@ -26,7 +25,7 @@ class AddMigrationTest extends TestCase
 		try {
 			$buffer = new Buffer("prompted migration\n");
 			$out = new Io($buffer);
-			$exit = new Runner($this->commands(migrations: ['temp' => $dir]), $out)->run();
+			$exit = new Runner($this->commands(migrations: ['temp' => $dir]), $out)->run(['run', 'add-migration']);
 			$output = $buffer->output();
 
 			preg_match('/Migration created:\s*(\S+)/', $output, $matches);
@@ -48,10 +47,9 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationAbortsWithoutPromptInput(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration'];
 		$buffer = new Buffer();
 		$out = new Io($buffer);
-		$exit = new Runner($this->commands(migrations: []), $out)->run();
+		$exit = new Runner($this->commands(migrations: []), $out)->run(['run', 'add-migration']);
 
 		$this->assertSame(1, $exit);
 		$this->assertStringContainsString('No input provided. Aborting.', $buffer->output());
@@ -59,10 +57,9 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationRejectsSurplusArguments(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql', 'extra'];
 		$buffer = new Buffer();
 		$out = new Io($buffer);
-		$exit = new Runner($this->commands(migrations: []), $out)->run();
+		$exit = new Runner($this->commands(migrations: []), $out)->run(['run', 'add-migration', 'test.sql', 'extra']);
 
 		$this->assertSame(2, $exit);
 		$this->assertStringContainsString("Unexpected argument 'extra'", $buffer->errorOutput());
@@ -71,14 +68,18 @@ class AddMigrationTest extends TestCase
 	public function testPhpMigrationNameFallsBackForPunctuationOnlyFileName(): void
 	{
 		// The `--` separator lets the dashed file name pass as a positional.
-		$_SERVER['argv'] = ['run', 'add-migration', '--', '---.php'];
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-migrations-name-' . uniqid();
 		mkdir($dir, 0o700, true);
 		$migration = null;
 
 		try {
 			ob_start();
-			$exit = $this->consoleRunner($this->commands(migrations: ['temp' => $dir]))->run();
+			$exit = $this->consoleRunner($this->commands(migrations: ['temp' => $dir]))->run([
+				'run',
+				'add-migration',
+				'--',
+				'---.php',
+			]);
 			$output = (string) ob_get_clean();
 
 			// run() now returns an exit code; the created path is printed as
@@ -105,10 +106,8 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithoutDirectories(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands(migrations: []))->run();
+		$result = $this->consoleRunner($this->commands(migrations: []))->run(['run', 'add-migration', 'test.sql']);
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -118,10 +117,12 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationWithInvalidDirectory(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands(migrations: ['empty' => []]))->run();
+		$result = $this->consoleRunner($this->commands(migrations: ['empty' => []]))->run([
+			'run',
+			'add-migration',
+			'test.sql',
+		]);
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -221,7 +222,6 @@ class AddMigrationTest extends TestCase
 
 	public function testAddMigrationCannotCreateFile(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test.sql'];
 		$tempFile = tempnam(sys_get_temp_dir(), 'quma-migrations-');
 
 		if ($tempFile === false) {
@@ -231,7 +231,11 @@ class AddMigrationTest extends TestCase
 		$handler = set_error_handler(static fn(): bool => true);
 		try {
 			ob_start();
-			$result = $this->consoleRunner($this->commands(migrations: ['temp' => $tempFile]))->run();
+			$result = $this->consoleRunner($this->commands(migrations: ['temp' => $tempFile]))->run([
+				'run',
+				'add-migration',
+				'test.sql',
+			]);
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {
@@ -260,10 +264,9 @@ class AddMigrationTest extends TestCase
 	 */
 	private function add(array $args, array $migrations, string $input = ''): array
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', ...$args];
 		$buffer = new Buffer($input);
 		$io = new Io($buffer);
-		$exit = new Runner($this->commands(migrations: $migrations), $io)->run();
+		$exit = new Runner($this->commands(migrations: $migrations), $io)->run(['run', 'add-migration', ...$args]);
 
 		return [$exit, $buffer->output(), $buffer->errorOutput()];
 	}

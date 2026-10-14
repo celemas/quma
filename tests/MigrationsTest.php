@@ -43,10 +43,8 @@ class MigrationsTest extends TestCase
 
 	public function testCreateMigrationsTableSuccess(): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands())->run();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -57,7 +55,6 @@ class MigrationsTest extends TestCase
 
 	public function testCreatingAnExistingMetadataTableAborts(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection()], []);
 		$buffer = new Buffer();
 		$io = new Io($buffer);
@@ -75,12 +72,14 @@ class MigrationsTest extends TestCase
 
 	public function testWrongConnection(): void
 	{
-		$_SERVER['argv'] = ['run', 'create-migrations-table', '--conn=doesnotexist'];
-
 		// Commands are built lazily, so the runner turns the Environment's
 		// RuntimeException into an error message and exit code.
 		ob_start();
-		$result = $this->consoleRunner($this->commands(multipleConnections: true))->run();
+		$result = $this->consoleRunner($this->commands(multipleConnections: true))->run([
+			'run',
+			'create-migrations-table',
+			'--conn=doesnotexist',
+		]);
 		$output = (string) ob_get_clean();
 
 		$this->assertSame(1, $result);
@@ -89,10 +88,13 @@ class MigrationsTest extends TestCase
 
 	public function testRunMigrationsCreatesMetadataTableOnSelectedConnection(): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--conn=second', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands(multipleConnections: true))->run();
+		$result = $this->consoleRunner($this->commands(multipleConnections: true))->run([
+			'run',
+			'migrations',
+			'--conn=second',
+			'--apply',
+		]);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -113,10 +115,8 @@ class MigrationsTest extends TestCase
 
 	public function testRunMigrationsNoMigrationsDirectoriesDefined(): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands(migrations: []))->run();
+		$result = $this->consoleRunner($this->commands(migrations: []))->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -126,10 +126,8 @@ class MigrationsTest extends TestCase
 
 	public function testRunMigrationsRejectsApplyAndTestRunTogether(): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--apply', '--test-run', '--yes'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands())->run();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply', '--test-run', '--yes']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -143,11 +141,10 @@ class MigrationsTest extends TestCase
 	#[DataProvider('transactionConnectionProvider')]
 	public function testRunMigrationsPlansWithoutApply(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations'];
 		$driver = strtok($dsn, ':');
 
 		ob_start();
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -173,16 +170,16 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: $dir);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$applyResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$applyResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--apply',
+			]);
 			ob_end_clean();
 
-			$_SERVER['argv'] = ['run', 'migrations'];
-
 			ob_start();
-			$planResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$planResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations']);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -198,10 +195,8 @@ class MigrationsTest extends TestCase
 
 	public function testRunMigrationsTestRunRequiresYesForPendingMigrations(): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--test-run'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands())->run();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--test-run']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -221,11 +216,10 @@ class MigrationsTest extends TestCase
 	#[DataProvider('transactionConnectionProvider')]
 	public function testRunMigrationsTestRunSuccess(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
 		$driver = strtok($dsn, ':');
 
 		ob_start();
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations', '--test-run', '--yes']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -251,16 +245,20 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: $dir);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$applyResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$applyResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--apply',
+			]);
 			ob_end_clean();
 
-			$_SERVER['argv'] = ['run', 'migrations', '--test-run'];
-
 			ob_start();
-			$testRunResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$testRunResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--test-run',
+			]);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -284,10 +282,13 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: $dir);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--test-run', '--yes'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--test-run',
+				'--yes',
+			]);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -315,10 +316,8 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: $dir);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -357,10 +356,8 @@ class MigrationsTest extends TestCase
 		$db = new Database($conn);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations']);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -394,11 +391,10 @@ class MigrationsTest extends TestCase
 	#[DataProvider('connectionProvider')]
 	public function testRunMigrationsSuccess(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
 		$driver = strtok($dsn, ':');
 
 		ob_start();
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -417,14 +413,12 @@ class MigrationsTest extends TestCase
 	#[Depends('testRunMigrationsSuccess')]
 	public function testRunMigrationsAgain(string $dsn): void
 	{
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 		ob_start();
-		$this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations', '--apply']);
 		ob_end_clean();
 
 		ob_start();
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -440,13 +434,11 @@ class MigrationsTest extends TestCase
 	{
 		// Run existing migrations first
 		ob_start();
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-		$this->consoleRunner($this->commands())->run();
+		$this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply']);
 		ob_end_clean();
 
 		// add the migrations
-		$_SERVER['argv'] = ['run', 'add-migration', 'test migration'];
-		$migration = $this->createMigration($this->commands());
+		$migration = $this->createMigration($this->commands(), ['run', 'add-migration', 'test migration']);
 		$this->assertFileExists($migration);
 		$this->assertStringStartsWith(TestCase::root(), $migration);
 		$this->assertStringEndsWith('.sql', $migration);
@@ -456,8 +448,7 @@ class MigrationsTest extends TestCase
 
 		// Re-run migrations
 		ob_start();
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-		$result = $this->consoleRunner($this->commands())->run();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 		if (is_file($migration)) {
@@ -472,9 +463,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationTpql(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test migration.tpql'];
-
-		$migration = $this->createMigration($this->commands());
+		$migration = $this->createMigration($this->commands(), ['run', 'add-migration', 'test migration.tpql']);
 		$this->assertFileExists($migration);
 		$this->assertStringStartsWith(TestCase::root(), $migration);
 		$this->assertStringEndsWith('.tpql', $migration);
@@ -491,9 +480,7 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationPhp(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test migration.php'];
-
-		$migration = $this->createMigration($this->commands());
+		$migration = $this->createMigration($this->commands(), ['run', 'add-migration', 'test migration.php']);
 		$this->assertFileExists($migration);
 		$this->assertStringStartsWith(TestCase::root(), $migration);
 		$this->assertStringEndsWith('.php', $migration);
@@ -516,10 +503,8 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationWithWrongFileExtension(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test.exe'];
-
 		ob_start();
-		$this->consoleRunner($this->commands())->run();
+		$this->consoleRunner($this->commands())->run(['run', 'add-migration', 'test.exe']);
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -536,10 +521,12 @@ class MigrationsTest extends TestCase
 
 	public function testAddMigrationToVendor(): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', 'test'];
-
 		ob_start();
-		$this->consoleRunner($this->commands(migrations: TestCase::root() . '/../vendor'))->run();
+		$this->consoleRunner($this->commands(migrations: TestCase::root() . '/../vendor'))->run([
+			'run',
+			'add-migration',
+			'test',
+		]);
 		$output = ob_get_contents();
 		ob_end_clean();
 
@@ -549,16 +536,22 @@ class MigrationsTest extends TestCase
 	#[DataProvider('failingSqlMigrationProvider')]
 	public function testFailingSqlMigration(string $dsn, string $ext): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', "test-migration-failing{$ext}"];
-
-		$migration = $this->createMigration($this->commands(dsn: $dsn));
+		$migration = $this->createMigration($this->commands(dsn: $dsn), [
+			'run',
+			'add-migration',
+			"test-migration-failing{$ext}",
+		]);
 
 		// Add content and run it
 		ob_start();
 		file_put_contents($migration, 'RUBBISH;');
-		$_SERVER['argv'] = ['run', 'migrations', '--apply', '--stacktrace'];
 
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run([
+			'run',
+			'migrations',
+			'--apply',
+			'--stacktrace',
+		]);
 		$content = ob_get_contents();
 		ob_end_clean();
 		if (is_file($migration)) {
@@ -584,16 +577,17 @@ class MigrationsTest extends TestCase
 	#[DataProvider('failingPhpMigrationProvider')]
 	public function testFailingTpqlPhpMigrationPhpError(string $dsn, string $ext): void
 	{
-		$_SERVER['argv'] = ['run', 'add-migration', "test-migration-php-failing.{$ext}"];
-
-		$migration = $this->createMigration($this->commands(dsn: $dsn));
+		$migration = $this->createMigration($this->commands(dsn: $dsn), [
+			'run',
+			'add-migration',
+			"test-migration-php-failing.{$ext}",
+		]);
 
 		// Add content and run it
 		ob_start();
 		file_put_contents($migration, '<?php echo if)');
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
 
-		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run();
+		$result = $this->consoleRunner($this->commands(dsn: $dsn))->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 		if (is_file($migration)) {
@@ -615,10 +609,8 @@ class MigrationsTest extends TestCase
 		$tmpdir = sys_get_temp_dir() . '/chuck' . (string) mt_rand();
 		mkdir($tmpdir, 0o400);
 
-		$_SERVER['argv'] = ['run', 'add-migration', 'test-migration.sql'];
-
 		ob_start();
-		$this->consoleRunner($this->commands(migrations: $tmpdir))->run();
+		$this->consoleRunner($this->commands(migrations: $tmpdir))->run(['run', 'add-migration', 'test-migration.sql']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -637,17 +629,19 @@ class MigrationsTest extends TestCase
 			],
 		);
 
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner($this->commands())->run();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply']);
 		ob_end_clean();
 
 		// Run migration with specific namespace
-		$_SERVER['argv'] = ['run', 'migrations', '--namespace=feature', '--apply'];
 
 		ob_start();
-		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+			'run',
+			'migrations',
+			'--namespace=feature',
+			'--apply',
+		]);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -665,10 +659,13 @@ class MigrationsTest extends TestCase
 			],
 		);
 
-		$_SERVER['argv'] = ['run', 'migrations', '--namespace=nonexistent', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+			'run',
+			'migrations',
+			'--namespace=nonexistent',
+			'--apply',
+		]);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -685,10 +682,8 @@ class MigrationsTest extends TestCase
 			],
 		);
 
-		$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 		ob_start();
-		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 		$content = ob_get_contents();
 		ob_end_clean();
 
@@ -716,10 +711,8 @@ class MigrationsTest extends TestCase
 			->migrationColumns('version', 'executed_at');
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			ob_end_clean();
 
 			$db = new Database($conn);
@@ -767,10 +760,8 @@ class MigrationsTest extends TestCase
 			]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			ob_end_clean();
 
 			$db = new Database($conn);
@@ -800,10 +791,8 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: [$firstDir, $secondDir]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -848,10 +837,13 @@ class MigrationsTest extends TestCase
 		$conn = $this->connection(migrations: ['feature' => [$firstDir, $secondDir]]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--namespace=feature', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--namespace=feature',
+				'--apply',
+			]);
 			$content = ob_get_clean();
 
 			$lines = explode("\n", rtrim((string) $content, "\n"));
@@ -902,10 +894,8 @@ class MigrationsTest extends TestCase
 			]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			ob_end_clean();
 
 			$db = new Database($conn);
@@ -936,10 +926,8 @@ class MigrationsTest extends TestCase
 			->placeholders(Delimiters::brackets(), ['all' => ['empty' => '']]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			$content = ob_get_contents();
 			ob_end_clean();
 
@@ -967,10 +955,8 @@ class MigrationsTest extends TestCase
 			->placeholders(Delimiters::brackets(), ['all' => ['table' => 'generated_static_migration']]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			ob_end_clean();
 
 			$db = new Database($conn);
@@ -1003,10 +989,8 @@ class MigrationsTest extends TestCase
 			->placeholders(Delimiters::brackets(), ['all' => ['unused' => 'unused']]);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
 			ob_end_clean();
 
 			$db = new Database($conn);
@@ -1041,10 +1025,8 @@ class MigrationsTest extends TestCase
 		$db->execute('DROP TABLE IF EXISTS migrations')->run();
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations'];
-
 			ob_start();
-			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations']);
 			$output = ob_get_contents();
 			ob_end_clean();
 
@@ -1083,16 +1065,21 @@ class MigrationsTest extends TestCase
 		);
 
 		try {
-			$_SERVER['argv'] = ['run', 'migrations', '--apply'];
-
 			ob_start();
-			$defaultResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$defaultResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--apply',
+			]);
 			ob_end_clean();
 
-			$_SERVER['argv'] = ['run', 'migrations', '--namespace=feature', '--apply'];
-
 			ob_start();
-			$featureResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run();
+			$featureResult = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--namespace=feature',
+				'--apply',
+			]);
 			ob_end_clean();
 
 			$db = new Database($conn);

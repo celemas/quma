@@ -148,7 +148,6 @@ class PhpMigrationLoaderTest extends TestCase
 
 	private function loader(?MigrationFactory $migrationFactory = null): PhpLoader
 	{
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection()], []);
 
 		return new PhpLoader($env, $migrationFactory);

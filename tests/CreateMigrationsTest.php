@@ -143,27 +143,18 @@ class CreateMigrationsTest extends TestCase
 	 */
 	private function runCommand(array $argv, callable $commandFactory): array
 	{
-		$hadArgv = array_key_exists('argv', $_SERVER);
-		$previousArgv = $_SERVER['argv'] ?? null;
 		$level = ob_get_level();
-		$_SERVER['argv'] = $argv;
 
 		ob_start();
 
 		try {
-			$result = $this->consoleRunner($commandFactory())->run();
+			$result = $this->consoleRunner($commandFactory())->run($argv);
 			$output = ob_get_clean();
 
 			return [$result, is_string($output) ? $output : ''];
 		} finally {
 			while (ob_get_level() > $level) {
 				ob_end_clean();
-			}
-
-			if ($hadArgv) {
-				$_SERVER['argv'] = $previousArgv;
-			} else {
-				unset($_SERVER['argv']);
 			}
 		}
 	}

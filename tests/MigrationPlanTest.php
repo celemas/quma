@@ -57,7 +57,6 @@ final class MigrationPlanTest extends TestCase
 
 	private function plan(string $dsn, Io $io): Plan
 	{
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection(dsn: $dsn)->migrationTable('migrations')], []);
 		$planner = new Planner(new DriverPolicy($env->driver));
 

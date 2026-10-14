@@ -32,7 +32,6 @@ final class MigrationRunnerTest extends TestCase
 		parent::setUp();
 		$this->dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-runner-' . uniqid();
 		mkdir($this->dir, 0o700);
-		$_SERVER['argv'] = ['run'];
 		$this->buffer = new Buffer();
 		$this->io = new Io($this->buffer);
 		$this->env = new Environment(

@@ -164,7 +164,6 @@ class MigrationExecutorTest extends TestCase
 	/** @param array<array-key, mixed> $placeholders */
 	private function executorWithIo(Io $io, array $placeholders = []): Executor
 	{
-		$_SERVER['argv'] = ['run'];
 		$conn = new Connection('sqlite:' . $this->file, self::root() . 'sql/default');
 
 		if ($placeholders !== []) {
@@ -221,7 +220,6 @@ class MigrationExecutorTest extends TestCase
 
 	public function testLogRecordsAndReadsMigrations(): void
 	{
-		$_SERVER['argv'] = ['run'];
 		$conn = $this->connection();
 		$db = new Database($conn);
 		$db->execute('DROP TABLE IF EXISTS migrations')->run();
@@ -239,7 +237,6 @@ class MigrationExecutorTest extends TestCase
 
 	private function executor(): Executor
 	{
-		$_SERVER['argv'] = ['run'];
 		$env = new Environment(['default' => $this->connection()], []);
 
 		return new Executor(
