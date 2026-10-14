@@ -257,7 +257,13 @@ class Database
 
 	public function quote(string $value): string
 	{
-		return $this->requirePdo()->quote($value);
+		$quoted = $this->requirePdo()->quote($value);
+
+		if ($quoted === false) {
+			throw new RuntimeException("PDO driver '{$this->conn->config->driver}' cannot quote values");
+		}
+
+		return $quoted;
 	}
 
 	public function begin(): bool

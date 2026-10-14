@@ -247,6 +247,23 @@ class DatabaseTest extends TestCase
 		);
 	}
 
+	public function testQuoteThrowsWhenTheDriverCannotQuote(): void
+	{
+		$db = new InspectableDatabase($this->connection());
+		$db->setPdoPublic(new class('sqlite::memory:') extends PDO {
+			#[\Override]
+			public function quote(string $string, int $type = PDO::PARAM_STR): string|false
+			{
+				return false;
+			}
+		});
+
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage("PDO driver 'sqlite' cannot quote values");
+
+		$db->quote('value');
+	}
+
 	public function testFetchAllQueryAll(): void
 	{
 		$db = $this->getDb();

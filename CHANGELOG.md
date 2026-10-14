@@ -18,6 +18,7 @@
 
 - `db:create-migrations-table` reports a PDO driver that is installed but not supported, such as `odbc`, instead of failing with an `UnhandledMatchError`.
 - Writing SQL debug files from the CLI no longer fails with a `TypeError` when `$_SERVER['argv']` was replaced by something other than an array.
+- `Database::quote()` throws a `RuntimeException` that names the driver when the driver cannot quote values, instead of a `TypeError`.
 
 ## [0.6.1](https://codefloe.com/celema/quma/src/tag/0.6.1) (2026-10-06)
 
