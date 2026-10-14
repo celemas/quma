@@ -298,11 +298,12 @@ class Database
 	{
 		$this->checkReuse();
 		$this->connect();
+		$pdo = $this->pdo;
 
-		if ($this->pdo !== null) {
+		if ($pdo !== null) {
 			$this->touchConnection();
 
-			return $this->pdo;
+			return $pdo;
 		}
 
 		throw new RuntimeException('Database connection not initialized');
