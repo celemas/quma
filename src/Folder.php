@@ -41,7 +41,6 @@ class Folder
 		$ext = $isTemplate ? '.tpql' : '.sql';
 
 		foreach ($this->db->getSqlDirs() as $path) {
-			assert(is_string($path), 'SQL directory path must be a string.');
 			$result = $path . DIRECTORY_SEPARATOR . $this->folder . DIRECTORY_SEPARATOR . $key . $ext;
 
 			if (is_file($result)) {

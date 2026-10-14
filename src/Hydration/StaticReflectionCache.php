@@ -34,7 +34,7 @@ final class StaticReflectionCache implements MetadataCache
 		return self::$entries[$class];
 	}
 
-	/** @psalm-suppress PossiblyUnusedMethod */
+	/** @psalm-suppress PossiblyUnusedMethod The tests clear the cache with it. */
 	public static function reset(): void
 	{
 		self::$entries = [];

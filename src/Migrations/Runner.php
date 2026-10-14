@@ -46,8 +46,6 @@ final readonly class Runner
 		$numApplied = 0;
 
 		foreach ($migrations as $migration) {
-			assert($migration !== '', 'Migration path must be a non-empty string.');
-
 			$migrationId = $this->planner->migrationId($namespace, $migration);
 
 			if (in_array($migrationId, $appliedMigrations, strict: true)) {

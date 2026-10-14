@@ -67,6 +67,7 @@ class Database
 		return $this->conn->config->driver;
 	}
 
+	/** @return list<non-empty-string> */
 	public function getSqlDirs(): array
 	{
 		return $this->conn->config->sql;

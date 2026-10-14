@@ -69,7 +69,7 @@ final class Hydrator
 	/**
 	 * @param array<array-key, mixed> $record
 	 * @return array<string, mixed>
-	 * @psalm-suppress MixedAssignment
+	 * @psalm-suppress MixedAssignment Row values can be anything.
 	 */
 	private function stringKeyRow(array $record): array
 	{
@@ -188,7 +188,6 @@ final class Hydrator
 			);
 		}
 
-		/** @var array<string, mixed> $args */
 		$args = [];
 
 		foreach ($metadata->parameters ?? [] as $parameter) {
@@ -199,7 +198,7 @@ final class Hydrator
 					continue;
 				}
 
-				/** @psalm-suppress MixedAssignment */
+				/** @psalm-suppress MixedAssignment The parameter's declared type can be anything. */
 				$args[$parameter->name] = $this->coercer->coerce(
 					$row[$parameter->column],
 					$parameter->type,
@@ -216,7 +215,7 @@ final class Hydrator
 			}
 
 			if ($parameter->hasDefault) {
-				/** @psalm-suppress MixedAssignment */
+				/** @psalm-suppress MixedAssignment Default values can be anything. */
 				$args[$parameter->name] = $parameter->defaultValue;
 
 				continue;
@@ -234,7 +233,7 @@ final class Hydrator
 		try {
 			$class = $metadata->class;
 
-			/** @psalm-suppress MixedMethodCall */
+			/** @psalm-suppress MixedMethodCall Psalm cannot see the constructor of a bare class-string. */
 			return new $class(...$args);
 		} catch (TypeError $e) {
 			throw InvalidTypeCoercion::constructorFailure(

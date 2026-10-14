@@ -116,7 +116,7 @@ class Script
 			(static function (string $__templatePath, array $__context): void {
 				extract($__context, EXTR_SKIP);
 
-				/** @psalm-suppress UnresolvableInclude */
+				/** @psalm-suppress UnresolvableInclude The template path is only known at run time. */
 				require $__templatePath;
 			})($templatePath, $context);
 

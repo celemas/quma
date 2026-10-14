@@ -35,8 +35,6 @@ final readonly class Planner
 		$pending = [];
 
 		foreach ($migrations as $migration) {
-			assert($migration !== '', 'Migration path must be a non-empty string.');
-
 			if (in_array($this->migrationId($namespace, $migration), $appliedMigrations, strict: true)) {
 				continue;
 			}
@@ -61,8 +59,6 @@ final readonly class Planner
 		$pathsById = [];
 
 		foreach ($migrations as $migration) {
-			assert($migration !== '', 'Migration path must be a non-empty string.');
-
 			if (!$this->driverPolicy->supportsMigration($migration)) {
 				continue;
 			}

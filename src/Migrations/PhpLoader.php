@@ -49,7 +49,7 @@ final class PhpLoader
 	/** @return class-string<Contract\Migration> */
 	private function loadClass(string $migration): string
 	{
-		/** @psalm-suppress UnresolvableInclude */
+		/** @psalm-suppress UnresolvableInclude The migration path is only known at run time. */
 		$class = require $migration;
 
 		if (!is_string($class) || $class === '') {

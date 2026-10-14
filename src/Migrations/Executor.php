@@ -102,7 +102,7 @@ final readonly class Executor
 			): void {
 				extract($context, EXTR_SKIP);
 
-				/** @psalm-suppress UnresolvableInclude */
+				/** @psalm-suppress UnresolvableInclude The migration path is only known at run time. */
 				require $templatePath;
 			};
 

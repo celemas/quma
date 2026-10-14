@@ -43,7 +43,6 @@ final class PdoConfig
 
 	public function option(int $attribute, mixed $value): self
 	{
-		/** @var array<array-key, mixed> $options */
 		$options = array_replace($this->options, [$attribute => $value]);
 
 		return new self($this->username, $this->password, $options, $this->fetchMode);
