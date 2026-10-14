@@ -76,8 +76,6 @@
 		// Casts of values that are strings or ints already.
 		CastString: {
 			ignore: [
-				// positional() with a '' default never returns null; Psalm needs the cast.
-				'Celema\\Quma\\Commands\\Add::fileName',
 				'Celema\\Quma\\Debug::sessionInfo',
 				'Celema\\Quma\\Migrations\\Log::applied',
 			],
@@ -169,11 +167,6 @@
 		},
 		MethodCallRemoval: {
 			ignoreSourceCodeByRegex: ['\\$this->stmt->bindValue\\(\\$arg, \\$value, PDO::PARAM_NULL\\);'],
-		},
-
-		// Interactive prompts need a real TTY, which tests do not have.
-		LogicalAndAllSubExprNegation: {
-			ignore: ['Celema\\Quma\\Migrations\\TestRunConfirmation::inputIsInteractive'],
 		},
 	},
 }
