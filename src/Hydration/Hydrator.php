@@ -31,8 +31,11 @@ final class Hydrator
 	}
 
 	/**
+	 * @template T of object
+	 *
 	 * @param array<array-key, mixed> $record
-	 * @param string|Closure $map
+	 * @param class-string<T>|Closure(array<string, mixed>):class-string<T> $map
+	 * @return T
 	 */
 	public function hydrate(array $record, string|Closure $map, ?string $sourcePath): object
 	{
@@ -52,11 +55,15 @@ final class Hydrator
 			);
 		}
 
-		if ($metadata->hydratable) {
-			return $this->hydrateViaFactory($class, $row, $sourcePath, $rowKeys);
-		}
+		/**
+		 * @mago-expect lint:inline-variable-return Psalm makes this necessary
+		 * @var T $object The object's class is the one $map names or returns.
+		 */
+		$object = $metadata->hydratable
+			? $this->hydrateViaFactory($class, $row, $sourcePath, $rowKeys)
+			: $this->hydrateViaConstructor($metadata, $row, $sourcePath, $rowKeys);
 
-		return $this->hydrateViaConstructor($metadata, $row, $sourcePath, $rowKeys);
+		return $object;
 	}
 
 	/**

@@ -62,7 +62,7 @@ class Query
 	 */
 	public function one(string|Closure|null $map = null, ?int $fetchMode = null): array|object
 	{
-		[$map, $fetchMode] = $this->terminalOptions($map, $fetchMode);
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->executeFresh();
 
 		try {
@@ -90,7 +90,7 @@ class Query
 	 */
 	public function first(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null
 	{
-		[$map, $fetchMode] = $this->terminalOptions($map, $fetchMode);
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->executeFresh();
 
 		try {
@@ -110,7 +110,7 @@ class Query
 	 */
 	public function fetch(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null
 	{
-		[$map, $fetchMode] = $this->terminalOptions($map, $fetchMode);
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->executeForFetch();
 
 		$record = $this->fetchArrayRecord($fetchMode);
@@ -126,7 +126,7 @@ class Query
 	 */
 	public function all(string|Closure|null $map = null, ?int $fetchMode = null): array
 	{
-		[$map, $fetchMode] = $this->terminalOptions($map, $fetchMode);
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->executeFresh();
 
 		try {
@@ -136,13 +136,10 @@ class Query
 				return $records;
 			}
 
-			/** @var list<T> $result */
 			$result = [];
 
 			foreach ($records as $record) {
-				/** @var T $object */
-				$object = $this->hydrator()->hydrate($record, $map, $this->sourcePath);
-				$result[] = $object;
+				$result[] = $this->hydrator()->hydrate($record, $map, $this->sourcePath);
 			}
 
 			return $result;
@@ -161,7 +158,7 @@ class Query
 	 */
 	public function lazy(string|Closure|null $map = null, ?int $fetchMode = null): Generator
 	{
-		[$map, $fetchMode] = $this->terminalOptions($map, $fetchMode);
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->executeFresh();
 
 		try {
@@ -172,20 +169,14 @@ class Query
 					continue;
 				}
 
-				/** @var T $object */
-				$object = $this->hydrator()->hydrate($record, $map, $this->sourcePath);
-
-				yield $object;
+				yield $this->hydrator()->hydrate($record, $map, $this->sourcePath);
 			}
 		} finally {
 			$this->stmt->closeCursor();
 		}
 	}
 
-	/**
-	 * @return array{0: string|Closure|null, 1: int}
-	 */
-	private function terminalOptions(string|Closure|null $map, ?int $fetchMode): array
+	private function terminalOptions(string|Closure|null $map, ?int $fetchMode): int
 	{
 		$mode = $fetchMode ?? ($map === null ? $this->db->getFetchMode() : PDO::FETCH_ASSOC);
 
@@ -199,7 +190,7 @@ class Query
 			);
 		}
 
-		return [$map, $mode];
+		return $mode;
 	}
 
 	private function executeFresh(): void
@@ -245,7 +236,7 @@ class Query
 	 * @template T of object
 	 *
 	 * @param array<array-key, mixed> $record
-	 * @param string|Closure(array<string, mixed>):class-string<T>|null $map
+	 * @param class-string<T>|Closure(array<string, mixed>):class-string<T>|null $map
 	 * @return ($map is null ? array<array-key, mixed> : T)
 	 */
 	private function hydrateRecord(array $record, string|Closure|null $map): array|object
@@ -254,13 +245,7 @@ class Query
 			return $record;
 		}
 
-		/**
-		 * @mago-expect lint:inline-variable-return Psalm makes this necessary
-		 * @var T $object
-		 */
-		$object = $this->hydrator()->hydrate($record, $map, $this->sourcePath);
-
-		return $object;
+		return $this->hydrator()->hydrate($record, $map, $this->sourcePath);
 	}
 
 	private function hydrator(): Hydrator
