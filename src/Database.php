@@ -10,7 +10,10 @@ use PDOException;
 use RuntimeException;
 use Throwable;
 
-/** @api */
+/**
+ * @api
+ * @psalm-no-seal-properties
+ */
 class Database
 {
 	public readonly bool $debug;

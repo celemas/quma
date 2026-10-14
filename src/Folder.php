@@ -6,7 +6,11 @@ namespace Celema\Quma;
 
 use RuntimeException;
 
-/** @api */
+/**
+ * @api
+ * @psalm-no-seal-properties
+ * @psalm-no-seal-methods
+ */
 class Folder
 {
 	protected Database $db;
