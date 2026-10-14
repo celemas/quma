@@ -14,7 +14,10 @@ use Celema\Quma\Migrations\MetadataTable;
 #[Command('db:create-migrations-table', 'Creates a migrations table', group: 'Database')]
 final class CreateMigrationsTable
 {
-	/** @param array<non-empty-string, Connection>|Connection $connections */
+	/**
+	 * @param array<non-empty-string, Connection>|Connection $connections
+	 * @param array<array-key, mixed> $options
+	 */
 	public function __construct(
 		private readonly array|Connection $connections,
 		private readonly array $options = [],

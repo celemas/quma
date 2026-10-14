@@ -23,6 +23,7 @@ class Environment
 
 	/**
 	 * @param array<non-empty-string, Connection>|Connection $connections
+	 * @param array<array-key, mixed> $options
 	 * @param string $connection The key of the connection to use; a single
 	 *     connection is `default`
 	 */

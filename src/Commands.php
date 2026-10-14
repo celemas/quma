@@ -18,6 +18,7 @@ class Commands
 	 * `new Runner(Commands::get($conn))` or `$runner->add(...)`.
 	 *
 	 * @param array<non-empty-string, Connection>|Connection $conn
+	 * @param array<array-key, mixed> $options
 	 *
 	 * @return array<class-string, Closure(): object>
 	 */

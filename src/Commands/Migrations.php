@@ -31,7 +31,10 @@ final class Migrations
 	/** @psalm-suppress PropertyNotSetInConstructor Assigned first thing in __invoke() */
 	private Io $io;
 
-	/** @param array<non-empty-string, Connection>|Connection $connections */
+	/**
+	 * @param array<non-empty-string, Connection>|Connection $connections
+	 * @param array<array-key, mixed> $options
+	 */
 	public function __construct(
 		private readonly array|Connection $connections,
 		private readonly array $options = [],

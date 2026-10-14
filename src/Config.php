@@ -130,6 +130,7 @@ final class Config
 		$this->migrations = array_merge($dirs, $this->migrations);
 	}
 
+	/** @psalm-param SqlConfig $dirs */
 	public function setMigrationNamespace(string $namespace, string|array $dirs): void
 	{
 		if ($namespace === '') {

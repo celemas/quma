@@ -14,7 +14,10 @@ use Celema\Quma\Environment;
 #[Command('db:add-migration', 'Initialize a new migration', group: 'Database')]
 final class Add
 {
-	/** @param array<non-empty-string, Connection>|Connection $connections */
+	/**
+	 * @param array<non-empty-string, Connection>|Connection $connections
+	 * @param array<array-key, mixed> $options
+	 */
 	public function __construct(
 		private readonly array|Connection $connections,
 		private readonly array $options = [],

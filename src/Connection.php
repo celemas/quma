@@ -114,6 +114,7 @@ class Connection
 		return $this;
 	}
 
+	/** @psalm-param SqlConfig $dirs */
 	public function migrationNamespace(string $namespace, string|array $dirs): static
 	{
 		$this->config->setMigrationNamespace($namespace, $dirs);
