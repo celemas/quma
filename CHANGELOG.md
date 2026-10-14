@@ -4,7 +4,7 @@
 
 ### Breaking Changes
 
-- Requires the next `celema/console` release, in development as `dev-main`. The commands declare their arguments and options as typed `__invoke()` parameters, and usage errors exit with code 2; `db:migrations --apply --test-run` is one now.
+- Requires `celema/console` 0.6. The commands declare their arguments and options as typed `__invoke()` parameters, and usage errors exit with code 2; `db:migrations --apply --test-run` is one now.
 - `Commands::get()` returns the commands as lazy factories keyed by class name instead of a `Celema\Console\Commands` collection, which the new console release removes. `new Runner(Commands::get($conn))` keeps working; `$commands->add(...)` on the result becomes `$runner->add(Commands::get($conn))`.
 - `Environment` no longer reads `--conn` and `--stacktrace` from `$_SERVER['argv']`. It takes the connection key and the stack trace flag as constructor arguments, `new Environment($connections, $options, connection: 'reporting', showStacktrace: true)`, and the commands pass their options. Code that relied on the global, such as a runner given its own argument vector, selected the wrong connection before.
 
