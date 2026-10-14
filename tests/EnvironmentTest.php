@@ -190,9 +190,9 @@ class EnvironmentTest extends TestCase
 
 		$env = new Environment([
 			'default' => $this->connection(migrations: [
-				'valid' => [$dir],
 				'invalidType' => 123,
 				'emptyDirs' => [],
+				'valid' => [$dir],
 			]),
 		], []);
 		$migrations = $env->getMigrations();

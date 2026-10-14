@@ -9,6 +9,8 @@ use RuntimeException;
 
 /**
  * @api
+ *
+ * @psalm-import-type MigrationDirsNamespaced from Config
  */
 class Environment
 {
@@ -62,29 +64,20 @@ class Environment
 			// non-empty directories, and an empty list returned above.
 			$migrations['default'] = $this->collectMigrations($this->normalizeMigrationDirs($migrationDirs));
 		} else {
-			// Namespaced: process each namespace
-			array_walk(
-				$migrationDirs,
-				function (mixed $dirs, int|string $namespace) use (&$migrations): void {
-					if (!is_string($namespace)) {
-						return; // @codeCoverageIgnore
-					}
+			// Namespaced: process each namespace. The analyzers cannot narrow
+			// the union by array_is_list().
+			/** @var MigrationDirsNamespaced $namespaced */
+			$namespaced = $migrationDirs;
 
-					if (is_string($dirs)) {
-						$resolvedDirs = $this->normalizeMigrationDirs([$dirs]);
-					} elseif (is_array($dirs)) {
-						$resolvedDirs = $this->normalizeMigrationDirs($dirs);
-					} else {
-						return; // @codeCoverageIgnore
-					}
+			foreach ($namespaced as $namespace => $dirs) {
+				$resolvedDirs = $this->normalizeMigrationDirs(is_string($dirs) ? [$dirs] : $dirs);
 
-					if (count($resolvedDirs) === 0) {
-						return;
-					}
+				if (count($resolvedDirs) === 0) {
+					continue;
+				}
 
-					$migrations[$namespace] = $this->collectMigrations($resolvedDirs);
-				},
-			);
+				$migrations[$namespace] = $this->collectMigrations($resolvedDirs);
+			}
 		}
 
 		return $migrations;
@@ -134,12 +127,7 @@ class Environment
 		}
 
 		// Sort by file name instead of full path
-		uasort($migrations, static function ($a, $b) {
-			$a = is_string($a) ? $a : '';
-			$b = is_string($b) ? $b : '';
-
-			return basename($a) < basename($b) ? -1 : 1;
-		});
+		uasort($migrations, static fn(string $a, string $b): int => basename($a) < basename($b) ? -1 : 1);
 
 		return array_values($migrations);
 	}

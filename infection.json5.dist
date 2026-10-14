@@ -104,6 +104,8 @@
 				'Celema\\Quma\\Exception\\HydrationFailure::fromHydratableFailure',
 				'Celema\\Quma\\Exception\\InvalidHydrationTarget::forTarget',
 				'Celema\\Quma\\Exception\\InvalidTypeCoercion::constructorFailure',
+				// PHP's sort only checks whether the comparison is greater than 0.
+				'Celema\\Quma\\Environment::collectMigrations',
 			],
 			// Swap token names in Debug::prepareQuery() only need to be unique.
 			ignoreSourceCodeByRegex: ['\\$i = 0;'],
