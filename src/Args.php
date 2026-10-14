@@ -4,35 +4,63 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
+use InvalidArgumentException;
+
 /**
- * @psalm-type ArgsArray = list<mixed>|array<non-empty-string, mixed>
+ * @psalm-type ArgsArray = list<mixed>|array<string, mixed>
  */
 final class Args
 {
 	private ArgType $type;
 	private int $count;
 
-	/** @psalm-var ArgsArray */
-	private readonly array $args;
+	/** @var list<mixed> */
+	private readonly array $positional;
 
+	/** @var array<string, mixed> */
+	private readonly array $named;
+
+	/** @param array<array-key, mixed> $args */
 	public function __construct(array $args)
 	{
-		$this->args = $this->prepare($args);
+		$this->count = count($args);
+		$values = $this->count === 1 && array_key_exists(0, $args) && is_array($args[0]) ? $args[0] : $args;
+
+		if (array_is_list($values)) {
+			$this->type = ArgType::Positional;
+			$this->positional = $values;
+			$this->named = [];
+
+			return;
+		}
+
+		$names = [];
+
+		foreach (array_keys($values) as $key) {
+			if (is_int($key)) {
+				throw new InvalidArgumentException(
+					'Query arguments must be either a list of positional values or named values with string keys',
+				);
+			}
+
+			$names[] = $key;
+		}
+
+		$this->type = ArgType::Named;
+		$this->positional = [];
+		$this->named = array_combine($names, $values);
 	}
 
 	/** @psalm-return ArgsArray */
 	public function get(): array
 	{
-		return $this->args;
+		return $this->type === ArgType::Named ? $this->named : $this->positional;
 	}
 
-	/**
-	 * @return array<array-key, mixed>
-	 */
+	/** @return array<string, mixed> */
 	public function getNamed(): array
 	{
-		// Named arguments are always an associative array.
-		return $this->type === ArgType::Named ? $this->args : [];
+		return $this->named;
 	}
 
 	public function count(): int
@@ -43,24 +71,5 @@ final class Args
 	public function type(): ArgType
 	{
 		return $this->type;
-	}
-
-	private function prepare(array $args): array
-	{
-		$this->count = count($args);
-
-		if ($this->count === 1 && is_array($args[0])) {
-			if (Util::isAssoc($args[0])) {
-				$this->type = ArgType::Named;
-			} else {
-				$this->type = ArgType::Positional;
-			}
-
-			return $args[0];
-		}
-
-		$this->type = ArgType::Positional;
-
-		return $args;
 	}
 }

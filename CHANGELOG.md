@@ -19,6 +19,7 @@
 - `db:create-migrations-table` reports a PDO driver that is installed but not supported, such as `odbc`, instead of failing with an `UnhandledMatchError`.
 - Writing SQL debug files from the CLI no longer fails with a `TypeError` when `$_SERVER['argv']` was replaced by something other than an array.
 - `Database::quote()` throws a `RuntimeException` that names the driver when the driver cannot quote values, instead of a `TypeError`.
+- PHP named arguments to queries, such as `$db->users->byEmail(email: $email)` or `$db->execute($sql, id: 7)`, bind to their named placeholders, and template queries accept them. Before, they bound by position, so with more than one argument the values went to the wrong placeholders. Mixing positional and named arguments, or an array that is neither a list nor keyed by names, throws `InvalidArgumentException` instead of binding wrong values or failing in PDO.
 
 ## [0.6.1](https://codefloe.com/celema/quma/src/tag/0.6.1) (2026-10-06)
 

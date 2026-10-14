@@ -26,17 +26,25 @@ $user = $db->users->byId([42])->one();
 
 ## Named parameters
 
-Use one associative array for named placeholders.
+Use PHP named arguments for named placeholders.
 
 ```sql
 SELECT id, email FROM users WHERE email = :email;
 ```
 
 ```php
+$user = $db->users->byEmail(email: 'someone@example.com')->one();
+```
+
+You can also pass them as one associative array.
+
+```php
 $user = $db->users->byEmail([
     'email' => 'someone@example.com',
 ])->one();
 ```
+
+Mixing positional and named arguments throws `InvalidArgumentException`, as does an array that is neither a list nor keyed by names.
 
 ## Supported parameter types
 
@@ -260,9 +268,11 @@ Mapped calls always fetch associative rows by default, even if the connection de
 ```php
 $total = $db->execute(
     'SELECT count(*) AS total FROM users WHERE active = :active',
-    ['active' => true],
+    active: true,
 )->one();
 ```
+
+The SQL string is the `query` parameter of `execute()`, so pass a value for a `:query` placeholder in an array.
 
 ## Debug interpolated SQL
 

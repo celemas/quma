@@ -373,6 +373,7 @@ class DatabaseTest extends TestCase
 		])->all();
 
 		$this->assertCount(7, $result);
+		$this->assertSame($result, $db->members->activeFromTo(to: 1995, from: 1990)->all());
 	}
 
 	public function testQueryWithStringParameters(): void
@@ -479,6 +480,10 @@ class DatabaseTest extends TestCase
 		$this->assertSame(
 			[['name' => 'Chuck Schuldiner'], ['name' => 'Rick Rozz']],
 			$db->members->filtered(['year' => 1983])->all(fetchMode: PDO::FETCH_ASSOC),
+		);
+		$this->assertSame(
+			[['name' => 'Chuck Schuldiner'], ['name' => 'Rick Rozz']],
+			$db->members->filtered(year: 1983)->all(fetchMode: PDO::FETCH_ASSOC),
 		);
 	}
 
@@ -670,6 +675,26 @@ class DatabaseTest extends TestCase
 			'Sean Reinert',
 			$db->execute($queryNamed, ['left' => 1992, 'joined' => 1991])->first()['name'],
 		);
+
+		$this->assertSame(
+			'Sean Reinert',
+			$db->execute($queryNamed, left: 1992, joined: 1991)->first()['name'],
+		);
+
+		$this->assertSame(
+			'Terry Butler',
+			$db->execute('SELECT name FROM members WHERE member = :member', member: 4)->first()['name'],
+		);
+	}
+
+	public function testQueryRejectsMixedPositionalAndNamedArguments(): void
+	{
+		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage(
+			'Query arguments must be either a list of positional values or named values with string keys',
+		);
+
+		$this->getDb()->members->byId(2, member: 4);
 	}
 
 	public function testScriptDirShadowingAndDriverSpecific(): void

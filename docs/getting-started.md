@@ -97,9 +97,7 @@ $user = $db->users->byId(42)->one();
 Use named parameters:
 
 ```php
-$user = $db->users->byEmail([
-    'email' => 'someone@example.com',
-])->one();
+$user = $db->users->byEmail(email: 'someone@example.com')->one();
 ```
 
 Fetch all rows:

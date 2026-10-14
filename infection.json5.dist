@@ -144,6 +144,10 @@
 		UnwrapRtrim: {
 			ignore: ['Celema\\Quma\\Debug::relativeToRoots'],
 		},
+		// The keys are all strings by then; array_combine() only shows the analyzers.
+		UnwrapArrayCombine: {
+			ignore: ['Celema\\Quma\\Args::__construct'],
+		},
 		GreaterThan: {
 			// Binding no arguments is a no-op.
 			ignore: ['Celema\\Quma\\Query::prepare'],

@@ -36,9 +36,10 @@ Quma looks for `.sql` first and `.tpql` second. If there is no matching `.sql` f
 
 ## Call a template query
 
-Template queries accept named parameters only.
+Template queries accept named parameters only, as PHP named arguments or one associative array.
 
 ```php
+$users = $db->users->listActive(active: true, order: 'desc')->all();
 $users = $db->users->listActive([
     'active' => true,
     'order' => 'desc',
@@ -69,9 +70,9 @@ $active = $db->users->search(['active' => true])->all();
 Quma injects these values into a query template:
 
 - `$pdodriver` with the active PDO driver name
-- every key from your named parameter array
+- a variable for every named parameter
 
-`pdodriver` is reserved. Passing a named parameter with that key throws `InvalidArgumentException`.
+`pdodriver` is reserved. Passing a named parameter with that name throws `InvalidArgumentException`.
 
 Example:
 
