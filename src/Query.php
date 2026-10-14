@@ -317,6 +317,7 @@ class Query
 		}
 	}
 
+	/** @param array<array-key, mixed> $args */
 	protected function bindArgs(array $args, ArgType $argType): void
 	{
 		array_walk(
@@ -377,6 +378,7 @@ class Query
 		}
 	}
 
+	/** @return array<array-key, mixed>|null */
 	protected function fetchArrayRecord(int $fetchMode): ?array
 	{
 		try {
@@ -402,6 +404,7 @@ class Query
 		}
 	}
 
+	/** @return array<array-key, mixed>|null */
 	protected function nullIfNot(mixed $value): ?array
 	{
 		if (is_array($value)) {

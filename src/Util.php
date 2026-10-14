@@ -24,6 +24,7 @@ final class Util
 		}
 	}
 
+	/** @param array<array-key, mixed> $arr */
 	public static function isAssoc(array $arr): bool
 	{
 		if ([] === $arr) {

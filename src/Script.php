@@ -161,6 +161,8 @@ class Script
 	 * in the $script.
 	 *
 	 * PDO does not allow unused parameters.
+	 *
+	 * @return array<array-key, mixed>
 	 */
 	protected function prepareTemplateVars(string $script, Args $args): array
 	{

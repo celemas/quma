@@ -29,6 +29,7 @@ class Folder
 		return $this->getScript($key);
 	}
 
+	/** @param array<array-key, mixed> $args */
 	public function __call(string $key, array $args): Query
 	{
 		$script = $this->getScript($key);
