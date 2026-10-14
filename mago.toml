@@ -4,7 +4,6 @@ php-version = "8.5.0"
 workspace = "."
 paths = ["src", "tests"]
 includes = ["vendor"]
-excludes = ["tests/templates"]
 
 [formatter]
 print-width = 120
