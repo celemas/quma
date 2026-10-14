@@ -20,6 +20,14 @@ final readonly class MetadataTable
 	{
 		$env = $this->env;
 		$io = $this->io;
+		$driver = $db->getPdoDriver();
+		$ddl = $env->getMigrationsTableDDL();
+
+		if ($ddl === false || !new DriverPolicy($driver)->isKnown()) {
+			$io->error("PDO driver '%s' not supported. Aborting", $driver);
+
+			return 1;
+		}
 
 		if ($env->checkIfMigrationsTableExists($db)) {
 			$io->error("Table '%s' already exists. Aborting", $env->table);
@@ -27,39 +35,26 @@ final readonly class MetadataTable
 			return 1;
 		}
 
-		$ddl = $env->getMigrationsTableDDL();
+		try {
+			$db->execute($ddl)->run();
+			$io->line("<bright-green>Success</bright-green>: Created table '%s'", $env->table);
 
-		if ($ddl !== false) {
-			try {
-				$db->execute($ddl)->run();
-				$io->line("<bright-green>Success</bright-green>: Created table '%s'", $env->table);
+			return 0;
 
-				return 0;
+			// Would require to create additional errornous DDL or to
+			// setup a different test database. Too much effort.
+			// @codeCoverageIgnoreStart
+		} catch (Throwable $e) {
+			$io->error("Error: While trying to create table '%s'", $env->table);
+			$io->stderr()->line('%s', $e->getMessage());
 
-				// Would require to create additional errornous DDL or to
-				// setup a different test database. Too much effort.
-				// @codeCoverageIgnoreStart
-			} catch (Throwable $e) {
-				$io->error("Error: While trying to create table '%s'", $env->table);
-				$io->stderr()->line('%s', $e->getMessage());
-
-				if ($env->showStacktrace) {
-					$io->stderr()->line('%s', $e->getTraceAsString());
-				}
-
-				return 1;
-
-				// @codeCoverageIgnoreEnd
+			if ($env->showStacktrace) {
+				$io->stderr()->line('%s', $e->getTraceAsString());
 			}
+
+			return 1;
+
+			// @codeCoverageIgnoreEnd
 		}
-
-		// Cannot be reliably tested.
-		// Would require an unsupported driver to be installed.
-		// @codeCoverageIgnoreStart
-		$io->error("PDO driver '%s' not supported. Aborting", $env->driver);
-
-		return 1;
-
-		// @codeCoverageIgnoreEnd
 	}
 }

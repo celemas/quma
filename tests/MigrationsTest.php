@@ -21,6 +21,7 @@ use Celema\Quma\Database;
 use Celema\Quma\Delimiters;
 use Celema\Quma\Environment;
 use Celema\Quma\Migrations\MetadataTable;
+use Celema\Quma\Tests\Util\FakeDatabase;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Depends;
@@ -68,6 +69,18 @@ class MigrationsTest extends TestCase
 		} finally {
 			$env->db->execute('DROP TABLE IF EXISTS migrations')->run();
 		}
+	}
+
+	public function testCreatingTheMetadataTableRejectsAnUnsupportedDriver(): void
+	{
+		$env = new Environment(['default' => $this->connection()], []);
+		$buffer = new Buffer();
+		$table = new MetadataTable($env, new Io($buffer));
+
+		$result = $table->create(new FakeDatabase($this->connection(), 'odbc', 0));
+
+		$this->assertSame(1, $result);
+		$this->assertSame("PDO driver 'odbc' not supported. Aborting\n", $buffer->errorOutput());
 	}
 
 	public function testWrongConnection(): void
