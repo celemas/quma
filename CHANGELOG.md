@@ -1,8 +1,12 @@
 # Changelog
 
-## [Unreleased](https://codefloe.com/celema/quma/compare/0.6.1...HEAD)
+## [Unreleased](https://codefloe.com/celema/quma/compare/0.7.0...HEAD)
 
-### Breaking Changes
+No notable changes since the last release.
+
+## [0.7.0](https://codefloe.com/celema/quma/src/tag/0.7.0) (2026-10-15)
+
+### Breaking
 
 - Requires `celema/console` 0.6. The commands declare their arguments and options as typed `__invoke()` parameters, and usage errors exit with code 2; `db:migrations --apply --test-run` is one now.
 - `Commands::get()` returns the commands as lazy factories keyed by class name instead of a `Celema\Console\Commands` collection, which the new console release removes. `new Runner(Commands::get($conn))` keeps working; `$commands->add(...)` on the result becomes `$runner->add(Commands::get($conn))`.
