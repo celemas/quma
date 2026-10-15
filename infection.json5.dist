@@ -4,6 +4,9 @@
 		directories: ['src'],
 	},
 	tmpDir: '.infection',
+	// Infection skips mutants whose covering tests take longer than this.
+	// Keep it well above the whole suite's run time with all drivers.
+	timeout: 30,
 	logs: {
 		text: '.infection/infection.log',
 		html: '.infection/infection.html',
