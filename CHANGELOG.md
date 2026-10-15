@@ -2,7 +2,9 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.7.0...HEAD)
 
-No notable changes since the last release.
+### Added
+
+- A PHPStan 2 extension types `$db->folder` as `Folder`, `$db->folder->script` as `Script`, and `$db->folder->script(...)` as `Query`, as Psalm already does. Before, PHPStan reported every folder access as an undefined property. phpstan/extension-installer includes it automatically; otherwise include `vendor/celema/quma/phpstan/extension.neon`.
 
 ## [0.7.0](https://codefloe.com/celema/quma/src/tag/0.7.0) (2026-10-15)
 

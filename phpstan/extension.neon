@@ -1,0 +1,10 @@
+parameters:
+	universalObjectCratesClasses:
+		- Celema\Quma\Database
+		- Celema\Quma\Folder
+
+services:
+	-
+		class: Celema\Quma\PHPStan\FolderMethods
+		tags:
+			- phpstan.broker.methodsClassReflectionExtension

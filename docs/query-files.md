@@ -179,6 +179,17 @@ $user = $byId(42)->one();
 
 This is equivalent to `$db->users->byId(42)->one()`.
 
+## Static analysis
+
+Folders and scripts are magic properties and methods, so analyzers know their types only from Quma. Psalm types `$db->users` as `Folder`, `$db->users->byId` as `Script`, and `$db->users->byId(42)` as `Query` out of the box.
+
+PHPStan needs the bundled extension. With [phpstan/extension-installer](https://github.com/phpstan/extension-installer) it is included automatically; otherwise add it to your configuration:
+
+```neon
+includes:
+    - vendor/celema/quma/phpstan/extension.neon
+```
+
 ## Add directories later
 
 You can prepend more SQL directories after construction.

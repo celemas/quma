@@ -88,6 +88,10 @@ jobs:
           set -o pipefail
           composer types -- --stats --report=psalm-issues.json 2>&1 | tee psalm-stats.txt
 
+      - name: Check the PHPStan extension
+        if: ${{ always() }}
+        run: composer types:phpstan
+
       - name: Deploy type coverage report
         if: ${{ always() && forgejo.ref == 'refs/heads/main' }}
         run: deploy-type-coverage
