@@ -100,8 +100,7 @@ final class Migrations
 			$result = $this->createMigrationsTable();
 
 			if ($result !== 0) {
-				// Requires simulating failing metadata table creation.
-				return $result; // @codeCoverageIgnore
+				return $result;
 			}
 
 			$tableExists = true;
@@ -224,13 +223,9 @@ final class Migrations
 			return 0;
 		}
 
-		// Would require simulating failing metadata table creation.
-		// @codeCoverageIgnoreStart
 		$this->io->error('Migration table could not be created.');
 
 		return $result;
-
-		// @codeCoverageIgnoreEnd
 	}
 
 	private function supportsTransactions(): bool

@@ -607,6 +607,30 @@ class MigrationsTest extends TestCase
 		$this->assertStringNotContainsString("\n#0", $content);
 	}
 
+	public function testFailingMigrationsTableCreationAbortsMysqlMigrations(): void
+	{
+		$dsns = array_values(array_filter(
+			self::getAvailableDsns(),
+			static fn(string $dsn): bool => str_starts_with($dsn, 'mysql:'),
+		));
+
+		if ($dsns === []) {
+			$this->markTestSkipped('mysql is not available.');
+		}
+
+		// The name passes validation, but the unquoted DDL fails on the reserved word.
+		$conn = $this->connection(dsn: $dsns[0])->migrationTable('select');
+
+		ob_start();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+		$content = ob_get_contents();
+		ob_end_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertStringStartsWith("Error: While trying to create table 'select'\n", $content);
+		$this->assertStringEndsWith("Migration table could not be created.\n", $content);
+	}
+
 	#[DataProvider('failingPhpMigrationProvider')]
 	public function testFailingTpqlPhpMigrationPhpError(string $dsn, string $ext): void
 	{
