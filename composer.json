@@ -76,6 +76,10 @@
 			"Composer\\Config::disableProcessTimeout",
 			"@putenv XDEBUG_MODE=coverage",
 			"@php vendor/bin/infection --threads=1"
+		],
+		"mutation:all": [
+			"Composer\\Config::disableProcessTimeout",
+			"QUMA_TEST_DRIVERS=sqlite,mysql,pgsql composer mutation -- --log-verbosity=all"
 		]
 	},
 	"config": {
