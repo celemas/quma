@@ -31,14 +31,13 @@ final readonly class Runner
 		if (!$options->tableExists) {
 			$result = ($options->createMigrationsTable)();
 
-			// @codeCoverageIgnoreStart
 			if ($result !== 0) {
 				if ($this->driverPolicy->supportsTransactions()) {
 					$db->rollback();
 				}
 
 				return $result;
-			} // @codeCoverageIgnoreEnd
+			}
 		}
 
 		$appliedMigrations = $this->log->applied($db);

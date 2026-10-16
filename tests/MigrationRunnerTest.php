@@ -131,6 +131,24 @@ final class MigrationRunnerTest extends TestCase
 		);
 	}
 
+	public function testRunRollsBackWhenTheMigrationsTableCannotBeCreated(): void
+	{
+		$migration = $this->migration('000001-create.sql', 'CREATE TABLE created_table (id INTEGER);');
+
+		$exit = $this->runner('sqlite')->run(
+			'default',
+			[$migration],
+			new RunOptions(false, true, false, static fn(): int => 1),
+		);
+
+		$this->assertSame(1, $exit);
+		$this->assertFalse($this->env->db->getConn()->inTransaction());
+		$this->assertSame(
+			[],
+			$this->env->db->execute("SELECT name FROM sqlite_master WHERE name = 'created_table'")->all(),
+		);
+	}
+
 	private function runner(string $driver): Runner
 	{
 		$policy = new DriverPolicy($driver);
