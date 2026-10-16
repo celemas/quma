@@ -587,6 +587,26 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testFailingMigrationShowsNoStackTraceWithoutTheOption(): void
+	{
+		$migration = $this->createMigration($this->commands(), [
+			'run',
+			'add-migration',
+			'test-migration-failing.sql',
+		]);
+		file_put_contents($migration, 'RUBBISH;');
+
+		ob_start();
+		$result = $this->consoleRunner($this->commands())->run(['run', 'migrations', '--apply']);
+		$content = ob_get_contents();
+		ob_end_clean();
+		unlink($migration);
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString('SQLSTATE[HY000]', $content);
+		$this->assertStringNotContainsString("\n#0", $content);
+	}
+
 	#[DataProvider('failingPhpMigrationProvider')]
 	public function testFailingTpqlPhpMigrationPhpError(string $dsn, string $ext): void
 	{

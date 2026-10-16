@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma\Tests;
 
+use Celema\Quma\Commands;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -111,6 +112,24 @@ class CreateMigrationsTest extends TestCase
 		$this->assertSame(0, $created);
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString("Table 'migrations' already exists", $content);
+	}
+
+	public function testFailingTableCreationShowsTheStackTraceOnlyWithTheOption(): void
+	{
+		// The name passes validation, but the unquoted DDL fails on the reserved word.
+		$commands = fn(): array => Commands::get($this->connection()->migrationTable('select'));
+
+		[$result, $content] = $this->runCommand(['run', 'create-migrations-table'], $commands);
+		[$tracedResult, $tracedContent] = $this->runCommand(
+			['run', 'create-migrations-table', '--stacktrace'],
+			$commands,
+		);
+
+		$this->assertSame(1, $result);
+		$this->assertStringContainsString("While trying to create table 'select'", $content);
+		$this->assertStringNotContainsString("\n#0", $content);
+		$this->assertSame(1, $tracedResult);
+		$this->assertStringContainsString("\n#0", $tracedContent);
 	}
 
 	/** @return array{0: string|int, 1: string} */
