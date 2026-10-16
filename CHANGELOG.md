@@ -2,7 +2,9 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.8.0...HEAD)
 
-No notable changes since the last release.
+### Changed
+
+- Requires `celema/console` 0.7.
 
 ## [0.8.0](https://codefloe.com/celema/quma/src/tag/0.8.0) (2026-10-15)
 
