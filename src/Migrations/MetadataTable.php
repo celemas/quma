@@ -40,10 +40,6 @@ final readonly class MetadataTable
 			$io->line("<bright-green>Success</bright-green>: Created table '%s'", $env->table);
 
 			return 0;
-
-			// Would require to create additional errornous DDL or to
-			// setup a different test database. Too much effort.
-			// @codeCoverageIgnoreStart
 		} catch (Throwable $e) {
 			$io->error("Error: While trying to create table '%s'", $env->table);
 			$io->stderr()->line('%s', $e->getMessage());
@@ -53,8 +49,6 @@ final readonly class MetadataTable
 			}
 
 			return 1;
-
-			// @codeCoverageIgnoreEnd
 		}
 	}
 }

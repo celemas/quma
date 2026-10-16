@@ -127,6 +127,7 @@ class CreateMigrationsTest extends TestCase
 
 		$this->assertSame(1, $result);
 		$this->assertStringContainsString("While trying to create table 'select'", $content);
+		$this->assertStringContainsString('SQLSTATE[HY000]', $content);
 		$this->assertStringNotContainsString("\n#0", $content);
 		$this->assertSame(1, $tracedResult);
 		$this->assertStringContainsString("\n#0", $tracedContent);
