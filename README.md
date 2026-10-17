@@ -116,7 +116,7 @@ Mutation testing with [Infection](https://infection.github.io/) is not part of `
 composer mutation
 ```
 
-It runs one PHPUnit process at a time because the tests share their SQLite files, migration fixtures, and MySQL/PostgreSQL databases. To include MySQL and PostgreSQL, run `composer mutation:all` with the database hosts set as for `composer test:all`. Reports are written to `.infection/`.
+It runs all three drivers, so set the database hosts as for `composer test:all`. It runs one PHPUnit process at a time because the tests share their SQLite files, migration fixtures, and MySQL/PostgreSQL databases. Reports are written to `.infection/`.
 
 ## License
 
