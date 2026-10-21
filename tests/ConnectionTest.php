@@ -6,6 +6,7 @@ namespace Celema\Quma\Tests;
 
 use Celema\Quma\Connection;
 use Celema\Quma\Delimiters;
+use Celema\Quma\PdoConfig;
 use PDO;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -54,13 +55,23 @@ class ConnectionTest extends TestCase
 				PDO::ATTR_EMULATE_PREPARES => false,
 			]);
 
-		$effective = $conn->config->pdo->effectiveOptions();
+		$effective = $conn->config->pdo->effectiveOptions($conn->config->driver);
 
 		$this->assertSame(2, $effective[PDO::ATTR_TIMEOUT]);
 		$this->assertFalse($effective[PDO::ATTR_EMULATE_PREPARES]);
 		$this->assertSame(PDO::CURSOR_SCROLL, $effective[PDO::ATTR_CURSOR]);
 		$this->assertSame(PDO::CASE_NATURAL, $effective[PDO::ATTR_CASE]);
 		$this->assertSame(PDO::ERRMODE_EXCEPTION, $effective[PDO::ATTR_ERRMODE]);
+	}
+
+	public function testConnectTimeoutDefaultsToFiveSecondsForServerDrivers(): void
+	{
+		$pdo = new PdoConfig();
+
+		$this->assertSame(5, $pdo->effectiveOptions('pgsql')[PDO::ATTR_TIMEOUT]);
+		$this->assertSame(5, $pdo->effectiveOptions('mysql')[PDO::ATTR_TIMEOUT]);
+		$this->assertArrayNotHasKey(PDO::ATTR_TIMEOUT, $pdo->effectiveOptions('sqlite'));
+		$this->assertSame(30, $pdo->option(PDO::ATTR_TIMEOUT, 30)->effectiveOptions('pgsql')[PDO::ATTR_TIMEOUT]);
 	}
 
 	public function testDriverSpecificDir(): void

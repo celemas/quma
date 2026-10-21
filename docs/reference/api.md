@@ -65,7 +65,7 @@ Properties:
 
 Methods:
 
-- `effectiveOptions(): array` returns PDO options with Quma defaults and required exception mode applied
+- `effectiveOptions(string $driver): array` returns PDO options with Quma's defaults for the driver and the required exception mode applied
 
 ## `Celema\Quma\Delimiters`
 
@@ -91,7 +91,7 @@ new Database(Connection $conn)
 
 ### Key methods
 
-- `connect(): static` opens the PDO connection lazily
+- `connect(): static` opens the PDO connection lazily and throws `Celema\Quma\Exception\ConnectionFailed` if that fails
 - `connected(): bool` reports whether `Database` currently holds a live PDO instance
 - `disconnect(): void` drops the current PDO connection and clears tracked connection state
 - `reconnect(): static` closes the current PDO connection and opens a fresh one
@@ -108,6 +108,10 @@ new Database(Connection $conn)
 - `getSqlDirs(): array` returns the resolved SQL directory list
 
 These lifecycle methods are especially useful when you keep one `Database` instance alive in a long-running PHP process and need explicit control over the underlying PDO handle. See [Long-running processes](../long-running-processes.md).
+
+### Connection exceptions
+
+- `Celema\Quma\Exception\ConnectionFailed` is thrown when PDO cannot open the connection, whether `connect()` is called directly or the first statement connects. It extends `PDOException`, keeps the driver's code and `errorInfo`, and wraps the original exception as the previous one.
 
 ### Properties
 

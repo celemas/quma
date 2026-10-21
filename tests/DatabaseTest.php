@@ -6,11 +6,13 @@ namespace Celema\Quma\Tests;
 
 use Celema\Quma\Connection;
 use Celema\Quma\Database;
+use Celema\Quma\Exception\ConnectionFailed;
 use Celema\Quma\Exception\UnexpectedResultCount;
 use Celema\Quma\Folder;
 use Celema\Quma\Tests\Util\InspectableDatabase;
 use InvalidArgumentException;
 use PDO;
+use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
@@ -171,6 +173,25 @@ class DatabaseTest extends TestCase
 
 		$db->setPdoPublic($pdo);
 		$db->disconnect();
+
+		$this->assertFalse($db->connected());
+	}
+
+	public function testConnectWrapsTheDriverFailure(): void
+	{
+		$dsn = 'sqlite:' . sys_get_temp_dir() . '/quma-missing-' . uniqid() . '/db.sqlite3';
+		$db = new Database(new Connection($dsn, $this->getSqlDirs()));
+
+		try {
+			$db->connect();
+			$this->fail('Connecting to an unopenable database file must throw.');
+		} catch (ConnectionFailed $e) {
+			$previous = $e->getPrevious();
+			$this->assertInstanceOf(PDOException::class, $previous);
+			$this->assertSame('Could not connect to the database: ' . $previous->getMessage(), $e->getMessage());
+			$this->assertSame(14, $e->getCode());
+			$this->assertSame(['HY000', 14, 'unable to open database file'], $e->errorInfo);
+		}
 
 		$this->assertFalse($db->connected());
 	}

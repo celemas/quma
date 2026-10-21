@@ -2,7 +2,17 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.8.1...HEAD)
 
-No notable changes since the last release.
+### Breaking
+
+- `PdoConfig::effectiveOptions()` takes the PDO driver name, as the defaults depend on it.
+
+### Added
+
+- `Database` throws `Celema\Quma\Exception\ConnectionFailed` when PDO cannot open the connection, so an application can tell an unreachable or misconfigured database from a failed query, for example to answer 503. It extends `PDOException`, so `catch (PDOException)` blocks still catch it, and keeps the driver's code and `errorInfo`. Its message starts with "Could not connect to the database:" followed by the driver's message.
+
+### Changed
+
+- `PDO::ATTR_TIMEOUT` defaults to 5 seconds for MySQL and PostgreSQL, so connecting to a server that does not answer fails after 5 seconds instead of PDO's 30. Set the option to wait longer. SQLite reads the attribute as how long to wait for a locked database and keeps PDO's default.
 
 ## [0.8.1](https://codefloe.com/celema/quma/src/tag/0.8.1) (2026-10-16)
 

@@ -36,6 +36,10 @@ $conn = new Connection('pgsql:host=localhost;dbname=app', __DIR__ . '/sql')
 
 The check runs only between statements outside a transaction. Inside a transaction a new connection would silently lose the transaction's work, so a statement on a broken connection fails instead. Quma never retries a failed statement or commit. A query built before its connection was replaced is prepared again on the new connection when it runs next, so it joins a transaction begun there.
 
+## Unreachable server
+
+When the server cannot be reached, connecting fails with `Celema\Quma\Exception\ConnectionFailed` after `PDO::ATTR_TIMEOUT` seconds, by default 5 for MySQL and PostgreSQL. The `Database` keeps no connection, and the next statement tries to connect again. Quma does not retry within a unit of work, since a retry holds the worker twice as long; report the failure, such as with a 503 response, and let the client retry.
+
 ## Connection budget
 
 Each process that holds a `Database` keeps its connection open while it waits for work. The number of open connections is the number of worker processes or threads, summed over all applications that share the database server. Keep that sum below the server's limit (PostgreSQL's `max_connections`, by default 100, minus the connections reserved for superusers), with room for migrations, cron jobs and administrative sessions.

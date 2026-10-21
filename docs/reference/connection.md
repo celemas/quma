@@ -91,8 +91,9 @@ Quma merges these options with its PDO defaults when `Database` connects:
 - `PDO::ATTR_CURSOR => PDO::CURSOR_SCROLL`
 - `PDO::ATTR_EMULATE_PREPARES => true`
 - `PDO::ATTR_CASE => PDO::CASE_NATURAL`
+- `PDO::ATTR_TIMEOUT => 5` for MySQL and PostgreSQL, where it limits how many seconds connecting may take. PDO's own default is 30 seconds. SQLite reads the attribute as how long to wait for a locked database, so Quma leaves it at PDO's default there.
 
-Your options override these defaults. `PDO::ATTR_ERRMODE` is always forced to `PDO::ERRMODE_EXCEPTION` because Quma relies on exceptions for database failures.
+Your options override these defaults. Set the PostgreSQL connect timeout with `PDO::ATTR_TIMEOUT`: pdo_pgsql passes its own `connect_timeout`, which overrides one in the DSN. `PDO::ATTR_ERRMODE` is always forced to `PDO::ERRMODE_EXCEPTION` because Quma relies on exceptions for database failures.
 
 ### `fetch(int $fetchMode): static`
 

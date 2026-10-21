@@ -47,6 +47,12 @@ Check:
 - the DSN prefix, such as `sqlite:`, `mysql:`, or `pgsql:`
 - that the matching PDO extension is installed and enabled
 
+## `Could not connect to the database: ...`
+
+PDO could not open the connection, and Quma threw `Celema\Quma\Exception\ConnectionFailed`. The rest of the message is the driver's, such as a refused connection, a failed login, or `timeout expired` when a MySQL or PostgreSQL server did not answer within `PDO::ATTR_TIMEOUT` seconds (5 by default).
+
+Check the DSN, the credentials, and whether the server is reachable from the application host. To wait longer for a slow network, set a higher [`PDO::ATTR_TIMEOUT`](reference/connection.md#pdo-configuration).
+
 ## `Expected exactly one result, got ...`
 
 `Query::one()` requires exactly one row. It throws `Celema\Quma\Exception\UnexpectedResultCount` when the query returns no rows or more than one row.

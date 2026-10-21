@@ -17,6 +17,9 @@ final class PdoConfig
 	private const array REQUIRED_OPTIONS = [
 		PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
 	];
+	/** For SQLite, PDO::ATTR_TIMEOUT limits waiting for a locked database instead of connecting. */
+	private const array CONNECT_TIMEOUT_DRIVERS = ['mysql', 'pgsql'];
+	private const int CONNECT_TIMEOUT = 5;
 
 	/** @param array<array-key, mixed> $options */
 	public function __construct(
@@ -54,8 +57,14 @@ final class PdoConfig
 	}
 
 	/** @return array<array-key, mixed> */
-	public function effectiveOptions(): array
+	public function effectiveOptions(string $driver): array
 	{
-		return array_replace(self::DEFAULT_OPTIONS, $this->options, self::REQUIRED_OPTIONS);
+		$defaults = self::DEFAULT_OPTIONS;
+
+		if (in_array($driver, self::CONNECT_TIMEOUT_DRIVERS, strict: true)) {
+			$defaults[PDO::ATTR_TIMEOUT] = self::CONNECT_TIMEOUT;
+		}
+
+		return array_replace($defaults, $this->options, self::REQUIRED_OPTIONS);
 	}
 }

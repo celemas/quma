@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
+use Celema\Quma\Exception\ConnectionFailed;
 use Closure;
 use PDO;
 use PDOException;
@@ -122,14 +123,18 @@ class Database
 			return $this;
 		}
 
-		$conn = $this->conn;
+		$config = $this->conn->config;
 
-		$pdo = new PDO(
-			$conn->config->dsn,
-			$conn->config->pdo->username,
-			$conn->config->pdo->password,
-			$conn->config->pdo->effectiveOptions(),
-		);
+		try {
+			$pdo = new PDO(
+				$config->dsn,
+				$config->pdo->username,
+				$config->pdo->password,
+				$config->pdo->effectiveOptions($config->driver),
+			);
+		} catch (PDOException $e) {
+			throw ConnectionFailed::from($e);
+		}
 
 		$this->pdo = $pdo;
 		$this->markConnected();
