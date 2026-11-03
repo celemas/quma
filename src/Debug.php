@@ -42,7 +42,7 @@ final class Debug
 			return;
 		}
 
-		$interpolated = self::interpolate($query, $args);
+		$interpolated = self::interpolate($query, $args, $db->getPdoDriver());
 
 		if ($print) {
 			self::printQuery($interpolated);
@@ -53,9 +53,9 @@ final class Debug
 		}
 	}
 
-	public static function interpolate(string $query, Args $args): string
+	public static function interpolate(string $query, Args $args, string $driver): string
 	{
-		$prep = self::prepareQuery($query);
+		$prep = self::prepareQuery($query, $driver);
 
 		if ($args->type() === ArgType::Named) {
 			$interpolated = self::interpolateNamed($prep->query, $args->getNamed());
@@ -126,14 +126,14 @@ final class Debug
 		return (string) $value;
 	}
 
-	private static function prepareQuery(string $query): PreparedQuery
+	private static function prepareQuery(string $query, string $driver): PreparedQuery
 	{
 		/** @var array<non-empty-string, non-empty-string> $swaps */
 		$swaps = [];
 
 		$query =
 			preg_replace_callback(
-				Query::PATTERN_LITERAL_OR_COMMENT,
+				LiteralPattern::for($driver),
 				static function (array $matches) use (&$swaps): string {
 					$match = $matches[0];
 					$replacement = '___CHUCK_REPLACE_' . count($swaps) . '___';

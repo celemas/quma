@@ -166,7 +166,7 @@ class Script
 	 */
 	protected function prepareTemplateVars(string $script, Args $args): array
 	{
-		$cleaned = preg_replace(Query::PATTERN_LITERAL_OR_COMMENT, ' ', $script);
+		$cleaned = preg_replace(LiteralPattern::for($this->db->getPdoDriver()), ' ', $script);
 
 		if ($cleaned === null) {
 			throw new RuntimeException(

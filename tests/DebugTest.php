@@ -7,6 +7,7 @@ namespace Celema\Quma\Tests;
 use Celema\Quma\Args;
 use Celema\Quma\Debug;
 use FilesystemIterator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -81,7 +82,7 @@ final class DebugTest extends TestCase
 
 	public function testInterpolatesEachPositionalPlaceholderInOrder(): void
 	{
-		$this->assertSame('a = 1 AND b = 2', Debug::interpolate('a = ? AND b = ?', new Args([1, 2])));
+		$this->assertSame('a = 1 AND b = 2', Debug::interpolate('a = ? AND b = ?', new Args([1, 2]), 'sqlite'));
 	}
 
 	public function testInterpolationKeepsStringLiteralsAndDollarBlocks(): void
@@ -90,7 +91,7 @@ final class DebugTest extends TestCase
 
 		$this->assertSame(
 			"SELECT 'a?', 'b?', $$ c? $$ WHERE x = 1",
-			Debug::interpolate($query, new Args([1])),
+			Debug::interpolate($query, new Args([1]), 'pgsql'),
 		);
 	}
 
@@ -100,7 +101,7 @@ final class DebugTest extends TestCase
 
 		$this->assertSame(
 			"-- it's ?\nSELECT 'a?' WHERE x = 1 /* \"? */ AND y = 2",
-			Debug::interpolate($query, new Args([1, 2])),
+			Debug::interpolate($query, new Args([1, 2]), 'sqlite'),
 		);
 	}
 
@@ -108,7 +109,7 @@ final class DebugTest extends TestCase
 	{
 		$this->assertSame(
 			"-- it's\nSELECT 1 WHERE 'a' = 'a'",
-			Debug::interpolate("-- it's\nSELECT :x WHERE 'a' = 'a'", new Args([['x' => 1]])),
+			Debug::interpolate("-- it's\nSELECT :x WHERE 'a' = 'a'", new Args([['x' => 1]]), 'sqlite'),
 		);
 	}
 
@@ -116,8 +117,33 @@ final class DebugTest extends TestCase
 	{
 		$this->assertSame(
 			"SELECT '--', 1, '/*', 2, '*/', '$$', 3, '$$'",
-			Debug::interpolate("SELECT '--', ?, '/*', ?, '*/', '$$', ?, '$$'", new Args([1, 2, 3])),
+			Debug::interpolate("SELECT '--', ?, '/*', ?, '*/', '$$', ?, '$$'", new Args([1, 2, 3]), 'sqlite'),
 		);
+	}
+
+	#[DataProvider('driverSyntax')]
+	public function testInterpolationReadsLiteralsAndCommentsByDriver(
+		string $driver,
+		string $query,
+		string $expected,
+	): void {
+		$this->assertSame($expected, Debug::interpolate($query, new Args([1]), $driver));
+	}
+
+	/** @return array<string, array{string, string, string}> */
+	public static function driverSyntax(): array
+	{
+		return [
+			'mysql hash comment' => ['mysql', "# it's ?\nSELECT ?", "# it's ?\nSELECT 1"],
+			'mysql backslash' => ['mysql', "SELECT 'it\\'s ?', ?, 'a'", "SELECT 'it\\'s ?', 1, 'a'"],
+			'pgsql escape string' => ['pgsql', "SELECT E'it\\'s ?', ?, 'a'", "SELECT E'it\\'s ?', 1, 'a'"],
+			'pgsql tagged block' => ['pgsql', 'SELECT $t$ ? $t$, ?', 'SELECT $t$ ? $t$, 1'],
+			'mysql dashes without whitespace' => ['mysql', 'SELECT 5--?', 'SELECT 5--1'],
+			'pgsql dollars in identifiers' => ['pgsql', 'SELECT foo$a$, ?, bar$a$', 'SELECT foo$a$, 1, bar$a$'],
+			'pgsql backslash in standard string' => ['pgsql', "SELECT 'C:\\', ?, 'a'", "SELECT 'C:\\', 1, 'a'"],
+			'sqlite backslash' => ['sqlite', "SELECT 'C:\\', ?, 'a'", "SELECT 'C:\\', 1, 'a'"],
+			'other driver' => ['odbc', "-- it's ?\nSELECT ?", "-- it's ?\nSELECT 1"],
+		];
 	}
 
 	public function testReadsSettingsFromServerVariables(): void

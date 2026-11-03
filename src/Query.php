@@ -17,10 +17,6 @@ use PDOStatement;
 /** @api */
 class Query
 {
-	// A single pass, as a quote in a comment or a comment marker in a string
-	// must not start a match. Backslash escapes depend on the driver and are not recognized.
-	public const string PATTERN_LITERAL_OR_COMMENT = '/\$\$(?:[^$]++|\$(?!\$))*+\$\$|\/\*(?:[^*]++|\*(?!\/))*+\*\/|--[^\n]*|\'[^\']*\'|"[^"]*"/';
-
 	protected PDOStatement $stmt;
 	protected bool $executed = false;
 	protected ?Hydrator $hydrator = null;
@@ -273,7 +269,7 @@ class Query
 	 */
 	public function interpolate(): string
 	{
-		return Debug::interpolate($this->query, $this->args);
+		return Debug::interpolate($this->query, $this->args, $this->db->getPdoDriver());
 	}
 
 	private function prepare(PDO $pdo): void

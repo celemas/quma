@@ -117,7 +117,14 @@ $users = $db->users->listActive([
 
 In this example, `order` can control the rendered SQL without needing a matching `:order` placeholder.
 
-Names inside strings, comments, and `$$` blocks do not count as placeholders. To find those, Quma does not recognize backslash-escaped quotes or MySQL's `#` comments, so a quote in either can hide the placeholders that follow it. Write `''` for a quote in a string and use `--` or `/* */` for comments.
+Names inside strings, comments, and blocks do not count as placeholders. Quma reads these by the default syntax of the driver, including backslash escapes and `#` comments on MySQL, and `E''` strings and `$tag$` blocks on PostgreSQL.
+
+Two cases can still hide a placeholder that follows:
+
+- On a MySQL server with `NO_BACKSLASH_ESCAPES`, a string ending in a backslash, such as `'C:\'`, reads as unterminated. Avoid that string or bind it as a parameter.
+- On PostgreSQL, PDO's own parser reads an apostrophe in a `$$` or `$tag$` block as the start of a string, and `$` signs in identifiers such as `foo$a$` as a block. Move the placeholder before them or avoid them.
+
+If a query is too unusual to read, for example with millions of `*` in a comment, Quma throws a `RuntimeException` naming the file.
 
 ## Driver-specific SQL in templates
 

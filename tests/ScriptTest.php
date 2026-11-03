@@ -75,6 +75,51 @@ class ScriptTest extends TestCase
 		$this->assertSame('bound', $record['v']);
 	}
 
+	#[DataProvider('driverSyntax')]
+	public function testReadsLiteralsAndCommentsByDriver(string $driver, string $sql): void
+	{
+		$dsns = array_filter(
+			self::getAvailableDsns(),
+			static fn(string $dsn): bool => str_starts_with($dsn, "{$driver}:"),
+		);
+
+		if ($dsns === []) {
+			$this->markTestSkipped("{$driver} is not available.");
+		}
+
+		$script = new Script(
+			new Database($this->connection(dsn: array_first($dsns))),
+			new LoadedScript($sql, 'inline.tpql'),
+			true,
+		);
+
+		$record = $script->invoke(['x' => 'bound', 'y' => 'unused'])->one();
+
+		$this->assertSame('bound', $record['v']);
+	}
+
+	/** @return array<string, array{string, string}> */
+	public static function driverSyntax(): array
+	{
+		return [
+			'mysql hash comment' => ['mysql', "# it's\nSELECT :x AS v WHERE 'a' = 'a'"],
+			'mysql parameter name in hash comment' => ['mysql', "# :y\nSELECT :x AS v"],
+			'mysql backslash in single quotes' => ['mysql', "SELECT 'it\\'s' AS s, :x AS v WHERE 'a' = 'a'"],
+			'mysql backslash in double quotes' => ['mysql', "SELECT \"it\\\"s\" AS s, :x AS v WHERE 'a' = 'a'"],
+			'mysql dashes without whitespace' => ['mysql', 'SELECT 5--:x AS n, :x AS v'],
+			'mysql dashes at the end' => ['mysql', 'SELECT :x AS v --'],
+			'mysql escaped backslash' => ['mysql', "SELECT 'C:\\\\' AS s, :x AS v, 'a' AS a"],
+			'pgsql escape string' => ['pgsql', "SELECT E'it\\'s' AS s, :x AS v, 'a' AS a"],
+			'pgsql escape string with doubled quote' => ['pgsql', "SELECT e'a''b\\'c' AS s, :x AS v, 'a' AS a"],
+			'pgsql backslash in standard string' => ['pgsql', "SELECT 'C:\\' AS s, :x AS v, 'a' AS a"],
+			'pgsql tagged block' => ['pgsql', 'SELECT $t$ :y $t$ AS s, :x AS v'],
+			'pgsql plain block in tagged block' => ['pgsql', 'SELECT $a$ $$ :y $$ $a$ AS s, :x AS v'],
+			'pgsql tag in comment' => ['pgsql', "-- \$t\$\nSELECT :x AS v, '\$t\$' AS s"],
+			'pgsql hash operator' => ['pgsql', 'SELECT 1 # 3 AS n, :x AS v'],
+			'sqlite backslash in string' => ['sqlite', "SELECT 'C:\\' AS s, :x AS v, 'a' AS a"],
+		];
+	}
+
 	#[DataProvider('largeLiterals')]
 	public function testFindsParametersAfterLargeLiterals(string $sql): void
 	{
