@@ -94,6 +94,32 @@ final class DebugTest extends TestCase
 		);
 	}
 
+	public function testInterpolationKeepsCommentsContainingQuotes(): void
+	{
+		$query = "-- it's ?\nSELECT 'a?' WHERE x = ? /* \"? */ AND y = ?";
+
+		$this->assertSame(
+			"-- it's ?\nSELECT 'a?' WHERE x = 1 /* \"? */ AND y = 2",
+			Debug::interpolate($query, new Args([1, 2])),
+		);
+	}
+
+	public function testInterpolationFindsNamedParametersAfterQuoteInComment(): void
+	{
+		$this->assertSame(
+			"-- it's\nSELECT 1 WHERE 'a' = 'a'",
+			Debug::interpolate("-- it's\nSELECT :x WHERE 'a' = 'a'", new Args([['x' => 1]])),
+		);
+	}
+
+	public function testInterpolationKeepsCommentMarkersInStrings(): void
+	{
+		$this->assertSame(
+			"SELECT '--', 1, '/*', 2, '*/', '$$', 3, '$$'",
+			Debug::interpolate("SELECT '--', ?, '/*', ?, '*/', '$$', ?, '$$'", new Args([1, 2, 3])),
+		);
+	}
+
 	public function testReadsSettingsFromServerVariables(): void
 	{
 		$output = $this->captureErrorLog(function (): void {

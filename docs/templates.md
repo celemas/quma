@@ -117,6 +117,8 @@ $users = $db->users->listActive([
 
 In this example, `order` can control the rendered SQL without needing a matching `:order` placeholder.
 
+Names inside strings, comments, and `$$` blocks do not count as placeholders. To find those, Quma does not recognize backslash-escaped quotes or MySQL's `#` comments, so a quote in either can hide the placeholders that follow it. Write `''` for a quote in a string and use `--` or `/* */` for comments.
+
 ## Driver-specific SQL in templates
 
 You can branch on `$pdodriver` inside the template.

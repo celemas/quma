@@ -166,14 +166,7 @@ class Script
 	 */
 	protected function prepareTemplateVars(string $script, Args $args): array
 	{
-		// Remove PostgreSQL blocks
-		$cleaned = preg_replace(Query::PATTERN_BLOCK, ' ', $script);
-		// Remove strings
-		$cleaned = preg_replace(Query::PATTERN_STRING, ' ', $cleaned ?? '');
-		// Remove /* */ comments
-		$cleaned = preg_replace(Query::PATTERN_COMMENT_MULTI, ' ', $cleaned ?? '');
-		// Remove single line comments
-		$cleaned = preg_replace(Query::PATTERN_COMMENT_SINGLE, ' ', $cleaned ?? '');
+		$cleaned = preg_replace(Query::PATTERN_LITERAL_OR_COMMENT, ' ', $script);
 
 		// Match everything starting with : and a letter.
 		// Exclude multiple colons, like type casts (::text).

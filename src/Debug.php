@@ -128,36 +128,22 @@ final class Debug
 
 	private static function prepareQuery(string $query): PreparedQuery
 	{
-		$patterns = [
-			Query::PATTERN_BLOCK,
-			Query::PATTERN_STRING,
-			Query::PATTERN_COMMENT_MULTI,
-			Query::PATTERN_COMMENT_SINGLE,
-		];
-
+		/** @var array<non-empty-string, non-empty-string> $swaps */
 		$swaps = [];
-		$i = 0;
 
-		do {
-			$found = false;
-
-			foreach ($patterns as $pattern) {
-				$matches = [];
-
-				if (preg_match($pattern, $query, $matches) === 1) {
+		$query =
+			preg_replace_callback(
+				Query::PATTERN_LITERAL_OR_COMMENT,
+				static function (array $matches) use (&$swaps): string {
 					$match = $matches[0];
-					$replacement = "___CHUCK_REPLACE_{$i}___";
+					$replacement = '___CHUCK_REPLACE_' . count($swaps) . '___';
 					assert($match !== '', 'Query placeholder match must not be empty.');
 					$swaps[$replacement] = $match;
 
-					$query = preg_replace($pattern, $replacement, $query, limit: 1) ?? $query;
-					$found = true;
-					$i++;
-
-					break;
-				}
-			}
-		} while ($found);
+					return $replacement;
+				},
+				$query,
+			) ?? $query;
 
 		return new PreparedQuery($query, $swaps);
 	}

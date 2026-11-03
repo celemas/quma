@@ -17,17 +17,9 @@ use PDOStatement;
 /** @api */
 class Query
 {
-	// Matches multi line single and double quotes and handles \' \" escapes
-	public const string PATTERN_STRING = '/([\'"])(?:\\\1|[\s\S])*?\1/';
-
-	// PostgreSQL blocks delimited with $$
-	public const string PATTERN_BLOCK = '/(\$\$)[\s\S]*?\1/';
-
-	// Multi line comments /* */
-	public const string PATTERN_COMMENT_MULTI = '/\/\*([\s\S]*?)\*\//';
-
-	// Single line comments --
-	public const string PATTERN_COMMENT_SINGLE = '/--.*$/m';
+	// A single pass, as a quote in a comment or a comment marker in a string
+	// must not start a match. Backslash escapes depend on the driver and are not recognized.
+	public const string PATTERN_LITERAL_OR_COMMENT = '/\$\$[\s\S]*?\$\$|\/\*[\s\S]*?\*\/|--[^\n]*|\'[^\']*\'|"[^"]*"/';
 
 	protected PDOStatement $stmt;
 	protected bool $executed = false;

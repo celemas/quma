@@ -10,6 +10,7 @@ use Celema\Quma\LoadedScript;
 use Celema\Quma\Script;
 use Celema\Quma\Tests\Util\TestableScript;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
 /**
@@ -17,6 +18,63 @@ use RuntimeException;
  */
 class ScriptTest extends TestCase
 {
+	#[DataProvider('parameterContexts')]
+	public function testFindsParametersOutsideLiteralsAndComments(string $sql): void
+	{
+		foreach (self::getAvailableDsns() as $dsn) {
+			$script = new Script(
+				new Database($this->connection(dsn: $dsn)),
+				new LoadedScript($sql, 'inline.tpql'),
+				true,
+			);
+
+			$record = $script->invoke(['x' => 'bound', 'y' => 'unused'])->one();
+
+			$this->assertSame('bound', $record['v'], $dsn);
+		}
+	}
+
+	/** @return array<string, array{string}> */
+	public static function parameterContexts(): array
+	{
+		return [
+			'apostrophe in line comment' => ["-- it's\nSELECT :x AS v WHERE 'a' = 'a'"],
+			'apostrophe in block comment' => ["/* it's */\nSELECT :x AS v WHERE 'a' = 'a'"],
+			'apostrophes in comments around parameter' => ["-- it's\nSELECT :x AS v\n-- it's\n"],
+			'double quote in comment' => ["-- 5\" wide\nSELECT :x AS v, 1 AS \"n\""],
+			'dollars in comment' => ["-- $$\nSELECT :x AS v, '$$' AS s"],
+			'comment markers in strings' => ["SELECT '--' AS a, '/*' AS b, :x AS v, '*/' AS c"],
+			'dollars in strings' => ["SELECT '$$' AS a, :x AS v, '$$' AS b"],
+			'doubled quote in string' => ["SELECT 'it''s' AS s, :x AS v"],
+			'parameter name in line comment' => ["-- :y\nSELECT :x AS v"],
+			'parameter name in block comment' => ["/* :y */\nSELECT :x AS v"],
+			'parameter name in string' => ["SELECT ':y' AS s, :x AS v"],
+			'parameter name in double quotes' => ['SELECT 1 AS ":y", :x AS v'],
+		];
+	}
+
+	public function testIgnoresParameterNamesInDollarBlocks(): void
+	{
+		$dsns = array_filter(
+			self::getAvailableDsns(),
+			static fn(string $dsn): bool => str_starts_with($dsn, 'pgsql:'),
+		);
+
+		if ($dsns === []) {
+			$this->markTestSkipped('Dollar-quoted blocks require PostgreSQL.');
+		}
+
+		$script = new Script(
+			new Database($this->connection(dsn: array_first($dsns))),
+			new LoadedScript('SELECT $$ :y $$ AS s, :x AS v', 'inline.tpql'),
+			true,
+		);
+
+		$record = $script->invoke(['x' => 'bound', 'y' => 'unused'])->one();
+
+		$this->assertSame('bound', $record['v']);
+	}
+
 	public function testEvaluateTemplateRendersTemplateFile(): void
 	{
 		$template = tempnam(sys_get_temp_dir(), 'quma-template-');
