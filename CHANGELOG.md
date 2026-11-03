@@ -10,6 +10,7 @@
 
 - A quote in a comment of a `.tpql` file no longer hides the named parameters up to the next quote. They were dropped before binding, which caused a syntax error on MySQL and PostgreSQL and silently bound `NULL` on SQLite. The same applies to `$$` in a comment or string.
 - Debug interpolation no longer skips parameters after such a quote or leaves `___CHUCK_REPLACE_` tokens in its output.
+- A `.tpql` file whose comments or `$$` blocks exceed PCRE's backtrack limit, from about 1 MB, no longer loses all its named parameters. Ordinary comments and blocks of that size now work, and if the limit is still reached, for example by millions of `*` in a comment, Quma throws a `RuntimeException` naming the file.
 
 ## [0.9.0](https://codefloe.com/celema/quma/src/tag/0.9.0) (2026-10-22)
 

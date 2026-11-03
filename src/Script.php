@@ -168,10 +168,16 @@ class Script
 	{
 		$cleaned = preg_replace(Query::PATTERN_LITERAL_OR_COMMENT, ' ', $script);
 
+		if ($cleaned === null) {
+			throw new RuntimeException(
+				"Could not find the parameters of {$this->sourcePath}: " . preg_last_error_msg(),
+			);
+		}
+
 		// Match everything starting with : and a letter.
 		// Exclude multiple colons, like type casts (::text).
 		// Would not find a var if it is at the very beginning of script.
-		preg_match_all('/[^:]:[a-zA-Z][a-zA-Z0-9_]*/', $cleaned ?? '', $result);
+		preg_match_all('/[^:]:[a-zA-Z][a-zA-Z0-9_]*/', $cleaned, $result);
 		// Each match starts with the character before the colon.
 		$names = array_map(static fn(string $match): string => substr($match, 2), $result[0]);
 

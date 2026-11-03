@@ -75,6 +75,52 @@ class ScriptTest extends TestCase
 		$this->assertSame('bound', $record['v']);
 	}
 
+	#[DataProvider('largeLiterals')]
+	public function testFindsParametersAfterLargeLiterals(string $sql): void
+	{
+		$script = new Script(
+			new Database($this->connection()),
+			new LoadedScript($sql, 'inline.tpql'),
+			true,
+		);
+
+		$record = $script->invoke(['x' => 'bound'])->one();
+
+		$this->assertSame('bound', $record['v']);
+	}
+
+	/** @return array<string, array{string}> */
+	public static function largeLiterals(): array
+	{
+		$large = str_repeat('x', 2_000_000);
+
+		return [
+			'block comment' => ["/* {$large} */ SELECT :x AS v"],
+			'line comment' => ["-- {$large}\nSELECT :x AS v"],
+			'string' => ["SELECT '{$large}' AS s, :x AS v"],
+		];
+	}
+
+	public function testThrowsWhenParametersCannotBeDetermined(): void
+	{
+		$script = new Script(
+			new Database($this->connection()),
+			new LoadedScript('/* comment */ SELECT :x AS v', 'inline.tpql'),
+			true,
+		);
+		$limit = ini_get('pcre.backtrack_limit');
+		ini_set('pcre.backtrack_limit', '1');
+
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage('Could not find the parameters of inline.tpql');
+
+		try {
+			$script->invoke(['x' => 'bound']);
+		} finally {
+			ini_set('pcre.backtrack_limit', (string) $limit);
+		}
+	}
+
 	public function testEvaluateTemplateRendersTemplateFile(): void
 	{
 		$template = tempnam(sys_get_temp_dir(), 'quma-template-');

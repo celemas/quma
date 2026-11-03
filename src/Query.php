@@ -19,7 +19,7 @@ class Query
 {
 	// A single pass, as a quote in a comment or a comment marker in a string
 	// must not start a match. Backslash escapes depend on the driver and are not recognized.
-	public const string PATTERN_LITERAL_OR_COMMENT = '/\$\$[\s\S]*?\$\$|\/\*[\s\S]*?\*\/|--[^\n]*|\'[^\']*\'|"[^"]*"/';
+	public const string PATTERN_LITERAL_OR_COMMENT = '/\$\$(?:[^$]++|\$(?!\$))*+\$\$|\/\*(?:[^*]++|\*(?!\/))*+\*\/|--[^\n]*|\'[^\']*\'|"[^"]*"/';
 
 	protected PDOStatement $stmt;
 	protected bool $executed = false;
