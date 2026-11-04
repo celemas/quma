@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Celema\Quma;
 
 use Celema\Quma\Exception\MissingParameter;
+use Celema\Quma\Exception\QueryFailed;
 use Celema\Quma\Exception\UnexpectedResultCount;
 use Celema\Quma\Hydration\Hydrator;
 use Closure;
@@ -222,7 +223,7 @@ class Query
 	{
 		$this->db->markSuspect($pdo);
 
-		throw $e;
+		throw QueryFailed::from($e, $this->db->getPdoDriver(), $this->sourcePath);
 	}
 
 	/**

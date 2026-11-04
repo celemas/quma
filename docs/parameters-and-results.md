@@ -308,6 +308,33 @@ $db->transaction(function () use ($db, $item): void {
 
 On MySQL, a statement such as `CREATE TABLE` commits implicitly, so the work before it can no longer be undone. The block then ends without a commit of its own. Replacing the connection inside a block, for example with `reconnect()`, makes the block throw.
 
+## Handling failed queries
+
+A failing statement or transaction call throws an exception in the `Celema\Quma\Exception` namespace, so the same failure throws the same class on every driver:
+
+- `IntegrityViolation`, a constraint refused the statement:
+  - `UniqueViolation`
+  - `ForeignKeyViolation`
+  - `NotNullViolation`
+  - `CheckViolation`
+  - `ExclusionViolation`
+- `DataError`, a value does not fit its column or type
+- `TransactionConflict`, a deadlock, failed serialization, or lock that could not be taken, so repeating the transaction may succeed
+- `ConnectionLost`, the connection broke; [`reset()`](long-running-processes.md) replaces it
+- `QueryFailed`, the parent of all of these and the class of any other failure, such as a syntax error
+
+```php
+try {
+    $db->users->add(email: $email)->run();
+} catch (UniqueViolation $e) {
+    return 'That address is taken.';
+}
+```
+
+`$e->script` holds the path of the script file, or `null` for direct SQL and transaction calls. `$e->constraint` holds the name of the violated constraint, if the driver's message has one. On SQLite, a unique or not-null violation names the columns instead, such as `users.email`. It is read from English messages, so it is `null` when PostgreSQL's `lc_messages` selects another language.
+
+All of them extend `PDOException` and keep the driver's message, code, and `errorInfo`.
+
 ## Execute direct SQL
 
 `Database::execute()` accepts the SQL string and the same argument styles as file-based queries.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Celema\Quma;
 
 use Celema\Quma\Exception\ConnectionFailed;
+use Celema\Quma\Exception\QueryFailed;
 use Closure;
 use PDO;
 use PDOException;
@@ -401,7 +402,7 @@ class Database
 		} catch (PDOException $e) {
 			$this->markSuspect($pdo);
 
-			throw $e;
+			throw QueryFailed::from($e, $this->conn->config->driver, null);
 		}
 	}
 

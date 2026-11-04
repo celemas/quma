@@ -10,6 +10,7 @@
 
 ### Added
 
+- A failing statement or transaction call throws `Celema\Quma\Exception\QueryFailed` or one of its subclasses, whichever the driver: `UniqueViolation`, `ForeignKeyViolation`, `NotNullViolation`, `CheckViolation`, and `ExclusionViolation` under `IntegrityViolation`, and `DataError`, `TransactionConflict`, and `ConnectionLost`. They hold the `$script` and the `$constraint`. All extend `PDOException` and keep the driver's message, code, and `errorInfo`, so existing catch blocks keep working.
 - `Database::transaction()` runs a function atomically, with a savepoint when a transaction is already open, and returns its result. `commit()` and `rollback()` throw inside such a block.
 
 ### Fixed

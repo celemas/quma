@@ -177,6 +177,10 @@ Unmapped calls accept `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, a
 
 - `Celema\Quma\Exception\MissingParameter` is thrown when a query is created without a value for one of its parameters. It extends `InvalidArgumentException` and names the parameter and, in `$script`, the script path if there is one.
 
+### Query failure exceptions
+
+A failing statement or transaction call throws `Celema\Quma\Exception\QueryFailed` or a subclass. See [Handling failed queries](../parameters-and-results.md#handling-failed-queries).
+
 ### Query result exceptions
 
 - `Celema\Quma\Exception\UnexpectedResultCount` is thrown by `Query::one()` when the result has zero rows or more than one row.
