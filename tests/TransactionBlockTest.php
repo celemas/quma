@@ -150,7 +150,7 @@ final class TransactionBlockTest extends TestCase
 			$this->add($db, 1);
 
 			try {
-				$db->transaction(fn() => $db->execute('SELECT * FROM quma_missing_table')->all());
+				$db->transaction(static fn() => $db->execute('SELECT * FROM quma_missing_table')->all());
 			} catch (PDOException) {
 				// @mago-expect lint:no-empty-catch-clause PostgreSQL would abort the transaction without the savepoint.
 			}
@@ -168,8 +168,8 @@ final class TransactionBlockTest extends TestCase
 		$this->expectException(PDOException::class);
 
 		try {
-			$db->transaction(function () use ($db): void {
-				$db->transaction(function () use ($db): void {
+			$db->transaction(static function () use ($db): void {
+				$db->transaction(static function () use ($db): void {
 					try {
 						$db->execute('SELECT * FROM quma_missing_table')->all();
 					} catch (PDOException) {

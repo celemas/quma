@@ -126,14 +126,7 @@ final class MissingParameterTest extends TestCase
 	public function testLeavesAStatementItCannotReadToPdo(): void
 	{
 		$db = new Database($this->connection());
-		$limit = ini_get('pcre.backtrack_limit');
-		ini_set('pcre.backtrack_limit', '1');
-
-		try {
-			$query = $db->execute('/* comment */ SELECT 1 AS v');
-		} finally {
-			ini_set('pcre.backtrack_limit', (string) $limit);
-		}
+		$query = $this->withoutBacktracking(static fn() => $db->execute('/* comment */ SELECT 1 AS v'));
 
 		$this->assertSame(['v' => 1], $query->one());
 	}

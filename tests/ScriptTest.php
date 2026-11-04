@@ -168,17 +168,10 @@ class ScriptTest extends TestCase
 			new LoadedScript('/* comment */ SELECT :x AS v', 'inline.tpql'),
 			true,
 		);
-		$limit = ini_get('pcre.backtrack_limit');
-		ini_set('pcre.backtrack_limit', '1');
-
 		$this->expectException(RuntimeException::class);
 		$this->expectExceptionMessage('Could not find the parameters of inline.tpql');
 
-		try {
-			$script->invoke(['x' => 'bound']);
-		} finally {
-			ini_set('pcre.backtrack_limit', (string) $limit);
-		}
+		$this->withoutBacktracking(static fn() => $script->invoke(['x' => 'bound']));
 	}
 
 	public function testEvaluateTemplateRendersTemplateFile(): void

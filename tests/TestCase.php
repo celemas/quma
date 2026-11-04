@@ -134,6 +134,28 @@ class TestCase extends BaseTestCase
 	}
 
 	/**
+	 * Runs the callback with a PCRE backtrack limit that every pattern exceeds.
+	 *
+	 * @template T
+	 *
+	 * @param callable(): T $callback
+	 * @return T
+	 */
+	protected function withoutBacktracking(callable $callback): mixed
+	{
+		$limit = ini_get('pcre.backtrack_limit');
+		// @mago-expect lint:no-ini-set The test needs regular expressions to fail.
+		ini_set('pcre.backtrack_limit', '1');
+
+		try {
+			return $callback();
+		} finally {
+			// @mago-expect lint:no-ini-set Restores the limit set above.
+			ini_set('pcre.backtrack_limit', (string) $limit);
+		}
+	}
+
+	/**
 	 * Sends PHP's error log to a temporary file until stopErrorLog().
 	 *
 	 * @return array{file: string, previous: string}
