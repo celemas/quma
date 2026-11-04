@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
+use Celema\Quma\Exception\MissingParameter;
 use Celema\Quma\Exception\UnexpectedResultCount;
 use Celema\Quma\Hydration\Hydrator;
 use Closure;
@@ -31,6 +32,7 @@ class Query
 		protected Args $args,
 		protected ?string $sourcePath = null,
 	) {
+		$this->assertParameters();
 		$this->prepare($this->db->getConn());
 
 		if ($this->db->debug) {
@@ -277,6 +279,45 @@ class Query
 	public function interpolate(): string
 	{
 		return Debug::interpolate($this->query, $this->args, $this->db->getPdoDriver());
+	}
+
+	/**
+	 * Without this check, SQLite binds NULL to a missing parameter and the
+	 * other drivers report a syntax error at the placeholder.
+	 */
+	private function assertParameters(): void
+	{
+		$driver = $this->db->getPdoDriver();
+		$code = preg_replace(LiteralPattern::for($driver), ' ', $this->query);
+
+		// PDO parses the SQL again, so a statement too unusual to read here still runs or fails there.
+		if ($code === null) {
+			return;
+		}
+
+		$given = $this->args->get();
+
+		if ($this->args->type() === ArgType::Named || $given === []) {
+			// Text after a word or bracket is a PostgreSQL slice like a[1:n] when no values are bound.
+			preg_match_all('/(?<![\w\]\)\[:]):([a-zA-Z_][a-zA-Z0-9_]*)/', $code, $matches);
+
+			foreach ($matches[1] as $name) {
+				if (!array_key_exists($name, $given)) {
+					throw MissingParameter::named($name, $this->sourcePath);
+				}
+			}
+		}
+
+		if ($this->args->type() === ArgType::Named || $given === [] && $driver === 'pgsql') {
+			// PostgreSQL's ? operators work as long as no values are bound.
+			return;
+		}
+
+		$expected = (int) preg_match_all('/(?<!\?)\?(?!\?)/', $code);
+
+		if ($expected > count($given)) {
+			throw MissingParameter::positional($expected, count($given), $this->sourcePath);
+		}
 	}
 
 	private function prepare(PDO $pdo): void

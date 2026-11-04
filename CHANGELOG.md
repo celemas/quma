@@ -5,6 +5,7 @@
 ### Breaking
 
 - `Query::len()` no longer executes a query that has already run. It returns the row count of the latest run, so `run()` followed by `len()` no longer repeats a write. Call `run()` to execute a query again.
+- A query with a missing parameter throws the new `Celema\Quma\Exception\MissingParameter`, an `InvalidArgumentException` that names the parameter and the script, before it reaches PDO. SQLite used to bind `NULL` silently, which code may have relied on, and the other drivers reported a syntax error.
 - The constants `Query::PATTERN_STRING`, `PATTERN_BLOCK`, `PATTERN_COMMENT_MULTI`, and `PATTERN_COMMENT_SINGLE` are removed.
 
 ### Fixed

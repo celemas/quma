@@ -46,6 +46,12 @@ $user = $db->users->byEmail([
 
 Mixing positional and named arguments throws `InvalidArgumentException`, as does an array that is neither a list nor keyed by names.
 
+## Missing parameters
+
+A query that lacks a value for one of its placeholders throws `Celema\Quma\Exception\MissingParameter` when it is created. Text in strings, comments, and blocks does not count as a placeholder.
+
+Two forms stay valid when no values are bound, because they are PostgreSQL syntax rather than placeholders: array slices such as `a[1:n]` and the `?` operators.
+
 ## Supported parameter types
 
 Quma supports these parameter value types:

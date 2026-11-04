@@ -10,6 +10,7 @@ use Celema\Quma\LoadedScript;
 use Celema\Quma\Script;
 use Celema\Quma\Tests\Util\TestableScript;
 use InvalidArgumentException;
+use PDOException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
@@ -73,6 +74,20 @@ class ScriptTest extends TestCase
 		$record = $script->invoke(['x' => 'bound', 'y' => 'unused'])->one();
 
 		$this->assertSame('bound', $record['v']);
+	}
+
+	public function testFindsAParameterAtTheStartOfATemplate(): void
+	{
+		$script = new Script(
+			new Database($this->connection()),
+			new LoadedScript(':x IS NULL', 'inline.tpql'),
+			true,
+		);
+
+		$this->expectException(PDOException::class);
+		$this->expectExceptionMessageMatches('/near ":x"/');
+
+		$script->invoke(['x' => 1])->run();
 	}
 
 	#[DataProvider('driverSyntax')]

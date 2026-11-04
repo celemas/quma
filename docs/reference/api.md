@@ -172,6 +172,10 @@ Unmapped calls accept `PDO::FETCH_ASSOC`, `PDO::FETCH_NUM`, `PDO::FETCH_BOTH`, a
 - `interpolate(): string` returns a best-effort interpolated SQL string for debugging
 - `__toString(): string` proxies to `interpolate()`
 
+### Parameter exceptions
+
+- `Celema\Quma\Exception\MissingParameter` is thrown when a query is created without a value for one of its parameters. It extends `InvalidArgumentException` and names the parameter and, in `$script`, the script path if there is one.
+
 ### Query result exceptions
 
 - `Celema\Quma\Exception\UnexpectedResultCount` is thrown by `Query::one()` when the result has zero rows or more than one row.

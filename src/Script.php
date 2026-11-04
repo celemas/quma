@@ -174,13 +174,9 @@ class Script
 			);
 		}
 
-		// Match everything starting with : and a letter.
-		// Exclude multiple colons, like type casts (::text).
-		// Would not find a var if it is at the very beginning of script.
-		preg_match_all('/[^:]:[a-zA-Z][a-zA-Z0-9_]*/', $cleaned, $result);
-		// Each match starts with the character before the colon.
-		$names = array_map(static fn(string $match): string => substr($match, 2), $result[0]);
+		// Excludes type casts like ::text.
+		preg_match_all('/(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)/', $cleaned, $result);
 
-		return array_intersect_key($args->getNamed(), array_flip($names));
+		return array_intersect_key($args->getNamed(), array_flip($result[1]));
 	}
 }

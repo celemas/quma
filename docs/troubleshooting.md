@@ -59,6 +59,10 @@ Check the DSN, the credentials, and whether the server is reachable from the app
 
 Use `first()` if zero or multiple rows are valid and you only need the first row. Use `fetch()` if you want to read successive rows from the same query cursor.
 
+## `Missing parameter :name`
+
+The query uses the placeholder `:name`, but the call passed no value for it. Pass the value, or in a `.tpql` file render the placeholder only when the value is set.
+
 ## Template query rejects positional arguments
 
 `.tpql` query files accept named parameters only.
