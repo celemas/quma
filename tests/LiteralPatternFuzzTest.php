@@ -40,6 +40,9 @@ final class LiteralPatternFuzzTest extends TestCase
 		["'#'", '#'],
 		["'`'", '`'],
 		["'['", '['],
+		['1 IN :l', '1'],
+		['9 NOT IN :l', '1'],
+		["'IN :l'", 'IN :l'],
 	];
 
 	private const array COMMENTS = [
@@ -151,7 +154,7 @@ final class LiteralPatternFuzzTest extends TestCase
 	private function assertRow(Database $db, string $sql, array $expected, string $context): void
 	{
 		$args = array_filter(
-			['x' => self::VALUE, 'y' => 'unused', 'n' => 3],
+			['x' => self::VALUE, 'y' => 'unused', 'n' => 3, 'l' => [1, 2]],
 			static fn(string $name): bool => $name === 'y' || preg_match("/(?<!:):{$name}\\b/", $sql) === 1,
 			ARRAY_FILTER_USE_KEY,
 		);

@@ -53,6 +53,16 @@ final class LiteralPattern
 			. self::STRINGS
 			. '/';
 
+	/**
+	 * Also matches a list parameter like `IN :ids`, whose name is in the group `list`.
+	 *
+	 * @return non-empty-string
+	 */
+	public static function withLists(string $driver): string
+	{
+		return substr(self::for($driver), 0, -1) . '|(?<![\w.$])(?i:IN)\s*:(?<list>[a-zA-Z_][a-zA-Z0-9_]*)(?![\w:])/';
+	}
+
 	/** @return non-empty-string */
 	public static function for(string $driver): string
 	{

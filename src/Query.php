@@ -37,6 +37,7 @@ class Query
 		protected Args $args,
 		protected ?string $sourcePath = null,
 	) {
+		$this->expandLists();
 		$this->assertParameters();
 		$this->db->assertNoStream();
 		$this->prepare($this->db->getConn());
@@ -397,6 +398,86 @@ class Query
 	public function interpolate(): string
 	{
 		return Debug::interpolate($this->query, $this->args, $this->db->getPdoDriver());
+	}
+
+	/** Replaces an array after IN, like `IN :ids`, with one placeholder per element. */
+	private function expandLists(): void
+	{
+		$values = $this->args->getNamed();
+
+		if (!array_any($values, static fn(mixed $value): bool => is_array($value))) {
+			return;
+		}
+
+		$expanded = [];
+		$query = preg_replace_callback(
+			LiteralPattern::withLists($this->db->getPdoDriver()),
+			/** @param array<array-key, string> $matches */
+			function (array $matches) use ($values, &$expanded): string {
+				$name = $matches['list'] ?? '';
+				$list = $values[$name] ?? null;
+
+				if (!is_array($list)) {
+					return $matches[0];
+				}
+
+				$placeholders = $this->listPlaceholders($name, $list, $expanded);
+
+				return (string) strstr($matches[0], ':', true) . '(' . implode(', ', $placeholders) . ')';
+			},
+			$this->query,
+		);
+
+		if ($query === null || $expanded === []) {
+			return;
+		}
+
+		$this->query = $query;
+		$this->args = new Args([array_replace($this->withoutReplacedLists($values, $query), $expanded)]);
+	}
+
+	/**
+	 * @param array<array-key, mixed> $list
+	 * @param array<string, mixed> $expanded
+	 * @return non-empty-list<string>
+	 */
+	private function listPlaceholders(string $name, array $list, array &$expanded): array
+	{
+		if ($list === []) {
+			throw new InvalidArgumentException("The list :{$name} after IN must not be empty.");
+		}
+
+		$elements = array_values($list);
+		$keys = array_map(static fn(int $index): string => "{$name}__{$index}", array_keys($elements));
+
+		foreach ($keys as $key) {
+			if (array_key_exists($key, $this->args->getNamed())) {
+				throw new InvalidArgumentException("The parameter :{$key} collides with the list :{$name}.");
+			}
+		}
+
+		$expanded = array_replace($expanded, array_combine($keys, $elements));
+
+		return array_map(static fn(string $key): string => ":{$key}", $keys);
+	}
+
+	/**
+	 * PDO refuses a value without a placeholder, and a list may also be used as JSON elsewhere.
+	 *
+	 * @param array<string, mixed> $values
+	 * @return array<string, mixed>
+	 */
+	private function withoutReplacedLists(array $values, string $query): array
+	{
+		$code = preg_replace(LiteralPattern::for($this->db->getPdoDriver()), ' ', $query);
+		preg_match_all('/(?<!:):([a-zA-Z_][a-zA-Z0-9_]*)/', (string) $code, $matches);
+		$used = array_flip($matches[1]);
+
+		return array_filter(
+			$values,
+			static fn(mixed $value, string $name): bool => !is_array($value) || array_key_exists($name, $used),
+			ARRAY_FILTER_USE_BOTH,
+		);
 	}
 
 	/**

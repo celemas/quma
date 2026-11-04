@@ -62,7 +62,24 @@ Quma supports these parameter value types:
 - `null`
 - `array`
 
-Arrays are JSON-encoded before binding.
+Arrays are JSON-encoded before binding, except for a [list after `IN`](#lists-after-in).
+
+## Lists after `IN`
+
+A named array parameter directly after `IN` or `NOT IN`, without parentheses, becomes one placeholder per element on every driver:
+
+```sql
+SELECT id, email FROM users WHERE id IN :ids;
+```
+
+```php
+$users = $db->users->byIds(ids: [1, 2, 3])->all();
+```
+
+- An empty array throws `InvalidArgumentException`, because `IN ()` is not valid SQL. Check for it before the call and skip the query.
+- Elsewhere an array is still JSON. That includes `IN (:ids)`, which compares against a single JSON string, and PostgreSQL's `IN (SELECT jsonb_array_elements_text(:ids::jsonb))` and `= ANY(...)`.
+- Positional parameters are not expanded.
+- The placeholders are named like `:ids__0`, so a parameter with such a name throws `InvalidArgumentException`.
 
 If you pass any other type, Quma throws `InvalidArgumentException`.
 
