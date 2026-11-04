@@ -160,7 +160,8 @@ Represents a prepared query.
 - `first(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the first row or `null`
 - `fetch(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null` returns the next row from a cursor or `null`
 - `all(string|Closure|null $map = null, ?int $fetchMode = null): array` returns every row
-- `lazy(string|Closure|null $map = null, ?int $fetchMode = null): Generator` streams rows
+- `lazy(string|Closure|null $map = null, ?int $fetchMode = null): Generator` yields rows one at a time, from a result the driver may hold in memory
+- `stream(string|Closure|null $map = null, ?int $fetchMode = null): Generator` yields rows while the server sends them; see [Stream large results](../parameters-and-results.md#stream-large-results)
 - `run(): bool` executes a statement for its success value
 - `len(): int` returns `PDOStatement::rowCount()` of the latest run, and executes the query only if it has not run yet
 

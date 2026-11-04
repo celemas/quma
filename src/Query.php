@@ -13,8 +13,10 @@ use Generator;
 use InvalidArgumentException;
 use JsonException;
 use PDO;
+use Pdo\Mysql;
 use PDOException;
 use PDOStatement;
+use RuntimeException;
 
 /** @api */
 class Query
@@ -22,6 +24,8 @@ class Query
 	protected PDOStatement $stmt;
 	protected bool $executed = false;
 	private bool $ran = false;
+	/** The rows the latest run read, if that run was a stream. */
+	private ?int $streamed = null;
 	protected ?Hydrator $hydrator = null;
 
 	/** The connection the statement was prepared on. */
@@ -34,6 +38,7 @@ class Query
 		protected ?string $sourcePath = null,
 	) {
 		$this->assertParameters();
+		$this->db->assertNoStream();
 		$this->prepare($this->db->getConn());
 
 		if ($this->db->debug) {
@@ -168,6 +173,92 @@ class Query
 		}
 	}
 
+	/**
+	 * Lets the server send the rows while the loop runs, so a large result only
+	 * needs the memory of one row. Other statements on the connection throw
+	 * StreamOpen until the generator ends or is destroyed.
+	 *
+	 * @template T of object
+	 *
+	 * @param class-string<T>|Closure(array<string, mixed>):class-string<T>|null $map
+	 * @return ($map is null
+	 *     ? Generator<int, array<array-key, mixed>, mixed, void>
+	 *     : Generator<int, T, mixed, void>)
+	 */
+	public function stream(string|Closure|null $map = null, ?int $fetchMode = null): Generator
+	{
+		$fetchMode = $this->terminalOptions($map, $fetchMode);
+		$this->db->assertNoStream();
+		$pdo = $this->db->getConn();
+		$stmt = $this->executeStream($pdo);
+		$this->db->openStream($stmt);
+		$count = 0;
+
+		try {
+			while (($record = $this->fetchStreamRecord($pdo, $stmt, $fetchMode)) !== null) {
+				$count++;
+
+				if ($map === null) {
+					yield $record;
+
+					continue;
+				}
+
+				yield $this->hydrator()->hydrate($record, $map, $this->sourcePath);
+			}
+		} finally {
+			$this->streamed = $count;
+
+			if ($this->db->streaming($stmt)) {
+				$this->db->closeStream();
+			}
+		}
+	}
+
+	private function executeStream(PDO $pdo): PDOStatement
+	{
+		$driver = $this->db->getPdoDriver();
+		$prepared = $this->stmt;
+
+		try {
+			if ($driver === 'mysql') {
+				$pdo->setAttribute(Mysql::ATTR_USE_BUFFERED_QUERY, false);
+			}
+
+			$this->stmt = $pdo->prepare($this->query, $driver === 'pgsql' ? [PDO::ATTR_PREFETCH => 0] : []);
+
+			if ($this->args->count() > 0) {
+				$this->bindArgs($this->args->get(), $this->args->type());
+			}
+
+			$this->stmt->execute();
+
+			return $this->stmt;
+		} catch (PDOException $e) {
+			$this->fail($pdo, $e);
+		} finally {
+			$this->stmt = $prepared;
+
+			if ($driver === 'mysql') {
+				$pdo->setAttribute(Mysql::ATTR_USE_BUFFERED_QUERY, true);
+			}
+		}
+	}
+
+	/** @return array<array-key, mixed>|null */
+	private function fetchStreamRecord(PDO $pdo, PDOStatement $stmt, int $fetchMode): ?array
+	{
+		if (!$this->db->streaming($stmt)) {
+			throw new RuntimeException('The stream ended when its connection was reset or closed.');
+		}
+
+		try {
+			return $this->nullIfNot($stmt->fetch($fetchMode));
+		} catch (PDOException $e) {
+			$this->fail($pdo, $e);
+		}
+	}
+
 	private function terminalOptions(string|Closure|null $map, ?int $fetchMode): int
 	{
 		$mode = $fetchMode ?? ($map === null ? $this->db->getFetchMode() : PDO::FETCH_ASSOC);
@@ -201,12 +292,14 @@ class Query
 
 	private function executeStatement(): bool
 	{
+		$this->db->assertNoStream();
 		$this->useCurrentConnection();
 
 		try {
 			$this->stmt->closeCursor();
 			$result = $this->stmt->execute();
 			$this->ran = true;
+			$this->streamed = null;
 
 			return $result;
 		} catch (PDOException $e) {
@@ -256,6 +349,10 @@ class Query
 
 	public function len(): int
 	{
+		if ($this->streamed !== null) {
+			return $this->streamed;
+		}
+
 		if ($this->ran) {
 			return $this->stmt->rowCount();
 		}

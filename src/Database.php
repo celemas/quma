@@ -6,9 +6,11 @@ namespace Celema\Quma;
 
 use Celema\Quma\Exception\ConnectionFailed;
 use Celema\Quma\Exception\QueryFailed;
+use Celema\Quma\Exception\StreamOpen;
 use Closure;
 use PDO;
 use PDOException;
+use PDOStatement;
 use RuntimeException;
 use Throwable;
 
@@ -28,6 +30,7 @@ class Database
 	protected array $compiledScripts = [];
 	/** How many transaction blocks are open. */
 	private int $blocks = 0;
+	private ?PDOStatement $stream = null;
 
 	public function __construct(
 		protected readonly Connection $conn,
@@ -147,6 +150,8 @@ class Database
 
 	public function disconnect(): void
 	{
+		$this->closeStream();
+
 		if ($this->pdo !== null) {
 			try {
 				if ($this->pdo->inTransaction()) {
@@ -169,6 +174,8 @@ class Database
 
 	public function ping(): bool
 	{
+		$this->assertNoStream();
+
 		if ($this->pdo === null) {
 			return false;
 		}
@@ -204,6 +211,8 @@ class Database
 	 */
 	public function reset(): bool
 	{
+		$this->closeStream();
+
 		if ($this->pdo === null) {
 			return false;
 		}
@@ -260,6 +269,46 @@ class Database
 	{
 		if ($pdo === $this->pdo) {
 			$this->suspect = true;
+		}
+	}
+
+	/**
+	 * PostgreSQL silently ends a stream when another statement runs, and MySQL
+	 * refuses the statement, so no statement may reach an open stream's connection.
+	 *
+	 * @internal
+	 */
+	public function assertNoStream(): void
+	{
+		if ($this->stream !== null) {
+			throw new StreamOpen();
+		}
+	}
+
+	/** @internal */
+	public function openStream(PDOStatement $stmt): void
+	{
+		$this->stream = $stmt;
+	}
+
+	/** @internal */
+	public function streaming(PDOStatement $stmt): bool
+	{
+		return $this->stream === $stmt;
+	}
+
+	/** @internal */
+	public function closeStream(): void
+	{
+		$stmt = $this->stream;
+		$this->stream = null;
+
+		try {
+			$stmt?->closeCursor();
+		} catch (PDOException) {
+			if ($this->pdo !== null) {
+				$this->markSuspect($this->pdo);
+			}
 		}
 	}
 
@@ -395,6 +444,8 @@ class Database
 	/** @param Closure(PDO): bool $call */
 	private function transactionCall(Closure $call): bool
 	{
+		$this->assertNoStream();
+
 		$pdo = $this->requirePdo();
 
 		try {
@@ -435,7 +486,7 @@ class Database
 	 */
 	protected function checkReuse(): void
 	{
-		if ($this->pdo === null || $this->pdo->inTransaction()) {
+		if ($this->pdo === null || $this->stream !== null || $this->pdo->inTransaction()) {
 			return;
 		}
 

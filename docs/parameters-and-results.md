@@ -112,7 +112,7 @@ $users = $db->users->list()->all();
 
 `all()` executes the statement and returns an array of rows.
 
-## Stream rows lazily
+## Iterate rows lazily
 
 Use `lazy()` when you want a generator.
 
@@ -123,6 +123,26 @@ foreach ($db->users->list()->lazy() as $user) {
 ```
 
 This is useful when you want to process rows one by one.
+
+`lazy()` creates PHP's row arrays one at a time, but on MySQL and PostgreSQL the driver first loads the whole result into memory. Use `stream()` for results too large for that.
+
+## Stream large results
+
+`stream()` lets the server send the rows while the loop runs, so a large result needs the memory of one row on every driver.
+
+```php
+foreach ($db->users->list()->stream() as $user) {
+    // ...
+}
+```
+
+It takes the same arguments as `lazy()`. A stream has limits:
+
+- While a stream is open, every other statement through the same `Database` throws `Celema\Quma\Exception\StreamOpen`, and so do `begin()`, `commit()`, `rollback()`, `transaction()`, and `ping()`. Without this guard, PostgreSQL would silently end the stream and lose its remaining rows, and MySQL would refuse the statement. Run them after the loop, use `lazy()`, or use a second `Database` for its own connection.
+- Statements run directly on `getConn()` bypass the guard, so do not use it during a stream.
+- A stream ends with its last row or when the generator is destroyed, for example by `break` when it is not stored in a variable. On MySQL, ending early still reads the remaining rows, so make the query return only what the loop needs.
+- `reset()` and `disconnect()` end an open stream, and the loop then throws `RuntimeException`.
+- `len()` after a stream returns the number of rows it read.
 
 ## Map rows to objects
 
