@@ -32,6 +32,7 @@ If you do not set `QUMA_TEST_DRIVERS`, the test suite runs SQLite only.
 Use these variables to control the test databases.
 
 - `QUMA_TEST_DRIVERS`: comma-separated list of drivers to test; default `sqlite`; allowed values `sqlite`, `mysql`, `pgsql`
+- `QUMA_FUZZ_RUNS` and `QUMA_FUZZ_SEED`: how many random statements `LiteralPatternFuzzTest` runs per driver, and from which seed; the failure message names the seed and run that repeat a failure
 - `QUMA_DB_SQLITE_DB_PATH_1`: primary SQLite file name; default `quma_db1.sqlite3`
 - `QUMA_DB_SQLITE_DB_PATH_2`: secondary SQLite file name; default `quma_db2.sqlite3`
 - `QUMA_DB_PGSQL_HOST`: PostgreSQL host; default `localhost`

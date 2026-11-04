@@ -62,6 +62,10 @@ Quma currently supports:
 - PHP-rendered SQL templates in `.tpql` files
 - multiple SQL directories with driver-specific overrides
 - direct execution of ad-hoc SQL through `Database::execute()`
+- [lists after `IN`](parameters-and-results.md#lists-after-in) and [streaming of large results](parameters-and-results.md#stream-large-results)
+- [transaction blocks](parameters-and-results.md#transactions) with savepoints
+- [the same exception classes](parameters-and-results.md#handling-failed-queries) for the same failures on every driver
+- an [`onExecute` hook](parameters-and-results.md#observe-statements) for metrics and slow-query logs
 - optional type-safe row hydration through `one()`, `first()`, `fetch()`, `all()`, and `lazy()`
 - connection hygiene for [long-running processes](long-running-processes.md): `reset()` between units of work, a ping before reusing an idle connection, and explicit `connected()`, `disconnect()`, `reconnect()`, and `ping()` helpers
 - migrations written in `.sql`, `.tpql`, or `.php`
