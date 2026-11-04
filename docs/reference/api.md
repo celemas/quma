@@ -99,6 +99,7 @@ new Database(Connection $conn)
 - `reset(): bool` rolls back any open transaction and keeps the connection available for reuse; a connection that cannot be rolled back is dropped instead of throwing. Returns whether an open connection is kept
 - `getConn(): PDO` returns the PDO instance
 - `quote(string $value): string` proxies to `PDO::quote()`
+- `transaction(callable $work): mixed` runs `$work` atomically and returns its result; see [Transactions](../parameters-and-results.md#transactions)
 - `begin(): bool` starts a transaction
 - `commit(): bool` commits the current transaction
 - `rollback(): bool` rolls back the current transaction

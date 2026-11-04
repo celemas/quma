@@ -277,6 +277,37 @@ $rows = $db->users->list()->all(null, PDO::FETCH_NUM);
 
 Mapped calls always fetch associative rows by default, even if the connection default is different. Passing a mapped class or resolver with an explicit non-associative fetch mode throws `InvalidArgumentException`.
 
+## Transactions
+
+`Database::transaction()` runs a function atomically. It commits when the function returns and rolls back when it throws, then rethrows the exception. It returns what the function returns.
+
+```php
+$id = $db->transaction(function () use ($db): int {
+    $user = $db->users->add(email: 'someone@example.com')->one();
+    $db->audit->log(user: $user['id'])->run();
+
+    return $user['id'];
+});
+```
+
+Inside an open transaction, whether from another block or from `begin()`, a block uses a savepoint. A failure undoes only that block's work and leaves the outer transaction usable, so a function can use a block whether or not its caller has one:
+
+```php
+$db->transaction(function () use ($db, $item): void {
+    $db->orders->add(item: $item)->run();
+
+    try {
+        $db->transaction(fn() => $db->stock->reduce(item: $item)->run());
+    } catch (PDOException) {
+        $db->orders->backorder(item: $item)->run();
+    }
+});
+```
+
+`commit()` and `rollback()` throw `RuntimeException` inside a block. `begin()` throws there too, because a transaction is already open.
+
+On MySQL, a statement such as `CREATE TABLE` commits implicitly, so the work before it can no longer be undone. The block then ends without a commit of its own. Replacing the connection inside a block, for example with `reconnect()`, makes the block throw.
+
 ## Execute direct SQL
 
 `Database::execute()` accepts the SQL string and the same argument styles as file-based queries.

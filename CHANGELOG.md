@@ -8,6 +8,10 @@
 - A query with a missing parameter throws the new `Celema\Quma\Exception\MissingParameter`, an `InvalidArgumentException` that names the parameter and the script, before it reaches PDO. SQLite used to bind `NULL` silently, which code may have relied on, and the other drivers reported a syntax error.
 - The constants `Query::PATTERN_STRING`, `PATTERN_BLOCK`, `PATTERN_COMMENT_MULTI`, and `PATTERN_COMMENT_SINGLE` are removed.
 
+### Added
+
+- `Database::transaction()` runs a function atomically, with a savepoint when a transaction is already open, and returns its result. `commit()` and `rollback()` throw inside such a block.
+
 ### Fixed
 
 - A quote in a comment of a `.tpql` file no longer hides the named parameters up to the next quote. They were dropped before binding, which caused a syntax error on MySQL and PostgreSQL and silently bound `NULL` on SQLite. The same applies to `$$` in a comment or string.

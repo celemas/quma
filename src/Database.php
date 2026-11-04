@@ -25,6 +25,8 @@ class Database
 	protected bool $suspect = false;
 	/** @var array<string, LoadedScript> */
 	protected array $compiledScripts = [];
+	/** How many transaction blocks are open. */
+	private int $blocks = 0;
 
 	public function __construct(
 		protected readonly Connection $conn,
@@ -271,6 +273,96 @@ class Database
 		return $quoted;
 	}
 
+	/**
+	 * Runs work atomically: commits at the end and rolls back if it throws. In
+	 * an open transaction it uses a savepoint, so a failure undoes only this
+	 * work and the outer transaction stays usable.
+	 *
+	 * @template T
+	 *
+	 * @param callable(): T $work
+	 * @return T
+	 */
+	public function transaction(callable $work): mixed
+	{
+		$pdo = $this->getConn();
+		$savepoint = $pdo->inTransaction() ? 'quma_block_' . ($this->blocks + 1) : null;
+
+		if ($savepoint === null) {
+			$this->begin();
+		} else {
+			$this->savepointCall("SAVEPOINT {$savepoint}");
+		}
+
+		$this->blocks++;
+
+		try {
+			$result = $work();
+		} catch (Throwable $e) {
+			$this->blocks--;
+			$this->undoBlock($pdo, $savepoint);
+
+			throw $e;
+		}
+
+		$this->blocks--;
+
+		try {
+			$this->finishBlock($pdo, $savepoint);
+		} catch (Throwable $e) {
+			$this->undoBlock($pdo, $savepoint);
+
+			throw $e;
+		}
+
+		return $result;
+	}
+
+	private function finishBlock(PDO $pdo, ?string $savepoint): void
+	{
+		if ($pdo !== $this->pdo) {
+			throw new RuntimeException('The connection was replaced inside a transaction block.');
+		}
+
+		// A MySQL statement like CREATE TABLE already ended the transaction.
+		if (!$pdo->inTransaction()) {
+			return;
+		}
+
+		if ($savepoint === null) {
+			$this->commit();
+
+			return;
+		}
+
+		$this->savepointCall("RELEASE SAVEPOINT {$savepoint}");
+	}
+
+	private function undoBlock(PDO $pdo, ?string $savepoint): void
+	{
+		if ($pdo !== $this->pdo) {
+			return;
+		}
+
+		try {
+			if ($savepoint === null) {
+				$this->rollback();
+
+				return;
+			}
+
+			$this->savepointCall("ROLLBACK TO SAVEPOINT {$savepoint}");
+			$this->savepointCall("RELEASE SAVEPOINT {$savepoint}");
+		} catch (Throwable) {
+			// @mago-expect lint:no-empty-catch-clause The exception that ended the block explains the failure.
+		}
+	}
+
+	private function savepointCall(string $sql): void
+	{
+		$this->transactionCall(static fn(PDO $pdo): bool => $pdo->exec($sql) !== false);
+	}
+
 	public function begin(): bool
 	{
 		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
@@ -278,12 +370,25 @@ class Database
 
 	public function commit(): bool
 	{
+		$this->assertOutsideBlock('commit');
+
 		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->commit());
 	}
 
 	public function rollback(): bool
 	{
+		$this->assertOutsideBlock('roll back');
+
 		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->rollBack());
+	}
+
+	private function assertOutsideBlock(string $action): void
+	{
+		if ($this->blocks > 0) {
+			throw new RuntimeException(
+				"Cannot {$action} inside a transaction block. Return from the block to commit or throw to roll back.",
+			);
+		}
 	}
 
 	/** @param Closure(PDO): bool $call */
