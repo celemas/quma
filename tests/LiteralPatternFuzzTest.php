@@ -23,7 +23,7 @@ final class LiteralPatternFuzzTest extends TestCase
 {
 	private const string VALUE = "v'\"`\n*/ -- # $$ \\ :y ? [";
 	private const int RUNS = 150;
-	private const int SEED = 20261104;
+	private const int SEED = 20_261_104;
 
 	/** Each item is a selected expression and the value it has to return. */
 	private const array ITEMS = [

@@ -12,6 +12,7 @@
 
 - A failing statement or transaction call throws `Celema\Quma\Exception\QueryFailed` or one of its subclasses, whichever the driver: `UniqueViolation`, `ForeignKeyViolation`, `NotNullViolation`, `CheckViolation`, and `ExclusionViolation` under `IntegrityViolation`, and `DataError`, `TransactionConflict`, and `ConnectionLost`. They hold the `$script` and the `$constraint`. All extend `PDOException` and keep the driver's message, code, and `errorInfo`, so existing catch blocks keep working.
 - `Query::stream()` lets the server send a large result while the loop runs, which `lazy()` does not do on MySQL and PostgreSQL, whatever its documentation claimed. While a stream is open, other statements through the same `Database` throw `Celema\Quma\Exception\StreamOpen`.
+- `Connection::onExecute()` calls a function with an `Execution` after every statement, also a failed one: the script, SQL, duration, row count, and error, without the bound values.
 - `Database::transaction()` runs a function atomically, with a savepoint when a transaction is already open, and returns its result. `commit()` and `rollback()` throw inside such a block.
 
 ### Fixed

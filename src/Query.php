@@ -190,8 +190,10 @@ class Query
 		$fetchMode = $this->terminalOptions($map, $fetchMode);
 		$this->db->assertNoStream();
 		$pdo = $this->db->getConn();
-		$stmt = $this->executeStream($pdo);
+		$started = (int) hrtime(true);
+		$stmt = $this->executeStream($pdo, $started);
 		$this->db->openStream($stmt);
+		$this->reportSuccess($started, null);
 		$count = 0;
 
 		try {
@@ -215,7 +217,7 @@ class Query
 		}
 	}
 
-	private function executeStream(PDO $pdo): PDOStatement
+	private function executeStream(PDO $pdo, int $started): PDOStatement
 	{
 		$driver = $this->db->getPdoDriver();
 		$prepared = $this->stmt;
@@ -235,7 +237,7 @@ class Query
 
 			return $this->stmt;
 		} catch (PDOException $e) {
-			$this->fail($pdo, $e);
+			$this->fail($pdo, $e, $started);
 		} finally {
 			$this->stmt = $prepared;
 
@@ -294,17 +296,30 @@ class Query
 	{
 		$this->db->assertNoStream();
 		$this->useCurrentConnection();
+		$started = (int) hrtime(true);
 
 		try {
 			$this->stmt->closeCursor();
 			$result = $this->stmt->execute();
 			$this->ran = true;
 			$this->streamed = null;
-
-			return $result;
 		} catch (PDOException $e) {
-			$this->fail($this->pdo, $e);
+			$this->fail($this->pdo, $e, $started);
 		}
+
+		$this->reportSuccess($started, $this->stmt->rowCount());
+
+		return $result;
+	}
+
+	private function reportSuccess(int $started, ?int $rowCount): void
+	{
+		$this->db->report(new Execution($this->sourcePath, $this->query, $this->seconds($started), $rowCount, null));
+	}
+
+	private function seconds(int $started): float
+	{
+		return (float) ((int) hrtime(true) - $started) / 1e9;
 	}
 
 	/**
@@ -312,11 +327,16 @@ class Query
 	 * failure may mean that the connection was lost. The failed operation
 	 * itself is never retried.
 	 */
-	private function fail(PDO $pdo, PDOException $e): never
+	private function fail(PDO $pdo, PDOException $e, ?int $started = null): never
 	{
 		$this->db->markSuspect($pdo);
+		$failure = QueryFailed::from($e, $this->db->getPdoDriver(), $this->sourcePath);
 
-		throw QueryFailed::from($e, $this->db->getPdoDriver(), $this->sourcePath);
+		if ($started !== null) {
+			$this->db->report(new Execution($this->sourcePath, $this->query, $this->seconds($started), null, $failure));
+		}
+
+		throw $failure;
 	}
 
 	/**
@@ -420,10 +440,12 @@ class Query
 
 	private function prepare(PDO $pdo): void
 	{
+		$started = (int) hrtime(true);
+
 		try {
 			$stmt = $pdo->prepare($this->query);
 		} catch (PDOException $e) {
-			$this->fail($pdo, $e);
+			$this->fail($pdo, $e, $started);
 		}
 
 		// Only a prepared statement switches the query to the connection;

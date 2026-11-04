@@ -115,6 +115,12 @@ Replaces a connection older than this many seconds before it is used again. The 
 
 See [Long-running processes](../long-running-processes.md).
 
+## Observing statements
+
+### `onExecute(Closure $hook): static`
+
+Calls the hook with an `Execution` after every statement, also a failed one. See [Observe statements](../parameters-and-results.md#observe-statements).
+
 ## SQL directory methods
 
 ### `addSql(array|string $sql): static`

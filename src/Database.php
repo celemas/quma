@@ -31,6 +31,7 @@ class Database
 	/** How many transaction blocks are open. */
 	private int $blocks = 0;
 	private ?PDOStatement $stream = null;
+	private bool $reporting = false;
 
 	public function __construct(
 		protected readonly Connection $conn,
@@ -309,6 +310,26 @@ class Database
 			if ($this->pdo !== null) {
 				$this->markSuspect($this->pdo);
 			}
+		}
+	}
+
+	/** @internal */
+	public function report(Execution $execution): void
+	{
+		$hook = $this->conn->executionHook;
+
+		if ($hook === null || $this->reporting) {
+			return;
+		}
+
+		$this->reporting = true;
+
+		try {
+			$hook($execution);
+		} catch (Throwable $e) {
+			error_log('Quma: the onExecute hook failed: ' . $e->getMessage());
+		} finally {
+			$this->reporting = false;
 		}
 	}
 

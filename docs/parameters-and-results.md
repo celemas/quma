@@ -368,6 +368,24 @@ $total = $db->execute(
 
 The SQL string is the `query` parameter of `execute()`, so pass a value for a `:query` placeholder in an array.
 
+## Observe statements
+
+`Connection::onExecute()` calls a function with a `Celema\Quma\Execution` after every statement, also a failed one. Unlike debug output, it is meant for production, for example to log slow scripts:
+
+```php
+$conn = new Connection($dsn, $sql)->onExecute(static function (Execution $execution) use ($log): void {
+    if ($execution->duration > 0.5) {
+        $log->warning('Slow query', ['script' => $execution->script, 'seconds' => $execution->duration]);
+    }
+});
+```
+
+- An `Execution` holds the script path, the SQL, the duration, the row count, and the error, but never the bound values. Values a `.tpql` template writes into the SQL are part of the SQL, and a driver's error message can quote values.
+- An exception the function throws goes to PHP's error log. The statement's result or error reaches your code as usual.
+- Statements the function runs on the same `Database` are not reported.
+- Prepared and executed statements are reported, including the opening of a stream, whose row count is `null`. `begin()`, `commit()`, `rollback()`, savepoints, connection checks, and fetching rows are not.
+- On SQLite and in a stream, the database produces rows while they are fetched, so the duration only covers the start of a slow query.
+
 ## Debug interpolated SQL
 
 `Query` implements `__toString()`. Converting it to a string returns an interpolated debug representation of the SQL.

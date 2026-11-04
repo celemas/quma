@@ -24,6 +24,7 @@ new Connection(string $dsn, string|array $sql)
 - `fetch(int $fetchMode): static` sets the default query fetch mode
 - `pingAfterIdle(int $seconds): static` pings a connection idle for at least this long before reuse (default 60, 0 disables it)
 - `maxConnectionAge(int $seconds): static` replaces connections older than this before reuse (default 0, never)
+- `onExecute(Closure $hook): static` calls the hook with an `Execution` after every statement; see [Observe statements](../parameters-and-results.md#observe-statements)
 - `migrations(string|array $migrations): static` sets migration directories
 - `addMigration(string $migrations): static` prepends one flat migration directory
 - `migrationNamespace(string $namespace, string|array $dirs): static` sets one namespaced migration entry
@@ -230,6 +231,18 @@ Quma hydration exceptions live in `Celema\Quma\Exception`.
 - `MissingColumn` is thrown when a required constructor parameter has no matching row column.
 - `InvalidTypeCoercion` is thrown when a present value cannot be converted to the declared parameter type.
 - `InvalidHydrationTarget` is thrown for invalid targets, unsupported constructor shapes, unsupported parameter types, invalid `#[Column]` values, or invalid resolver results.
+
+## `Celema\Quma\Execution`
+
+A statement Quma sent to the database, as passed to the hook of `Connection::onExecute()`. It holds no bound values.
+
+Properties:
+
+- `script: ?string` the path of the script file, or `null` for direct SQL
+- `sql: string` the statement after template rendering, before binding
+- `duration: float` the seconds the driver took to prepare or execute it
+- `rowCount: ?int` the driver's row count, or `null` if it failed or opened a stream
+- `error: ?Throwable` the exception of a failed statement
 
 ## `Celema\Quma\Environment`
 

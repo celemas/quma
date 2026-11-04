@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
+use Closure;
+
 /**
  * @api
  *
@@ -13,6 +15,9 @@ namespace Celema\Quma;
 class Connection
 {
 	public readonly Config $config;
+
+	/** @var (Closure(Execution): void)|null */
+	public private(set) ?Closure $executionHook = null;
 
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(string $dsn, string|array $sql)
@@ -48,6 +53,20 @@ class Connection
 	public function fetch(int $fetchMode): static
 	{
 		$this->config->setFetchMode($fetchMode);
+
+		return $this;
+	}
+
+	/**
+	 * Calls the hook after every statement, also a failed one, for example to
+	 * find slow scripts. An exception it throws is logged and does not affect
+	 * the statement. Statements it runs itself are not reported.
+	 *
+	 * @param Closure(Execution): void $hook
+	 */
+	public function onExecute(Closure $hook): static
+	{
+		$this->executionHook = $hook;
 
 		return $this;
 	}
