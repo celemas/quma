@@ -93,7 +93,7 @@
 		CastInt: {
 			ignore: ['Celema\\Quma\\Query::bindArgs', 'Celema\\Quma\\DriverError::__construct'],
 			// hrtime(true) is only a float on 32-bit systems, where PHP's ints would overflow.
-			ignoreSourceCodeByRegex: ['\\(int\\) hrtime\\(true\\)'],
+			ignoreSourceCodeByRegex: ['.*\\(int\\) hrtime\\(true\\).*'],
 		},
 
 		// The session key stays unique per explicit session value.
