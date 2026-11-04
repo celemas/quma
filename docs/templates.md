@@ -117,7 +117,7 @@ $users = $db->users->listActive([
 
 In this example, `order` can control the rendered SQL without needing a matching `:order` placeholder.
 
-Names inside strings, comments, and blocks do not count as placeholders. Quma reads these by the default syntax of the driver, including backslash escapes and `#` comments on MySQL, and `E''` strings and `$tag$` blocks on PostgreSQL.
+Names inside strings, comments, and blocks do not count as placeholders. Quma reads these by the default syntax of the driver, including backslash escapes and `#` comments on MySQL, `E''` strings and `$tag$` blocks on PostgreSQL, and backtick and `[...]` identifiers on the drivers that have them.
 
 Two cases can still hide a placeholder that follows:
 
