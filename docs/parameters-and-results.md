@@ -226,6 +226,16 @@ $count = $db->users->delete([
 ])->len();
 ```
 
+`len()` executes a query only if it has not run yet. Otherwise it returns the count of the latest run, so a write is not repeated:
+
+```php
+$query = $db->users->delete(['id' => 42]);
+$query->run();
+$count = $query->len();
+```
+
+Call `run()` to execute a query again. `one()`, `first()`, `all()`, and `lazy()` also execute it again on each call.
+
 The exact row count depends on the PDO driver. For example, SQLite may return `0` for statements where other drivers report an affected row count.
 
 ## Fetch modes

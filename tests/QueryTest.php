@@ -37,6 +37,63 @@ final class QueryTest extends TestCase
 		parent::tearDown();
 	}
 
+	public function testLenExecutesAQueryThatHasNotRun(): void
+	{
+		$db = $this->db();
+
+		$this->assertSame(1, $db->execute('INSERT INTO items (id) VALUES (3)')->len());
+		$this->assertSame(3, $this->countItems($db));
+	}
+
+	public function testLenCountsTheRunOfAQueryThatRan(): void
+	{
+		$db = $this->db();
+		$query = $db->execute('INSERT INTO items (id) VALUES (3)');
+		$query->run();
+
+		$this->assertSame(1, $query->len());
+		$this->assertSame(1, $query->len());
+		$this->assertSame(3, $this->countItems($db));
+	}
+
+	public function testLenDoesNotRepeatAQueryThatReturnedRows(): void
+	{
+		$db = $this->db();
+		$query = $db->execute('INSERT INTO items (id) VALUES (3) RETURNING id');
+		$query->all();
+		$query->len();
+
+		$this->assertSame(3, $this->countItems($db));
+	}
+
+	public function testLenLeavesAnOpenFetchUntouched(): void
+	{
+		$query = $this->db()->execute('SELECT id FROM items ORDER BY id');
+		$first = $query->fetch();
+		$query->len();
+
+		$this->assertSame(['id' => 1], $first);
+		$this->assertSame(['id' => 2], $query->fetch());
+	}
+
+	public function testRunRepeatsAQueryAndLenCountsTheLatestRun(): void
+	{
+		$db = $this->db();
+		$query = $db->execute('DELETE FROM items WHERE id = 1');
+		$this->assertSame(1, $query->len());
+
+		$query->run();
+
+		$this->assertSame(0, $query->len());
+	}
+
+	private function countItems(Database $db): int
+	{
+		$record = $db->execute('SELECT count(*) AS n FROM items')->one();
+
+		return (int) $record['n'];
+	}
+
 	/** @param Closure(Query): mixed $read */
 	#[DataProvider('readProvider')]
 	public function testReadingReleasesTheTableForOtherConnections(Closure $read): void

@@ -19,6 +19,7 @@ class Query
 {
 	protected PDOStatement $stmt;
 	protected bool $executed = false;
+	private bool $ran = false;
 	protected ?Hydrator $hydrator = null;
 
 	/** The connection the statement was prepared on. */
@@ -201,8 +202,10 @@ class Query
 
 		try {
 			$this->stmt->closeCursor();
+			$result = $this->stmt->execute();
+			$this->ran = true;
 
-			return $this->stmt->execute();
+			return $result;
 		} catch (PDOException $e) {
 			$this->fail($this->pdo, $e);
 		}
@@ -250,6 +253,10 @@ class Query
 
 	public function len(): int
 	{
+		if ($this->ran) {
+			return $this->stmt->rowCount();
+		}
+
 		$this->executeFresh();
 
 		try {

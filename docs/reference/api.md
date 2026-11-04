@@ -161,7 +161,7 @@ Represents a prepared query.
 - `all(string|Closure|null $map = null, ?int $fetchMode = null): array` returns every row
 - `lazy(string|Closure|null $map = null, ?int $fetchMode = null): Generator` streams rows
 - `run(): bool` executes a statement for its success value
-- `len(): int` returns `PDOStatement::rowCount()`
+- `len(): int` returns `PDOStatement::rowCount()` of the latest run, and executes the query only if it has not run yet
 
 Pass a class name or resolver closure as `$map` to hydrate rows into objects. Leave `$map` as `null` for raw arrays. The per-call fetch mode is the second argument or the `fetchMode` named argument.
 
