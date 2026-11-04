@@ -57,7 +57,13 @@
 				// Skipping the return for translated-only output just interpolates
 				// a query nobody reads.
 				'Celema\\Quma\\Debug::query',
+				// Expanding without arrays leaves the statement as it is, just slower.
+				'Celema\\Quma\\Query::expandLists',
 			],
+		},
+		ArrayAny: {
+			// Expanding without arrays leaves the statement as it is, just slower.
+			ignore: ['Celema\\Quma\\Query::expandLists'],
 		},
 		Ternary: {
 			ignore: [
@@ -81,10 +87,13 @@
 			ignore: [
 				'Celema\\Quma\\Debug::sessionInfo',
 				'Celema\\Quma\\Migrations\\Log::applied',
+				'Celema\\Quma\\DriverError::__construct',
 			],
 		},
 		CastInt: {
-			ignore: ['Celema\\Quma\\Query::bindArgs'],
+			ignore: ['Celema\\Quma\\Query::bindArgs', 'Celema\\Quma\\DriverError::__construct'],
+			// hrtime(true) is only a float on 32-bit systems, where PHP's ints would overflow.
+			ignoreSourceCodeByRegex: ['\\(int\\) hrtime\\(true\\)'],
 		},
 
 		// The session key stays unique per explicit session value.
@@ -107,9 +116,9 @@
 				'Celema\\Quma\\Exception\\InvalidTypeCoercion::constructorFailure',
 				// PHP's sort only checks whether the comparison is greater than 0.
 				'Celema\\Quma\\Environment::collectMigrations',
+				// No driver reports the code 0, 1 or -1 that stands for a missing one here.
+				'Celema\\Quma\\DriverError::__construct',
 			],
-			// Swap token names in Debug::prepareQuery() only need to be unique.
-			ignoreSourceCodeByRegex: ['\\$i = 0;'],
 		},
 		IncrementInteger: {
 			ignore: [
@@ -118,15 +127,9 @@
 				'Celema\\Quma\\Exception\\InvalidTypeCoercion::constructorFailure',
 				// PHP's sort only checks whether the comparison is greater than 0.
 				'Celema\\Quma\\Environment::collectMigrations',
+				// No driver reports the code 0, 1 or -1 that stands for a missing one here.
+				'Celema\\Quma\\DriverError::__construct',
 			],
-		},
-		// Swap token names only need to be unique; the scan order keeps the
-		// pattern priority.
-		Increment: {
-			ignore: ['Celema\\Quma\\Debug::prepareQuery'],
-		},
-		Break_: {
-			ignore: ['Celema\\Quma\\Debug::prepareQuery'],
 		},
 
 		// Substring at exactly the limit is a no-op.

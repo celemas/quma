@@ -60,7 +60,10 @@ final class LiteralPattern
 	 */
 	public static function withLists(string $driver): string
 	{
-		return substr(self::for($driver), 0, -1) . '|(?<![\w.$])(?i:IN)\s*:(?<list>[a-zA-Z_][a-zA-Z0-9_]*)(?![\w:])/';
+		return (
+			substr(self::for($driver), 0, -1)
+				. '|(?<![\w.$])(?<in>(?i:IN)\s*):(?<list>[a-zA-Z_][a-zA-Z0-9_]*)(?![\w:])/'
+		);
 	}
 
 	/** @return non-empty-string */

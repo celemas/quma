@@ -121,6 +121,16 @@ final class DebugTest extends TestCase
 		);
 	}
 
+	public function testInterpolationRestoresManyLiterals(): void
+	{
+		$literals = implode(', ', array_map(static fn(int $i): string => "'?{$i}'", range(1, 12)));
+
+		$this->assertSame(
+			"SELECT {$literals}, 1",
+			Debug::interpolate("SELECT {$literals}, ?", new Args([1]), 'sqlite'),
+		);
+	}
+
 	#[DataProvider('driverSyntax')]
 	public function testInterpolationReadsLiteralsAndCommentsByDriver(
 		string $driver,

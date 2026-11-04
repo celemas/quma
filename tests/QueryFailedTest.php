@@ -276,6 +276,8 @@ final class QueryFailedTest extends TestCase
 	 * @param class-string<QueryFailed> $class
 	 */
 	#[DataProvider('driverErrors')]
+	#[DataProvider('standardStates')]
+	#[DataProvider('mysqlCodes')]
 	public function testClassifiesWhatOnlySomeServersReport(
 		string $driver,
 		string $code,
@@ -295,6 +297,7 @@ final class QueryFailedTest extends TestCase
 	{
 		return [
 			'no error info' => ['pgsql', '23505', null, UniqueViolation::class],
+			'error info before the code' => ['pgsql', 'HY000', ['23505', 7, 'x'], UniqueViolation::class],
 			'other driver' => ['odbc', '23505', ['23505', 1, 'x'], UniqueViolation::class],
 			'restrict violation' => ['pgsql', '23001', ['23001', 7, 'x'], ForeignKeyViolation::class],
 			'serialization' => ['pgsql', '40001', ['40001', 7, 'x'], TransactionConflict::class],
@@ -315,6 +318,63 @@ final class QueryFailedTest extends TestCase
 			'mysql other' => ['mysql', '42000', ['42000', 1064, 'x'], QueryFailed::class],
 			'sqlite table locked' => ['sqlite', 'HY000', ['HY000', 6, 'x'], TransactionConflict::class],
 		];
+	}
+
+	/** @return iterable<string, array{string, string, array{string, int, string}, class-string<QueryFailed>}> */
+	public static function standardStates(): iterable
+	{
+		$states = [
+			UniqueViolation::class => ['23505'],
+			ForeignKeyViolation::class => ['23503'],
+			NotNullViolation::class => ['23502'],
+			CheckViolation::class => ['23514'],
+			ExclusionViolation::class => ['23P01'],
+			TransactionConflict::class => ['55P03'],
+			ConnectionLost::class => ['57P02', '57P03'],
+		];
+
+		foreach ($states as $class => $values) {
+			foreach ($values as $state) {
+				yield "state {$state}" => ['pgsql', $state, [$state, 7, 'x'], $class];
+			}
+		}
+	}
+
+	/** @return iterable<string, array{string, string, array{string, int, string}, class-string<QueryFailed>}> */
+	public static function mysqlCodes(): iterable
+	{
+		$codes = [
+			UniqueViolation::class => [1062, 1169, 1586],
+			ForeignKeyViolation::class => [1216, 1217, 1451, 1452],
+			NotNullViolation::class => [1048, 1364],
+			CheckViolation::class => [3819],
+			DataError::class => [1264, 1265, 1292, 1366, 1406],
+			TransactionConflict::class => [1205],
+			ConnectionLost::class => [1053, 1927, 2006, 2055],
+		];
+
+		foreach ($codes as $class => $values) {
+			foreach ($values as $code) {
+				yield "code {$code}" => ['mysql', 'HY000', ['HY000', $code, 'x'], $class];
+			}
+		}
+	}
+
+	#[DataProvider('bindingDrivers')]
+	public function testWrapsAFailureWhileBinding(string $driver): void
+	{
+		$connection = $this->connection(dsn: $this->dsn($driver))->option(PDO::ATTR_EMULATE_PREPARES, false);
+
+		$this->expectException(QueryFailed::class);
+		$this->expectExceptionMessage('Invalid parameter number');
+
+		new Database($connection)->execute('SELECT 1 AS v', ['unused' => 1])->run();
+	}
+
+	/** @return array<string, array{string}> */
+	public static function bindingDrivers(): array
+	{
+		return ['pgsql' => ['pgsql'], 'mysql' => ['mysql']];
 	}
 
 	public function testHasNoConstraintWithoutANameInTheMessage(): void

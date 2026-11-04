@@ -307,9 +307,7 @@ class Database
 		try {
 			$stmt?->closeCursor();
 		} catch (PDOException) {
-			if ($this->pdo !== null) {
-				$this->markSuspect($this->pdo);
-			}
+			$this->suspect = true;
 		}
 	}
 
@@ -328,9 +326,9 @@ class Database
 			$hook($execution);
 		} catch (Throwable $e) {
 			error_log('Quma: the onExecute hook failed: ' . $e->getMessage());
-		} finally {
-			$this->reporting = false;
 		}
+
+		$this->reporting = false;
 	}
 
 	public function quote(string $value): string
@@ -357,7 +355,7 @@ class Database
 	public function transaction(callable $work): mixed
 	{
 		$pdo = $this->getConn();
-		$savepoint = $pdo->inTransaction() ? 'quma_block_' . ($this->blocks + 1) : null;
+		$savepoint = $pdo->inTransaction() ? 'quma_block_' . $this->blocks : null;
 
 		if ($savepoint === null) {
 			$this->begin();
@@ -418,12 +416,10 @@ class Database
 		try {
 			if ($savepoint === null) {
 				$this->rollback();
-
-				return;
+			} else {
+				$this->savepointCall("ROLLBACK TO SAVEPOINT {$savepoint}");
+				$this->savepointCall("RELEASE SAVEPOINT {$savepoint}");
 			}
-
-			$this->savepointCall("ROLLBACK TO SAVEPOINT {$savepoint}");
-			$this->savepointCall("RELEASE SAVEPOINT {$savepoint}");
 		} catch (Throwable) {
 			// @mago-expect lint:no-empty-catch-clause The exception that ended the block explains the failure.
 		}
@@ -431,7 +427,7 @@ class Database
 
 	private function savepointCall(string $sql): void
 	{
-		$this->transactionCall(static fn(PDO $pdo): bool => $pdo->exec($sql) !== false);
+		$this->transactionCall(static fn(PDO $pdo): int|false => $pdo->exec($sql));
 	}
 
 	public function begin(): bool
@@ -462,8 +458,13 @@ class Database
 		}
 	}
 
-	/** @param Closure(PDO): bool $call */
-	private function transactionCall(Closure $call): bool
+	/**
+	 * @template T
+	 *
+	 * @param Closure(PDO): T $call
+	 * @return T
+	 */
+	private function transactionCall(Closure $call): mixed
 	{
 		$this->assertNoStream();
 

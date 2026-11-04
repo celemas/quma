@@ -169,7 +169,7 @@ class ScriptTest extends TestCase
 			true,
 		);
 		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('Could not find the parameters of inline.tpql');
+		$this->expectExceptionMessage('Could not find the parameters of inline.tpql: Backtrack limit exhausted');
 
 		$this->withoutBacktracking(static fn() => $script->invoke(['x' => 'bound']));
 	}

@@ -30,6 +30,7 @@ final class OnExecuteTest extends TestCase
 		$this->assertNull($execution->script);
 		$this->assertSame('SELECT 1 AS v', $execution->sql);
 		$this->assertGreaterThan(0.0, $execution->duration);
+		$this->assertLessThan(60.0, $execution->duration);
 		$this->assertSame(0, $execution->rowCount);
 		$this->assertNull($execution->error);
 	}

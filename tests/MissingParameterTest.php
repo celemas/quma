@@ -85,6 +85,12 @@ final class MissingParameterTest extends TestCase
 			'sqlite none' => ['sqlite', 'SELECT ? AS v', 0, 'Expected 1 positional parameters, got 0.'],
 			'mysql none' => ['mysql', 'SELECT ? AS v', 0, 'Expected 1 positional parameters, got 0.'],
 			'sqlite some' => ['sqlite', 'SELECT ? AS v, ? AS w', 1, 'Expected 2 positional parameters, got 1.'],
+			'escaped question mark' => [
+				'sqlite',
+				'SELECT ?? AS a, ? AS b',
+				0,
+				'Expected 1 positional parameters, got 0.',
+			],
 			'pgsql some' => ['pgsql', 'SELECT ? AS v, ? AS w', 1, 'Expected 2 positional parameters, got 1.'],
 		];
 	}

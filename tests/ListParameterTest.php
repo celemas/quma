@@ -148,6 +148,14 @@ final class ListParameterTest extends TestCase
 		];
 	}
 
+	public function testLeavesAnArrayWithoutAPlaceholderToPdo(): void
+	{
+		$this->expectException(QueryFailed::class);
+		$this->expectExceptionMessage('column index out of range');
+
+		new Database($this->connection())->execute('SELECT 1 AS v', ['ids' => [1]])->run();
+	}
+
 	public function testRefusesAnEmptyList(): void
 	{
 		$this->expectException(InvalidArgumentException::class);

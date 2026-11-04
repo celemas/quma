@@ -230,10 +230,7 @@ class Query
 
 			$this->stmt = $pdo->prepare($this->query, $driver === 'pgsql' ? [PDO::ATTR_PREFETCH => 0] : []);
 
-			if ($this->args->count() > 0) {
-				$this->bindArgs($this->args->get(), $this->args->type());
-			}
-
+			$this->bindArgs($this->args->get(), $this->args->type());
 			$this->stmt->execute();
 
 			return $this->stmt;
@@ -423,7 +420,7 @@ class Query
 
 				$placeholders = $this->listPlaceholders($name, $list, $expanded);
 
-				return (string) strstr($matches[0], ':', true) . '(' . implode(', ', $placeholders) . ')';
+				return $matches['in'] . '(' . implode(', ', $placeholders) . ')';
 			},
 			$this->query,
 		);
@@ -512,7 +509,7 @@ class Query
 			return;
 		}
 
-		$expected = (int) preg_match_all('/(?<!\?)\?(?!\?)/', $code);
+		$expected = substr_count(str_replace('??', '', $code), '?');
 
 		if ($expected > count($given)) {
 			throw MissingParameter::positional($expected, count($given), $this->sourcePath);
@@ -535,7 +532,11 @@ class Query
 		$this->stmt = $stmt;
 
 		if ($this->args->count() > 0) {
-			$this->bindArgs($this->args->get(), $this->args->type());
+			try {
+				$this->bindArgs($this->args->get(), $this->args->type());
+			} catch (PDOException $e) {
+				$this->fail($pdo, $e, $started);
+			}
 		}
 	}
 

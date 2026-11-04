@@ -7,6 +7,7 @@ namespace Celema\Quma\Tests;
 use Celema\Quma\Database;
 use Celema\Quma\Exception\QueryFailed;
 use Celema\Quma\Exception\StreamOpen;
+use Celema\Quma\Tests\Util\InspectableDatabase;
 use Celema\Quma\Tests\Util\StreamedNumber;
 use Generator;
 use Pdo\Mysql;
@@ -67,7 +68,11 @@ final class StreamTest extends TestCase
 				$call();
 				$this->fail("Expected {$label} to be refused.");
 			} catch (StreamOpen $e) {
-				$this->assertStringContainsString('cannot run while a stream is open', $e->getMessage());
+				$this->assertSame(
+					'Another statement cannot run while a stream is open on the connection. '
+						. 'End the loop first, or use lazy() or a second Database.',
+					$e->getMessage(),
+				);
 			}
 		}
 
@@ -200,7 +205,7 @@ final class StreamTest extends TestCase
 
 	public function testClosingAStreamSurvivesAFailingDriver(): void
 	{
-		$db = $this->db('sqlite');
+		$db = new InspectableDatabase($this->connection());
 		$db->getConn();
 		$stmt = new class extends PDOStatement {
 			public function __construct() {}
@@ -215,6 +220,7 @@ final class StreamTest extends TestCase
 		$db->closeStream();
 
 		$this->assertFalse($db->streaming($stmt));
+		$this->assertTrue($db->suspectPublic());
 		$this->assertSame(['v' => 1], $this->row($db->execute('SELECT 1 AS v')->one()));
 	}
 

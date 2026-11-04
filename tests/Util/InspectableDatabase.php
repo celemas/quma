@@ -21,6 +21,11 @@ final class InspectableDatabase extends Database
 		return $this->lastUsedAt;
 	}
 
+	public function suspectPublic(): bool
+	{
+		return $this->suspect;
+	}
+
 	public function setPdoPublic(PDO $pdo): void
 	{
 		$this->pdo = $pdo;

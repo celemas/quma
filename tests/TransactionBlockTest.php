@@ -182,6 +182,70 @@ final class TransactionBlockTest extends TestCase
 		}
 	}
 
+	public function testBlockThatFailsToFinishKeepsTheOuterTransactionUsable(): void
+	{
+		$db = $this->db('pgsql');
+
+		$db->transaction(function () use ($db): void {
+			$this->add($db, 1);
+
+			try {
+				$db->transaction(static function () use ($db): void {
+					try {
+						$db->execute('SELECT * FROM quma_missing_table')->all();
+					} catch (PDOException) {
+						// @mago-expect lint:no-empty-catch-clause The savepoint cannot be released after this.
+					}
+				});
+				$this->fail('Expected the nested block to fail.');
+			} catch (PDOException) {
+				// @mago-expect lint:no-empty-catch-clause The outer block goes on.
+			}
+
+			$this->add($db, 2);
+		});
+
+		$this->assertSame([1, 2], $this->rows($db));
+	}
+
+	public function testFailedNestedBlockReleasesItsSavepoint(): void
+	{
+		$db = $this->db('sqlite');
+
+		$db->transaction(function () use ($db): void {
+			try {
+				$db->transaction(static function (): void {
+					throw new LogicException('failed');
+				});
+			} catch (LogicException) {
+				// @mago-expect lint:no-empty-catch-clause The outer block goes on.
+			}
+
+			$this->expectException(PDOException::class);
+			$this->expectExceptionMessage('no such savepoint');
+
+			$db->getConn()->exec('RELEASE SAVEPOINT quma_block_1');
+		});
+	}
+
+	public function testLeavesATransactionOnAReplacedConnectionAlone(): void
+	{
+		$db = $this->db('sqlite');
+
+		try {
+			$db->transaction(static function () use ($db): void {
+				$db->reconnect();
+				$db->begin();
+
+				throw new LogicException('failed');
+			});
+		} catch (LogicException) {
+			// @mago-expect lint:no-empty-catch-clause The state below shows the outcome.
+		}
+
+		$this->assertTrue($db->getConn()->inTransaction());
+	}
+
 	#[DataProvider('drivers')]
 	public function testRefusesCommitAndRollbackInsideABlock(string $driver): void
 	{
