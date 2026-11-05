@@ -304,6 +304,7 @@ final class QueryFailedTest extends TestCase
 			'deadlock' => ['pgsql', '40P01', ['40P01', 7, 'x'], TransactionConflict::class],
 			'admin shutdown' => ['pgsql', '57P01', ['57P01', 7, 'x'], ConnectionLost::class],
 			'connection class' => ['pgsql', '08006', ['08006', 7, 'x'], ConnectionLost::class],
+			'protocol violation' => ['pgsql', '08P01', ['08P01', 7, 'x'], QueryFailed::class],
 			'other integrity' => ['pgsql', '23000', ['23000', 7, 'x'], IntegrityViolation::class],
 			'closed by server' => [
 				'pgsql',
@@ -369,6 +370,22 @@ final class QueryFailedTest extends TestCase
 		$this->expectExceptionMessage('Invalid parameter number');
 
 		new Database($connection)->execute('SELECT 1 AS v', ['unused' => 1])->run();
+	}
+
+	public function testRejectedParameterCountKeepsTheConnection(): void
+	{
+		$connection = $this->connection(dsn: $this->dsn('pgsql'))->option(PDO::ATTR_EMULATE_PREPARES, false);
+		$db = new Database($connection);
+
+		try {
+			$db->execute('SELECT (ARRAY[1, 2, 3])[:n] AS v')->run();
+			$this->fail('Expected the server to reject the statement.');
+		} catch (QueryFailed $e) {
+			$this->assertSame(QueryFailed::class, $e::class);
+			$this->assertStringContainsString('bind message supplies 0 parameters', $e->getMessage());
+		}
+
+		$this->assertSame(['v' => 1], $db->execute('SELECT 1 AS v')->one());
 	}
 
 	/** @return array<string, array{string}> */

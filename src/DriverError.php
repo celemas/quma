@@ -82,6 +82,8 @@ final class DriverError
 			'23P01' => ExclusionViolation::class,
 			'40001', '40P01', '55P03' => TransactionConflict::class,
 			'57P01', '57P02', '57P03' => ConnectionLost::class,
+			// In class 08, but the server rejected a message and usually keeps the connection.
+			'08P01' => QueryFailed::class,
 			default => $this->standardClass(),
 		};
 	}
