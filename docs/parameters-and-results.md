@@ -160,6 +160,7 @@ It takes the same arguments as `lazy()`. A stream has limits:
 - A stream ends with its last row or when the generator is destroyed, for example by `break` when it is not stored in a variable. On MySQL, ending early still reads the remaining rows, so make the query return only what the loop needs.
 - `reset()` and `disconnect()` end an open stream, and the loop then throws `RuntimeException`.
 - `len()` after a stream returns the number of rows it read.
+- On PostgreSQL, the rows only arrive while the loop runs from PHP 8.5.10. Lazy fetching in `pdo_pgsql` before that version can crash PHP or block the next statement, so `stream()` loads the whole result first, like `lazy()`. The rows and the limits above stay the same.
 
 ## Map rows to objects
 

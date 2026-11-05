@@ -228,7 +228,11 @@ class Query
 				$pdo->setAttribute(Mysql::ATTR_USE_BUFFERED_QUERY, false);
 			}
 
-			$this->stmt = $pdo->prepare($this->query, $driver === 'pgsql' ? [PDO::ATTR_PREFETCH => 0] : []);
+			// Lazy fetching on pdo_pgsql before PHP 8.5.10 can crash or block the next statement.
+			$this->stmt = $pdo->prepare(
+				$this->query,
+				$driver === 'pgsql' && PHP_VERSION_ID >= 80_510 ? [PDO::ATTR_PREFETCH => 0] : [],
+			);
 
 			$this->bindArgs($this->args->get(), $this->args->type());
 			$this->stmt->execute();

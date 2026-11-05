@@ -14,6 +14,7 @@ use Pdo\Mysql;
 use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RequiresPhp;
 use RuntimeException;
 
 /**
@@ -256,6 +257,30 @@ final class StreamTest extends TestCase
 			->current();
 	}
 
+	public function testFailureAfterTheFirstRowsThrowsAQueryFailure(): void
+	{
+		$db = $this->db('mysql');
+		$stream = $db
+			->execute(
+				'SELECT n, IF(n = 3, (SELECT 1 UNION SELECT 2), 1) AS v FROM (' . self::NUMBERS . ') t',
+			)
+			->stream();
+		$rows = [];
+
+		try {
+			foreach ($stream as $row) {
+				$rows[] = (int) $row['n'];
+			}
+
+			$this->fail('Expected the third row to fail.');
+		} catch (QueryFailed $e) {
+			$this->assertStringContainsString('more than 1 row', $e->getMessage());
+		}
+
+		$this->assertSame([1, 2], $rows);
+	}
+
+	#[RequiresPhp('>=8.5.10')]
 	public function testPostgresDoesNotBufferTheResult(): void
 	{
 		$db = $this->db('pgsql');

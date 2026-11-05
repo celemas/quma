@@ -26,6 +26,10 @@
 	mutators: {
 		'@default': true,
 
+		// Below PHP 8.5.10 the lazy branch never runs, so most of these mutants
+		// survive there. testPostgresDoesNotBufferTheResult proves it from 8.5.10.
+		'global-ignoreSourceCodeByRegex': ['.*PHP_VERSION_ID >= 80_510.*'],
+
 		// Extension points of the non-final @api classes.
 		ProtectedVisibility: {
 			ignore: [
