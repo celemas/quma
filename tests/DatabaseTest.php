@@ -486,6 +486,7 @@ class DatabaseTest extends TestCase
 	public function testTemplateQueryWithPositionalArgs(): void
 	{
 		$this->expectException(InvalidArgumentException::class);
+		$this->expectExceptionMessage('allow named parameters only');
 
 		$db = $this->getDb();
 
