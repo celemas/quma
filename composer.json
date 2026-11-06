@@ -48,9 +48,13 @@
 		"test:pgsql": "QUMA_TEST_DRIVERS=pgsql composer test:base",
 		"test:all": "QUMA_TEST_DRIVERS=sqlite,mysql,pgsql composer test:base",
 		"test": "composer test:base",
-		"coverage:test": "QUMA_TEST_DRIVERS=sqlite,mysql,pgsql php -d xdebug.mode=coverage vendor/bin/phpunit --testdox --path-coverage --colors=always",
+		"coverage:test": [
+			"Composer\\Config::disableProcessTimeout",
+			"QUMA_TEST_DRIVERS=sqlite,mysql,pgsql php -d xdebug.mode=coverage vendor/bin/phpunit --testdox --path-coverage --colors=always"
+		],
 		"coverage:analyze": "@php vendor/bin/coverlyzer .coverage/coverage.php",
 		"coverage": [
+			"Composer\\Config::disableProcessTimeout",
 			"composer coverage:test",
 			"composer coverage:analyze"
 		],
@@ -63,12 +67,14 @@
 		"docs:format": "npx prettier@3.6.2 --write --config docs/.prettierrc README.md CHANGELOG.md LICENSE.md docs/",
 		"docs:lint": "npx markdownlint-cli2@0.22.1 README.md CHANGELOG.md LICENSE.md docs/",
 		"ci": [
+			"Composer\\Config::disableProcessTimeout",
 			"composer lint",
 			"composer coverage",
 			"composer types",
 			"composer types:phpstan"
 		],
 		"ci:full": [
+			"Composer\\Config::disableProcessTimeout",
 			"composer ci",
 			"composer docs:lint"
 		],
