@@ -1164,6 +1164,102 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testTheRunOrderAppliesEveryNamespaceInOneRun(): void
+	{
+		$defaultDir = $this->createMigrationDir('order-default');
+		$featureDir = $this->createMigrationDir('order-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE order_core (id integer);');
+		file_put_contents(
+			$featureDir . '/000001-feature.sql',
+			'CREATE TABLE order_feature (core integer REFERENCES order_core (id));',
+		);
+		$conn = $this->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature']);
+
+		try {
+			ob_start();
+			$this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations']);
+			$plan = (string) ob_get_clean();
+
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$rows = new Database($conn)->execute('SELECT migration FROM migrations ORDER BY migration')->all(
+				fetchMode: PDO::FETCH_ASSOC,
+			);
+
+			$this->assertStringContainsString(
+				"Would apply 2 migrations:\n  - 000001-core.sql\n  - feature:000001-feature.sql\n",
+				$plan,
+			);
+			$this->assertSame(0, $result, $output);
+			$this->assertStringContainsString('2 migrations successfully applied', $output);
+			$this->assertSame(['000001-core.sql', 'feature:000001-feature.sql'], array_column($rows, 'migration'));
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testAFailureInALaterNamespaceRollsBackTheWholeRun(): void
+	{
+		$defaultDir = $this->createMigrationDir('order-rollback-default');
+		$featureDir = $this->createMigrationDir('order-rollback-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE order_rollback (id integer);');
+		file_put_contents($featureDir . '/000001-broken.sql', 'CREATE TABLE;');
+		$conn = $this->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature']);
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			ob_end_clean();
+
+			$table = new Database($conn)->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='order_rollback'",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(1, $result);
+			$this->assertSame(0, (int) ($table['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testANamespaceOfTheOrderWithoutDirectoriesHasNothingToRun(): void
+	{
+		$defaultDir = $this->createMigrationDir('order-empty-default');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE order_empty (id integer);');
+		$conn = $this->connection(migrations: ['default' => [$defaultDir], 'feature' => []])
+			->migrationOrder(['default', 'feature']);
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(0, $result, $output);
+			$this->assertStringContainsString('1 migration successfully applied', $output);
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+		}
+	}
+
+	public function testAnUnknownNamespaceInTheOrderFailsBeforeRunning(): void
+	{
+		$conn = $this->connection(migrations: ['default' => [TestCase::root() . 'migrations']])
+			->migrationOrder(['default', 'missing']);
+
+		ob_start();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+		$output = (string) ob_get_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertSame("Migration namespace 'missing' does not exist\n", $output);
+	}
+
 	private function mysqlDsn(): ?string
 	{
 		foreach (TestCase::getAvailableDsns() as $dsn) {

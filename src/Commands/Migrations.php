@@ -76,23 +76,21 @@ final class Migrations
 			return 1;
 		}
 
-		$migrations = $this->migrationsForNamespace($namespace);
+		$namespaces = $namespace !== ''
+			? $this->namespaces([$namespace], required: true)
+			: $this->namespaces($this->env->conn->config->migrationOrder);
 
-		if ($migrations === false) {
+		if ($namespaces === false) {
 			return 1;
 		}
 
-		$migrationNamespace = $namespace !== '' ? $namespace : 'default';
 		$tableExists = $driverSupported && $env->checkIfMigrationsTableExists($env->db);
 
 		if (!$apply && !$testRun) {
-			return $this->plan()->show($migrationNamespace, $migrations, $tableExists);
+			return $this->plan()->show($namespaces, $tableExists);
 		}
 
-		if (
-			!$apply
-			&& !$this->confirmTestRunForPending($migrationNamespace, $migrations, $tableExists, $yes)
-		) {
+		if (!$apply && !$this->confirmTestRunForPending($namespaces, $tableExists, $yes)) {
 			return 1;
 		}
 
@@ -106,28 +104,10 @@ final class Migrations
 			$tableExists = true;
 		}
 
-		return $this->migrate(
-			$migrationNamespace,
-			$migrations,
-			$stacktrace,
-			$apply,
-			$tableExists,
-		);
-	}
-
-	/** @param list<string> $migrations */
-	private function migrate(
-		string $namespace,
-		array $migrations,
-		bool $showStacktrace,
-		bool $apply,
-		bool $tableExists,
-	): int {
 		return $this->runner()->run(
-			$namespace,
-			$migrations,
+			$namespaces,
 			new RunOptions(
-				$showStacktrace,
+				$stacktrace,
 				$apply,
 				$tableExists,
 				$this->createMigrationsTable(...),
@@ -135,33 +115,30 @@ final class Migrations
 		);
 	}
 
-	/**
-	 * @param list<string> $migrations
-	 */
-	private function confirmTestRunForPending(
-		string $namespace,
-		array $migrations,
-		bool $tableExists,
-		bool $yes,
-	): bool {
+	/** @param array<string, list<string>> $namespaces */
+	private function confirmTestRunForPending(array $namespaces, bool $tableExists, bool $yes): bool
+	{
 		$appliedMigrations = $tableExists ? $this->log()->applied($this->env->db) : [];
-		$pendingMigrations = $this->planner()->pendingMigrations(
-			$namespace,
-			$migrations,
-			$appliedMigrations,
-		);
 
-		if (count($pendingMigrations) === 0) {
-			return true;
+		foreach ($namespaces as $namespace => $migrations) {
+			if ($this->planner()->pendingMigrations($namespace, $migrations, $appliedMigrations) !== []) {
+				return new TestRunConfirmation()->confirm($this->io, $yes);
+			}
 		}
 
-		return new TestRunConfirmation()->confirm($this->io, $yes);
+		return true;
 	}
 
 	/**
-	 * @return list<string>|false
+	 * The migrations of each namespace in run order. The first namespace of
+	 * the order, `default` unless configured otherwise, and a namespace
+	 * named on the command line must exist; a later one without migration
+	 * directories has nothing to run.
+	 *
+	 * @param list<string> $order
+	 * @return array<string, list<string>>|false
 	 */
-	private function migrationsForNamespace(string $namespace): array|false
+	private function namespaces(array $order, bool $required = false): array|false
 	{
 		$migrationNamespaces = $this->env->getMigrations();
 
@@ -171,32 +148,43 @@ final class Migrations
 			return false;
 		}
 
-		if ($namespace) {
-			if (!array_key_exists($namespace, $migrationNamespaces)) {
-				$this->io->error("Migration namespace '%s' does not exist", $namespace);
+		$configured = $this->env->conn->config->migrations;
+		$namespaces = [];
 
+		foreach ($order as $index => $namespace) {
+			if (!array_key_exists($namespace, $migrationNamespaces)) {
+				$declared = !array_is_list($configured) && array_key_exists($namespace, $configured);
+
+				if ($index === 0 || $required || !$declared) {
+					$this->namespaceMissing($namespace, $required);
+
+					return false;
+				}
+			}
+
+			$migrations = $migrationNamespaces[$namespace] ?? [];
+
+			if (!$this->migrationIdsAreUnique($namespace, $migrations)) {
 				return false;
 			}
 
-			$migrations = $migrationNamespaces[$namespace];
-
-			return $this->migrationIdsAreUnique($namespace, $migrations) ? $migrations : false;
+			$namespaces[$namespace] = $migrations;
 		}
 
-		if (!array_key_exists('default', $migrationNamespaces)) {
-			$this->io->error("Migration namespace 'default' does not exist");
+		return $namespaces;
+	}
+
+	private function namespaceMissing(string $namespace, bool $named): void
+	{
+		$this->io->error("Migration namespace '%s' does not exist", $namespace);
+
+		if (!$named && $namespace === 'default') {
 			$this->io->line(
 				'If you have defined namespaced migrations, you must either provide a namespace using the '
 					. "`--namespace` flag when running this command, or define a namespace named 'default' which "
 					. 'will be used when no namespace is provided.',
 			);
-
-			return false;
 		}
-
-		$migrations = $migrationNamespaces['default'];
-
-		return $this->migrationIdsAreUnique('default', $migrations) ? $migrations : false;
 	}
 
 	/** @param list<string> $migrations */

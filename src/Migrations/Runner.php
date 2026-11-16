@@ -21,8 +21,13 @@ final readonly class Runner
 		private Io $io,
 	) {}
 
-	/** @param list<string> $migrations */
-	public function run(string $namespace, array $migrations, RunOptions $options): int
+	/**
+	 * Runs the pending migrations of several namespaces, in the given order,
+	 * in one transaction where the driver allows it.
+	 *
+	 * @param array<string, list<string>> $namespaces
+	 */
+	public function run(array $namespaces, RunOptions $options): int
 	{
 		$db = $this->env->db;
 
@@ -44,25 +49,27 @@ final readonly class Runner
 		$result = Executor::STARTED;
 		$numApplied = 0;
 
-		foreach ($migrations as $migration) {
-			$migrationId = $this->planner->migrationId($namespace, $migration);
+		foreach ($namespaces as $namespace => $migrations) {
+			foreach ($migrations as $migration) {
+				$migrationId = $this->planner->migrationId($namespace, $migration);
 
-			if (in_array($migrationId, $appliedMigrations, strict: true)) {
-				continue;
-			}
+				if (in_array($migrationId, $appliedMigrations, strict: true)) {
+					continue;
+				}
 
-			if (!$this->driverPolicy->supportsMigration($migration)) {
-				continue;
-			}
+				if (!$this->driverPolicy->supportsMigration($migration)) {
+					continue;
+				}
 
-			$result = $this->executor->migrate($namespace, $migration, $options->showStacktrace);
+				$result = $this->executor->migrate($namespace, $migration, $options->showStacktrace);
 
-			if ($result === Executor::ERROR) {
-				break;
-			}
+				if ($result === Executor::ERROR) {
+					break 2;
+				}
 
-			if ($result === Executor::SUCCESS) {
-				$numApplied++;
+				if ($result === Executor::SUCCESS) {
+					$numApplied++;
+				}
 			}
 		}
 

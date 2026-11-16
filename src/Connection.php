@@ -141,6 +141,22 @@ class Connection
 		return $this;
 	}
 
+	/**
+	 * The namespaces `db:migrations` runs when no `--namespace` is given, in
+	 * this order: `['default', 'billing']` applies `default` first, then
+	 * `billing`. On SQLite and PostgreSQL the whole run is one transaction,
+	 * so a failing migration in any namespace leaves the database unchanged.
+	 * Without it, the command runs `default` alone.
+	 *
+	 * @param list<string> $namespaces
+	 */
+	public function migrationOrder(array $namespaces): static
+	{
+		$this->config->setMigrationOrder($namespaces);
+
+		return $this;
+	}
+
 	/** @psalm-param SqlConfig $sql */
 	public function addSql(array|string $sql): static
 	{

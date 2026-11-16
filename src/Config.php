@@ -21,6 +21,8 @@ use ValueError;
  * @psalm-type PlaceholderMap = array<non-empty-string, string>
  * @psalm-type PlaceholderConfig = array<non-empty-string, PlaceholderMap>
  */
+// Each property is one setting of the connection.
+// @mago-expect lint:too-many-properties
 final class Config
 {
 	/** @var non-empty-string */
@@ -34,6 +36,14 @@ final class Config
 
 	public private(set) PdoConfig $pdo;
 	public private(set) ?Placeholders $placeholders = null;
+
+	/**
+	 * The namespaces `db:migrations` runs without `--namespace`, in this
+	 * order and in one transaction where the driver allows it.
+	 *
+	 * @var list<non-empty-string>
+	 */
+	public private(set) array $migrationOrder = ['default'];
 
 	public private(set) string $migrationsTable = 'migrations';
 	public private(set) string $migrationsColumnMigration = 'migration';
@@ -149,6 +159,30 @@ final class Config
 			? $this->preparePath($dirs)
 			: $this->readDirsEntry($dirs);
 		$this->migrations = $migrations;
+	}
+
+	/** @param list<string> $namespaces */
+	public function setMigrationOrder(array $namespaces): void
+	{
+		$order = [];
+
+		foreach ($namespaces as $namespace) {
+			if ($namespace === '') {
+				throw new ValueError('Migration namespace must not be empty.');
+			}
+
+			if (in_array($namespace, $order, true)) {
+				throw new ValueError("Migration namespace '{$namespace}' appears twice in the run order.");
+			}
+
+			$order[] = $namespace;
+		}
+
+		if ($order === []) {
+			throw new ValueError('The migration run order must name at least one namespace.');
+		}
+
+		$this->migrationOrder = $order;
 	}
 
 	public function setMigrationsTable(string $table): void

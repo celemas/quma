@@ -118,8 +118,7 @@ final class MigrationRunnerTest extends TestCase
 		$next = $this->migration('000002-next.sql', 'CREATE TABLE next_table (id INTEGER);');
 
 		$exit = $this->runner('sqlite')->run(
-			'default',
-			[$failing, $next],
+			['default' => [$failing, $next]],
 			new RunOptions(false, true, true, static fn(): int => 0),
 		);
 
@@ -136,8 +135,7 @@ final class MigrationRunnerTest extends TestCase
 		$migration = $this->migration('000001-create.sql', 'CREATE TABLE created_table (id INTEGER);');
 
 		$exit = $this->runner('sqlite')->run(
-			'default',
-			[$migration],
+			['default' => [$migration]],
 			new RunOptions(false, true, false, static fn(): int => 1),
 		);
 

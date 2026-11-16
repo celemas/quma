@@ -54,7 +54,7 @@ Options:
 - `--apply` runs and records pending migrations
 - `--test-run` runs pending migrations inside a transaction and rolls them back; only supported on SQLite and PostgreSQL
 - `--yes` confirms `--test-run` in non-interactive shells
-- `--namespace=<name>` runs only one migration namespace
+- `--namespace=<name>` runs only one migration namespace; without it, the command runs `default`, or the namespaces of [`Connection::migrationOrder()`](migrations/namespaces.md#running-several-namespaces-in-order) in their order and in one transaction
 - `--stacktrace` prints stack traces for migration failures
 - `--conn=<name>` selects one named connection when you registered multiple connections
 

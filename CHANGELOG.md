@@ -2,7 +2,14 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.10.0...HEAD)
 
-No notable changes since the last release.
+### Added
+
+- `Connection::migrationOrder()` names the namespaces `db:migrations` runs without `--namespace`, in order. On SQLite and PostgreSQL the whole run is one transaction, for `--apply` and `--test-run`, so a failing migration in any namespace leaves the database unchanged. The plan lists the pending migrations of every namespace.
+
+### Changed
+
+- The plan of `db:migrations` lists pending migrations by the id they are recorded with, so a migration of a namespace other than `default` shows its prefix, such as `feature:000001-users.sql`.
+- `Migrations\Runner::run()` and `Migrations\Plan::show()` take the migrations keyed by namespace instead of one namespace and its migrations.
 
 ## [0.10.0](https://codefloe.com/celema/quma/src/tag/0.10.0) (2026-11-06)
 

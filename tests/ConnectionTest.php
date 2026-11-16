@@ -134,6 +134,31 @@ class ConnectionTest extends TestCase
 		);
 	}
 
+	public function testMigrationOrder(): void
+	{
+		$conn = new Connection('sqlite::memory:', self::root() . 'sql/default');
+
+		$this->assertSame(['default'], $conn->config->migrationOrder);
+		$this->assertSame(
+			['default', 'billing'],
+			$conn->migrationOrder(['default', 'billing'])->config->migrationOrder,
+		);
+	}
+
+	public function testMigrationOrderRejectsEmptyAndRepeatedNamespaces(): void
+	{
+		$conn = new Connection('sqlite::memory:', self::root() . 'sql/default');
+
+		foreach ([[], [''], ['default', 'default']] as $order) {
+			try {
+				$conn->migrationOrder($order);
+				$this->fail('Accepted ' . json_encode($order));
+			} catch (\ValueError) {
+				$this->addToAssertionCount(1);
+			}
+		}
+	}
+
 	public function testAddSqlDirsLater(): void
 	{
 		$conn = new Connection(

@@ -23,8 +23,7 @@ final class MigrationPlanTest extends TestCase
 		$io = new Io($buffer);
 
 		$exit = $this->plan('sqlite:' . self::getDbFile(), $io)->show(
-			'default',
-			['/migrations/000001-users.sql'],
+			['default' => ['/migrations/000001-users.sql']],
 			false,
 		);
 
@@ -45,7 +44,7 @@ final class MigrationPlanTest extends TestCase
 		$buffer = new Buffer();
 		$io = new Io($buffer);
 
-		$this->plan('mysql:host=localhost;dbname=quma', $io)->show('default', [], false);
+		$this->plan('mysql:host=localhost;dbname=quma', $io)->show(['default' => []], false);
 
 		$this->assertStringEndsWith(
 			"\nNo migrations were executed. "

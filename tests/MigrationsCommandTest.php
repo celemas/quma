@@ -42,7 +42,7 @@ class MigrationsCommandTest extends TestCase
 
 		try {
 			ob_start();
-			$result = $this->plan($env)->show('default', [$migration], false);
+			$result = $this->plan($env)->show(['default' => [$migration]], false);
 			$output = ob_get_contents();
 			ob_end_clean();
 		} finally {
@@ -136,8 +136,7 @@ class MigrationsCommandTest extends TestCase
 		try {
 			ob_start();
 			$result = $this->runner($env, new DriverPolicy('mysql'))->run(
-				'default',
-				[$migration],
+				['default' => [$migration]],
 				new RunOptions(
 					false,
 					true,

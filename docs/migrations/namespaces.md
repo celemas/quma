@@ -57,6 +57,25 @@ That means:
 
 If you omit `default` and also omit `--namespace`, Quma aborts and tells you to either use `--namespace` or add a `default` namespace.
 
+## Running several namespaces in order
+
+`Connection::migrationOrder()` names the namespaces `db:migrations` runs when no `--namespace` is given, in that order:
+
+```php
+$conn = new Connection(
+    'pgsql:host=localhost;dbname=app',
+    __DIR__ . '/sql',
+)->migrations([
+    'install' => __DIR__ . '/migrations/install',
+    'default' => __DIR__ . '/migrations/core',
+    'billing' => __DIR__ . '/migrations/billing',
+])->migrationOrder(['default', 'billing']);
+```
+
+`php run db:migrations --apply` then applies the pending migrations of `default`, then those of `billing`. On SQLite and PostgreSQL the whole run is one transaction, for `--apply` and for `--test-run`: a failing migration in any namespace leaves the database as it was, and a test run of `billing` sees the pending migrations of `default`. Without `--apply`, the plan lists the pending migrations of every namespace by the id they are recorded with, such as `billing:000001-invoices.sql`.
+
+The first namespace of the order must exist. A later one that is configured without a directory, or whose directories hold no migrations, has nothing to run; one that is not configured at all is an error. `--namespace` still runs a single namespace. Without `migrationOrder()`, the command runs `default` alone.
+
 ## Directory value formats
 
 Inside a namespace, you can use:
