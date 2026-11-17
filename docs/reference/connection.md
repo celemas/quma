@@ -103,6 +103,30 @@ The default is `PDO::FETCH_ASSOC`. Unmapped calls support `PDO::FETCH_ASSOC`, `P
 
 Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
 
+## Connection setup
+
+### `onConnect(Closure $hook): static`
+
+Calls the hook with the `Database` after every connect, for settings each session needs:
+
+```php
+use Celema\Quma\Database;
+
+$conn = new Connection('sqlite:' . __DIR__ . '/app.sqlite', __DIR__ . '/sql')
+    ->onConnect(static function (Database $db): void {
+        $db->execute('PRAGMA foreign_keys = ON')->run();
+        $db->execute('PRAGMA busy_timeout = 5000')->run();
+    });
+
+$conn = new Connection('pgsql:host=localhost;dbname=app', __DIR__ . '/sql')
+    ->onConnect(static function (Database $db): void {
+        $db->execute('SET search_path TO app, public')->run();
+        $db->execute("SET TIME ZONE 'UTC'")->run();
+    });
+```
+
+The hook runs whenever Quma opens a connection: also after `reconnect()`, after `reset()` dropped a broken connection, and when `pingAfterIdle` or `maxConnectionAge` replaces one, so a new connection never misses the settings. Migrations run with it too. If the hook throws, the connection is dropped and the exception reaches the statement that connected; the next statement connects and calls the hook again.
+
 ## Connection reuse
 
 ### `pingAfterIdle(int $seconds): static`

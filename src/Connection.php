@@ -19,6 +19,9 @@ class Connection
 	/** @var (Closure(Execution): void)|null */
 	public private(set) ?Closure $executionHook = null;
 
+	/** @var (Closure(Database): void)|null */
+	public private(set) ?Closure $connectHook = null;
+
 	/** @var (Closure(Environment, string): void)|null */
 	public private(set) ?Closure $beforeMigrationsHook = null;
 
@@ -70,6 +73,21 @@ class Connection
 	public function onExecute(Closure $hook): static
 	{
 		$this->executionHook = $hook;
+
+		return $this;
+	}
+
+	/**
+	 * Calls the hook with the database after every connect, also when Quma
+	 * replaces a broken or old connection, for example to set the search
+	 * path or SQLite pragmas. If it throws, the connection is dropped and
+	 * the exception reaches the statement that connected.
+	 *
+	 * @param Closure(Database): void $hook
+	 */
+	public function onConnect(Closure $hook): static
+	{
+		$this->connectHook = $hook;
 
 		return $this;
 	}

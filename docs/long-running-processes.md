@@ -48,6 +48,8 @@ Call `disconnect()` after each unit of work instead of `reset()` when connection
 
 ## Session state
 
+Settings every connection needs, such as the search path, the time zone, or SQLite pragmas, belong in [`Connection::onConnect()`](reference/connection.md#connection-setup). It runs whenever Quma connects, also for a connection that replaces a broken or old one.
+
 Every setting a unit of work changes on the connection outlives it. Keep such state local to a transaction:
 
 - Use `SET LOCAL` or `set_config('name', 'value', true)` instead of `SET`. Both end with the transaction.

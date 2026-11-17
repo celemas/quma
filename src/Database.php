@@ -145,8 +145,26 @@ class Database
 
 		$this->pdo = $pdo;
 		$this->markConnected();
+		$this->setUpConnection();
 
 		return $this;
+	}
+
+	private function setUpConnection(): void
+	{
+		$hook = $this->conn->connectHook;
+
+		if ($hook === null) {
+			return;
+		}
+
+		try {
+			$hook($this);
+		} catch (Throwable $e) {
+			$this->drop();
+
+			throw $e;
+		}
 	}
 
 	public function disconnect(): void

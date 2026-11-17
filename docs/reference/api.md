@@ -24,6 +24,7 @@ new Connection(string $dsn, string|array $sql)
 - `fetch(int $fetchMode): static` sets the default query fetch mode
 - `pingAfterIdle(int $seconds): static` pings a connection idle for at least this long before reuse (default 60, 0 disables it)
 - `maxConnectionAge(int $seconds): static` replaces connections older than this before reuse (default 0, never)
+- `onConnect(Closure $hook): static` calls the hook with the `Database` after every connect; see [Connection setup](connection.md#connection-setup)
 - `onExecute(Closure $hook): static` calls the hook with an `Execution` after every statement; see [Observe statements](../parameters-and-results.md#observe-statements)
 - `migrations(string|array $migrations): static` sets migration directories
 - `addMigration(string $migrations): static` prepends one flat migration directory
