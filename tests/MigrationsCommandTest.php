@@ -120,14 +120,15 @@ class MigrationsCommandTest extends TestCase
 		$this->assertStringNotContainsString('Created table', (string) $output);
 	}
 
-	public function testRunnerCreatesMetadataBeforeMysqlApply(): void
+	public function testRunnerCreatesTheMetadataTableOnMysql(): void
 	{
+		$dsn = $this->mysqlDsn();
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-mysql-run-apply-' . uniqid();
 		$migration = $dir . '/000001-run-apply.sql';
 		mkdir($dir, 0o700, true);
 		file_put_contents($migration, 'CREATE TABLE mysql_run_apply_precreate (id integer);');
 
-		$conn = $this->connection(migrations: $dir);
+		$conn = $this->connection(dsn: $dsn, migrations: $dir);
 		$env = new Environment(['default' => $conn], []);
 		$db = new Database($conn);
 		$db->execute('DROP TABLE IF EXISTS migrations')->run();
@@ -140,26 +141,31 @@ class MigrationsCommandTest extends TestCase
 				new RunOptions(
 					false,
 					true,
-					false,
 					static fn(): int => (new CreateMigrationsTable($conn))(new Io(new Stdio(
 						'php://output',
 						'php://output',
 					))),
 				),
 			);
-			ob_end_clean();
+			$output = (string) ob_get_clean();
 
-			$this->assertSame(0, $result);
+			$this->assertSame(0, $result, $output);
+			$this->assertStringContainsString("Created table 'migrations'", $output);
 			$this->assertSame(
 				1,
-				$db->execute(
-					"SELECT count(*) AS available FROM sqlite_master WHERE type = 'table' AND name = 'migrations'",
-				)->one(fetchMode: PDO::FETCH_ASSOC)['available'],
+				(int) new PDO($dsn)
+					->query("SELECT IS_FREE_LOCK(CONCAT('quma:', SHA1(CONCAT(DATABASE(), '.migrations'))))")
+					->fetchColumn(),
+				'The run releases its lock while its connection stays open',
 			);
+			$this->assertSame(['000001-run-apply.sql'], array_column(
+				$db->execute('SELECT migration FROM migrations')->all(fetchMode: PDO::FETCH_ASSOC),
+				'migration',
+			));
 			$this->assertSame(
 				1,
-				$db->execute(
-					"SELECT count(*) AS available FROM sqlite_master WHERE type = 'table' AND name = 'mysql_run_apply_precreate'",
+				(int) $db->execute(
+					"SELECT count(*) AS available FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'mysql_run_apply_precreate'",
 				)->one(fetchMode: PDO::FETCH_ASSOC)['available'],
 			);
 		} finally {
@@ -224,6 +230,17 @@ class MigrationsCommandTest extends TestCase
 			new Executor($env, $log, new PhpLoader($env), $io),
 			$io,
 		);
+	}
+
+	private function mysqlDsn(): string
+	{
+		foreach (self::getAvailableDsns() as $dsn) {
+			if (str_starts_with($dsn, 'mysql:')) {
+				return $dsn;
+			}
+		}
+
+		$this->markTestSkipped('MySQL is not available.');
 	}
 
 	private function removeMigrationDir(string $dir): void

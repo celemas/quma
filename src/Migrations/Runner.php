@@ -31,10 +31,21 @@ final readonly class Runner
 	public function run(array $namespaces, RunOptions $options): int
 	{
 		$db = $this->env->db;
+		$lock = new Lock($this->env);
+		$lock->begin($db);
 
-		$this->begin($db);
+		try {
+			return $this->runLocked($db, $namespaces, $options);
+		} finally {
+			$lock->release($db);
+		}
+	}
 
-		if (!$options->tableExists) {
+	/** @param array<string, list<string>> $namespaces */
+	private function runLocked(Database $db, array $namespaces, RunOptions $options): int
+	{
+		// Another run may have created the table while this one waited for the lock.
+		if (!$this->env->checkIfMigrationsTableExists($db)) {
 			$result = ($options->createMigrationsTable)();
 
 			if ($result !== 0) {
@@ -198,13 +209,6 @@ final readonly class Runner
 
 		if ($showStacktrace) {
 			$this->io->stderr()->line('%s', $e->getTraceAsString());
-		}
-	}
-
-	private function begin(Database $db): void
-	{
-		if ($this->driverPolicy->supportsTransactions()) {
-			$db->begin();
 		}
 	}
 }

@@ -150,6 +150,16 @@ For MySQL:
 - `migrations --apply` applies migrations directly because there is no rollback path in the migration runner
 - successful migrations remain applied before a later error
 
+## Concurrent runs
+
+When several processes run `db:migrations --apply` or `--test-run` at once, for example containers that all migrate when they start, only one runs at a time. The others wait until it finished, then read which migrations are applied and skip them:
+
+- PostgreSQL: a transaction-level advisory lock, `pg_advisory_xact_lock()`, keyed by the migrations table
+- MySQL: a named lock, `GET_LOCK()`, for the database and the migrations table, released when the run ends
+- SQLite: the run's transaction begins with `BEGIN IMMEDIATE`, which takes the write lock at once. A waiting run gives up after the busy timeout, `PDO::ATTR_TIMEOUT`, 60 seconds by default, and fails with `database is locked`.
+
+Runs on different migrations tables do not wait for each other. A plan without `--apply` or `--test-run` takes no lock.
+
 ## Completing a run
 
 `Connection::afterMigrations()` registers a function that runs once per run, after the last migration and before the commit. It gets the ids of the migrations the run applied, for work that follows schema changes, such as granting rights on new tables or refreshing materialized views:

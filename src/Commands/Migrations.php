@@ -94,25 +94,11 @@ final class Migrations
 			return 1;
 		}
 
-		if ($driverSupported && !$tableExists && !$this->supportsTransactions()) {
-			$result = $this->createMigrationsTable();
-
-			if ($result !== 0) {
-				return $result;
-			}
-
-			$tableExists = true;
-		}
-
-		return $this->runner()->run(
-			$namespaces,
-			new RunOptions(
-				$stacktrace,
-				$apply,
-				$tableExists,
-				$this->createMigrationsTable(...),
-			),
-		);
+		return $this->runner()->run($namespaces, new RunOptions(
+			$stacktrace,
+			$apply,
+			$this->createMigrationsTable(...),
+		));
 	}
 
 	/** @param array<string, list<string>> $namespaces */

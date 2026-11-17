@@ -12,7 +12,6 @@ final readonly class RunOptions
 	public function __construct(
 		public bool $showStacktrace,
 		public bool $apply,
-		public bool $tableExists,
 		public Closure $createMigrationsTable,
 	) {}
 }

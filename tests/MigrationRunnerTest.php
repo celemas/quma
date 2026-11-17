@@ -15,6 +15,7 @@ use Celema\Quma\Migrations\PhpLoader;
 use Celema\Quma\Migrations\Planner;
 use Celema\Quma\Migrations\Runner;
 use Celema\Quma\Migrations\RunOptions;
+use Pdo\Sqlite;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
@@ -119,7 +120,7 @@ final class MigrationRunnerTest extends TestCase
 
 		$exit = $this->runner('sqlite')->run(
 			['default' => [$failing, $next]],
-			new RunOptions(false, true, true, static fn(): int => 0),
+			new RunOptions(false, true, static fn(): int => 0),
 		);
 
 		$this->assertSame(1, $exit);
@@ -130,13 +131,26 @@ final class MigrationRunnerTest extends TestCase
 		);
 	}
 
+	public function testLaterTransactionsOfTheConnectionStayDeferred(): void
+	{
+		$migration = $this->migration('000001-create.sql', 'CREATE TABLE deferred_table (id INTEGER);');
+
+		$this->runner('sqlite')->run(['default' => [$migration]], new RunOptions(false, true, static fn(): int => 0));
+
+		$this->assertSame(
+			Sqlite::TRANSACTION_MODE_DEFERRED,
+			$this->env->db->getConn()->getAttribute(Sqlite::ATTR_TRANSACTION_MODE),
+		);
+	}
+
 	public function testRunRollsBackWhenTheMigrationsTableCannotBeCreated(): void
 	{
 		$migration = $this->migration('000001-create.sql', 'CREATE TABLE created_table (id INTEGER);');
+		$this->env->db->execute('DROP TABLE migrations')->run();
 
 		$exit = $this->runner('sqlite')->run(
 			['default' => [$migration]],
-			new RunOptions(false, true, false, static fn(): int => 1),
+			new RunOptions(false, true, static fn(): int => 1),
 		);
 
 		$this->assertSame(1, $exit);
