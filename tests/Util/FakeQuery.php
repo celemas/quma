@@ -9,13 +9,15 @@ use Closure;
 
 final class FakeQuery extends Query
 {
+	/** @param list<mixed>|null $row */
 	public function __construct(
 		private readonly int $available,
+		private readonly ?array $row = null,
 	) {}
 
 	public function one(string|Closure|null $map = null, ?int $fetchMode = null): array|object
 	{
-		return ['available' => $this->available];
+		return $this->row ?? ['available' => $this->available];
 	}
 
 	public function first(string|Closure|null $map = null, ?int $fetchMode = null): array|object|null

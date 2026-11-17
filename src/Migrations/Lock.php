@@ -66,7 +66,7 @@ final readonly class Lock
 			fetchMode: PDO::FETCH_NUM,
 		);
 
-		if ((int) (array_values($row)[0] ?? 0) !== 1) {
+		if ((int) $row[0] !== 1) {
 			throw new RuntimeException("Could not lock the migrations table '{$this->env->table}'");
 		}
 	}
