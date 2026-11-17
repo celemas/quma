@@ -25,14 +25,20 @@ use RuntimeException;
  */
 final class MigrationLockTest extends TestCase
 {
-	/** @return array<string, array{string}> */
+	/** @return array<string, array{0: string, 1?: string}> */
 	public static function drivers(): array
 	{
-		return ['sqlite' => ['sqlite'], 'pgsql' => ['pgsql'], 'mysql' => ['mysql']];
+		return [
+			'sqlite' => ['sqlite'],
+			'pgsql' => ['pgsql'],
+			// The waiting run must not read the applied migrations from a snapshot taken before the lock.
+			'pgsql, repeatable read by default' => ['pgsql', 'repeatable read'],
+			'mysql' => ['mysql'],
+		];
 	}
 
 	#[DataProvider('drivers')]
-	public function testARunWaitsForTheRunHoldingTheLockAndSeesItsWork(string $driver): void
+	public function testARunWaitsForTheRunHoldingTheLockAndSeesItsWork(string $driver, string $isolation = ''): void
 	{
 		$dsn = $this->dsn($driver);
 		$dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'quma-lock-' . uniqid();
@@ -46,7 +52,7 @@ final class MigrationLockTest extends TestCase
 
 		new Lock($env)->begin($db);
 		$child = proc_open(
-			[PHP_BINARY, __DIR__ . '/Util/migrate.php', $dsn, $dir, $env->table],
+			[PHP_BINARY, __DIR__ . '/Util/migrate.php', $dsn, $dir, $env->table, $isolation],
 			[1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
 			$pipes,
 		);

@@ -61,6 +61,8 @@ final readonly class Lock
 	private function beginLocked(Database $db): void
 	{
 		$db->begin();
+		// A stricter default would read the applied migrations from a snapshot taken before the lock.
+		$db->execute('SET TRANSACTION ISOLATION LEVEL READ COMMITTED')->run();
 		$db->execute('SELECT pg_advisory_xact_lock(?)', crc32('quma:' . $this->env->table))->run();
 	}
 }
