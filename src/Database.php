@@ -30,6 +30,14 @@ class Database
 	protected array $compiledScripts = [];
 	/** How many transaction blocks are open. */
 	private int $blocks = 0;
+
+	/**
+	 * Callbacks for the commit of the open transaction, with the number of
+	 * blocks open when each was registered.
+	 *
+	 * @var list<array{int, Closure(): void}>
+	 */
+	private array $commitCallbacks = [];
 	private ?PDOStatement $stream = null;
 	private bool $reporting = false;
 
@@ -264,6 +272,8 @@ class Database
 	/** Returns false if the rollback failed. */
 	private function rollBackOpenTransaction(PDO $pdo): bool
 	{
+		$this->commitCallbacks = [];
+
 		try {
 			if ($pdo->inTransaction()) {
 				$pdo->rollBack();
@@ -403,7 +413,59 @@ class Database
 			throw $e;
 		}
 
+		if ($savepoint === null) {
+			$this->runCommitCallbacks();
+		}
+
 		return $result;
+	}
+
+	/**
+	 * Calls the callback once the open transaction is committed, for work
+	 * that must only happen when its data is stored, such as sending mail.
+	 * A rollback discards it, and so does the failure of the block that
+	 * registered it. Outside a transaction it runs at once.
+	 *
+	 * @param Closure(): void $callback
+	 */
+	public function afterCommit(Closure $callback): void
+	{
+		if ($this->pdo?->inTransaction() === true) {
+			$this->commitCallbacks[] = [$this->blocks, $callback];
+
+			return;
+		}
+
+		$callback();
+	}
+
+	/**
+	 * Hands the callbacks of a closed block to the enclosing one, or
+	 * discards them.
+	 */
+	private function settleCallbacks(bool $keep): void
+	{
+		$callbacks = [];
+
+		foreach ($this->commitCallbacks as [$blocks, $callback]) {
+			if ($blocks <= $this->blocks) {
+				$callbacks[] = [$blocks, $callback];
+			} elseif ($keep) {
+				$callbacks[] = [$this->blocks, $callback];
+			}
+		}
+
+		$this->commitCallbacks = $callbacks;
+	}
+
+	private function runCommitCallbacks(): void
+	{
+		$callbacks = $this->commitCallbacks;
+		$this->commitCallbacks = [];
+
+		foreach ($callbacks as [, $callback]) {
+			$callback();
+		}
 	}
 
 	private function finishBlock(PDO $pdo, ?string $savepoint): void
@@ -418,16 +480,21 @@ class Database
 		}
 
 		if ($savepoint === null) {
-			$this->commit();
+			$this->commitTransaction();
 
 			return;
 		}
 
 		$this->savepointCall("RELEASE SAVEPOINT {$savepoint}");
+		$this->settleCallbacks(keep: true);
 	}
 
 	private function undoBlock(PDO $pdo, ?string $savepoint): void
 	{
+		if ($savepoint !== null) {
+			$this->settleCallbacks(keep: false);
+		}
+
 		if ($pdo !== $this->pdo) {
 			return;
 		}
@@ -451,19 +518,36 @@ class Database
 
 	public function begin(): bool
 	{
-		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
+		$begun = $this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
+		$this->commitCallbacks = [];
+
+		return $begun;
 	}
 
 	public function commit(): bool
 	{
 		$this->assertOutsideBlock('commit');
+		$committed = $this->commitTransaction();
+		$this->runCommitCallbacks();
 
-		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->commit());
+		return $committed;
+	}
+
+	private function commitTransaction(): bool
+	{
+		try {
+			return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->commit());
+		} catch (Throwable $e) {
+			$this->commitCallbacks = [];
+
+			throw $e;
+		}
 	}
 
 	public function rollback(): bool
 	{
 		$this->assertOutsideBlock('roll back');
+		$this->commitCallbacks = [];
 
 		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->rollBack());
 	}
@@ -552,6 +636,7 @@ class Database
 	protected function drop(): void
 	{
 		$this->pdo = null;
+		$this->commitCallbacks = [];
 		$this->connectedAt = null;
 		$this->lastUsedAt = null;
 		$this->suspect = false;

@@ -346,6 +346,25 @@ $db->transaction(function () use ($db, $item): void {
 
 On MySQL, a statement such as `CREATE TABLE` commits implicitly, so the work before it can no longer be undone. The block then ends without a commit of its own. Replacing the connection inside a block, for example with `reconnect()`, makes the block throw.
 
+### Work after the commit
+
+`Database::afterCommit()` defers a function until the open transaction is committed, for side effects that must only happen once the data is stored, such as sending mail, dispatching a job to an external queue, or clearing a cache:
+
+```php
+$db->transaction(function () use ($db, $mailer, $email): void {
+    $user = $db->users->add(email: $email)->one();
+
+    $db->afterCommit(static fn() => $mailer->welcome($user));
+});
+```
+
+- The callbacks run in the order they were registered, after the commit of the outermost block or after `commit()`.
+- A rollback discards them. A failing nested block discards only the callbacks registered inside it, and the outer transaction keeps the others.
+- Outside a transaction the function runs at once, so code can use `afterCommit()` whether or not its caller opened one.
+- If a callback throws, its exception reaches the caller of `commit()` or `transaction()` and the later callbacks do not run. The transaction stays committed.
+- On MySQL, a block that ended with an implicit commit runs its callbacks too.
+- `begin()`, `reset()`, and dropping the connection discard callbacks still waiting for a transaction that ended without Quma, such as one committed through the PDO instance from `getConn()`.
+
 ## Handling failed queries
 
 A failing statement or transaction call throws an exception in the `Celema\Quma\Exception` namespace, so the same failure throws the same class on every driver:

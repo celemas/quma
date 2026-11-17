@@ -6,6 +6,7 @@
 
 - `Connection::onConnect()` calls a function with the `Database` after every connect, also when Quma replaces a broken or old connection, for example to set the search path, the time zone, or SQLite pragmas.
 - `Connection::credentialsFrom()` resolves the username and password at every connect, for credentials that expire, such as cloud IAM tokens or dynamic secrets.
+- `Database::afterCommit()` calls a function once the open transaction is committed, for side effects such as mail or external queues. A rollback, or the failure of the nested block that registered it, discards it. Outside a transaction it runs at once.
 - `Connection::beforeMigrations()` calls a function before the first pending migration of each namespace, inside the run's transaction, for example to create the schema the namespace's migrations write to. It is not recorded, does not depend on file names, and is not called by a plan.
 
 ## [0.11.0](https://codefloe.com/celema/quma/src/tag/0.11.0) (2026-11-17)
