@@ -1321,6 +1321,7 @@ class MigrationsTest extends TestCase
 		$defaultDir = $this->createMigrationDir('hook-default');
 		$featureDir = $this->createMigrationDir('hook-feature');
 		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE hook_core (id integer);');
+		file_put_contents($defaultDir . '/000002-core.sql', 'INSERT INTO hook_core (id) VALUES (1);');
 		file_put_contents($featureDir . '/000001-feature.sql', 'INSERT INTO hook_feature (id) VALUES (1);');
 		$calls = [];
 		$conn = $this
@@ -1406,6 +1407,38 @@ class MigrationsTest extends TestCase
 
 			$this->assertSame(1, $result);
 			$this->assertStringContainsString('#0 ', $output);
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testAFailingHookStopsTheRunBeforeAnyMigration(): void
+	{
+		$defaultDir = $this->createMigrationDir('hook-stop-default');
+		$featureDir = $this->createMigrationDir('hook-stop-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE hook_stop_core (id integer);');
+		file_put_contents($defaultDir . '/000002-core.sql', 'CREATE TABLE hook_stop_more (id integer);');
+		file_put_contents($featureDir . '/000001-feature.sql', 'CREATE TABLE hook_stop_feature (id integer);');
+		$conn = $this
+			->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature'])
+			->beforeMigrations(static function (Environment $env, string $namespace): void {
+				if ($namespace === 'default') {
+					throw new \RuntimeException('No schema for default');
+				}
+			});
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertStringNotContainsString('000001-core.sql', $output);
+			$this->assertStringNotContainsString('000002-core.sql', $output);
+			$this->assertStringNotContainsString('000001-feature.sql', $output);
+			$this->assertStringContainsString('Due to errors no migrations applied', $output);
 		} finally {
 			$this->removeMigrationDir($defaultDir);
 			$this->removeMigrationDir($featureDir);
