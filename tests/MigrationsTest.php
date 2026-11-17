@@ -1228,6 +1228,62 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testAFailureInAnEarlierNamespaceStopsTheRun(): void
+	{
+		$defaultDir = $this->createMigrationDir('order-stop-default');
+		$featureDir = $this->createMigrationDir('order-stop-feature');
+		file_put_contents($defaultDir . '/000001-broken.sql', 'CREATE TABLE;');
+		file_put_contents($featureDir . '/000001-feature.sql', 'CREATE TABLE order_stop (id integer);');
+		$conn = $this->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature']);
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			ob_end_clean();
+
+			$table = new Database($conn)->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='order_stop'",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+
+			$this->assertSame(1, $result);
+			$this->assertSame(0, (int) ($table['available'] ?? 0));
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testTheFirstNamespaceOfTheOrderMustHaveMigrations(): void
+	{
+		$conn = $this->connection(migrations: ['install' => [], 'default' => [TestCase::root() . 'migrations']])
+			->migrationOrder(['install', 'default']);
+
+		ob_start();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+		$output = (string) ob_get_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertSame("Migration namespace 'install' does not exist\n", $output);
+	}
+
+	public function testANamedDefaultNamespaceThatDoesNotExistFailsWithoutTheHint(): void
+	{
+		$conn = $this->connection(migrations: ['feature' => [TestCase::root() . 'migrations']]);
+
+		ob_start();
+		$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+			'run',
+			'migrations',
+			'--namespace=default',
+			'--apply',
+		]);
+		$output = (string) ob_get_clean();
+
+		$this->assertSame(1, $result);
+		$this->assertSame("Migration namespace 'default' does not exist\n", $output);
+	}
+
 	public function testANamespaceOfTheOrderWithoutDirectoriesHasNothingToRun(): void
 	{
 		$defaultDir = $this->createMigrationDir('order-empty-default');
