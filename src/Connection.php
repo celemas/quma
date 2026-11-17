@@ -19,6 +19,9 @@ class Connection
 	/** @var (Closure(Execution): void)|null */
 	public private(set) ?Closure $executionHook = null;
 
+	/** @var (Closure(Environment, string): void)|null */
+	public private(set) ?Closure $beforeMigrationsHook = null;
+
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(string $dsn, string|array $sql)
 	{
@@ -153,6 +156,24 @@ class Connection
 	public function migrationOrder(array $namespaces): static
 	{
 		$this->config->setMigrationOrder($namespaces);
+
+		return $this;
+	}
+
+	/**
+	 * Calls the hook with the run's environment and a namespace before the
+	 * first pending migration of that namespace, inside the run's
+	 * transaction where the driver has one, for example to create the schema
+	 * the migrations write to. It is not recorded and runs again whenever
+	 * the namespace has pending migrations, so it must do nothing when its
+	 * work is done. A plan without `--apply` or `--test-run` does not call it.
+	 * An exception it throws fails the run like a failing migration.
+	 *
+	 * @param Closure(Environment, string): void $hook
+	 */
+	public function beforeMigrations(Closure $hook): static
+	{
+		$this->beforeMigrationsHook = $hook;
 
 		return $this;
 	}

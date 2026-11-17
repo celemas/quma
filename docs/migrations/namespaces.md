@@ -76,6 +76,31 @@ $conn = new Connection(
 
 The first namespace of the order must exist. A later one that is configured without a directory, or whose directories hold no migrations, has nothing to run; one that is not configured at all is an error. `--namespace` still runs a single namespace. Without `migrationOrder()`, the command runs `default` alone.
 
+## Preparing a namespace
+
+`Connection::beforeMigrations()` registers a function that runs before the pending migrations of a namespace, for example to create the schema they write to:
+
+```php
+$conn->beforeMigrations(static function (Environment $env, string $namespace): void {
+    if ($namespace !== 'billing') {
+        return;
+    }
+
+    $exists = $env->db->execute(
+        'SELECT 1 AS found FROM pg_namespace WHERE nspname = :schema',
+        ['schema' => 'billing'],
+    )->first();
+
+    if ($exists === null) {
+        $env->db->execute('CREATE SCHEMA billing')->run();
+    }
+});
+```
+
+It runs once per namespace and run, right before the first pending migration of that namespace, and inside the run's transaction on SQLite and PostgreSQL: a failing migration rolls back what it did, and so does `--test-run`. A namespace without pending migrations does not call it, and neither does a plan without `--apply` or `--test-run`. It is not recorded, so it has to do nothing once its work is done. An exception it throws fails the run like a failing migration.
+
+Unlike a migration placed first in the namespace, it does not depend on the order of file names.
+
 ## Directory value formats
 
 Inside a namespace, you can use:

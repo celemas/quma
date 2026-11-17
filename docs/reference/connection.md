@@ -189,6 +189,14 @@ $conn
 
 If the connection already has flat migration directories, this method throws `ValueError`.
 
+### `migrationOrder(array $namespaces): static`
+
+Names the namespaces `db:migrations` runs when no `--namespace` is given, in this order, in one transaction on SQLite and PostgreSQL. See [Running several namespaces in order](../migrations/namespaces.md#running-several-namespaces-in-order).
+
+### `beforeMigrations(Closure $hook): static`
+
+Calls the hook with the run's `Environment` and a namespace before the first pending migration of that namespace, inside the run's transaction. See [Preparing a namespace](../migrations/namespaces.md#preparing-a-namespace).
+
 ## Migration metadata naming
 
 ### `migrationTable(string $table): static`

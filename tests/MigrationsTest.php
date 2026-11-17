@@ -1316,6 +1316,102 @@ class MigrationsTest extends TestCase
 		$this->assertSame("Migration namespace 'missing' does not exist\n", $output);
 	}
 
+	public function testTheHookRunsBeforeThePendingMigrationsOfEachNamespace(): void
+	{
+		$defaultDir = $this->createMigrationDir('hook-default');
+		$featureDir = $this->createMigrationDir('hook-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE hook_core (id integer);');
+		file_put_contents($featureDir . '/000001-feature.sql', 'INSERT INTO hook_feature (id) VALUES (1);');
+		$calls = [];
+		$conn = $this
+			->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature'])
+			->beforeMigrations(static function (Environment $env, string $namespace) use (&$calls): void {
+				$calls[] = $namespace;
+
+				if ($namespace === 'feature') {
+					$env->db->execute('CREATE TABLE IF NOT EXISTS hook_feature (id integer)')->run();
+				}
+			});
+		$run = function (string ...$args) use ($conn): int {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', ...$args]);
+			ob_end_clean();
+
+			return $result;
+		};
+
+		try {
+			$this->assertSame(0, $run());
+			$this->assertSame([], $calls, 'A plan does not call the hook');
+
+			$this->assertSame(0, $run('--apply'));
+			$this->assertSame(['default', 'feature'], $calls);
+
+			$this->assertSame(0, $run('--apply'));
+			$this->assertSame(['default', 'feature'], $calls, 'Without pending migrations the hook is not called');
+
+			file_put_contents($featureDir . '/000002-feature.sql', 'INSERT INTO hook_feature (id) VALUES (2);');
+			$this->assertSame(0, $run('--apply'));
+			$this->assertSame(['default', 'feature', 'feature'], $calls);
+
+			$rows = new Database($conn)->execute('SELECT id FROM hook_feature ORDER BY id')->all(
+				fetchMode: PDO::FETCH_ASSOC,
+			);
+			$this->assertSame([1, 2], array_map(intval(...), array_column($rows, 'id')));
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testAFailingHookFailsTheRunAndRollsItBack(): void
+	{
+		$defaultDir = $this->createMigrationDir('hook-failure-default');
+		$featureDir = $this->createMigrationDir('hook-failure-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE hook_failure (id integer);');
+		file_put_contents($featureDir . '/000001-feature.sql', 'CREATE TABLE hook_failure_feature (id integer);');
+		$conn = $this
+			->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature'])
+			->beforeMigrations(static function (Environment $env, string $namespace): void {
+				if ($namespace === 'feature') {
+					throw new \RuntimeException('No schema for feature');
+				}
+			});
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString("Error: while preparing the migrations of namespace 'feature'", $output);
+			$this->assertStringContainsString("No schema for feature\n", $output);
+			$this->assertStringNotContainsString('#0 ', $output);
+			$this->assertStringContainsString('Due to errors no migrations applied', $output);
+			$table = new Database($conn)->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='hook_failure'",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$this->assertSame(0, (int) ($table['available'] ?? 0));
+
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--apply',
+				'--stacktrace',
+			]);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString('#0 ', $output);
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
 	private function mysqlDsn(): ?string
 	{
 		foreach (TestCase::getAvailableDsns() as $dsn) {

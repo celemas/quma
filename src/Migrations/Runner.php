@@ -7,6 +7,7 @@ namespace Celema\Quma\Migrations;
 use Celema\Console\Io;
 use Celema\Quma\Database;
 use Celema\Quma\Environment;
+use Throwable;
 
 final readonly class Runner
 {
@@ -50,6 +51,8 @@ final readonly class Runner
 		$numApplied = 0;
 
 		foreach ($namespaces as $namespace => $migrations) {
+			$prepared = false;
+
 			foreach ($migrations as $migration) {
 				$migrationId = $this->planner->migrationId($namespace, $migration);
 
@@ -59,6 +62,16 @@ final readonly class Runner
 
 				if (!$this->driverPolicy->supportsMigration($migration)) {
 					continue;
+				}
+
+				if (!$prepared) {
+					$prepared = true;
+
+					if (!$this->prepare($namespace, $options->showStacktrace)) {
+						$result = Executor::ERROR;
+
+						break 2;
+					}
 				}
 
 				$result = $this->executor->migrate($namespace, $migration, $options->showStacktrace);
@@ -129,6 +142,33 @@ final readonly class Runner
 		$io->line("\nNo migrations applied");
 
 		return 0;
+	}
+
+	private function prepare(string $namespace, bool $showStacktrace): bool
+	{
+		$hook = $this->env->conn->beforeMigrationsHook;
+
+		if ($hook === null) {
+			return true;
+		}
+
+		try {
+			$hook($this->env, $namespace);
+
+			return true;
+		} catch (Throwable $e) {
+			$this->io->error(
+				"Error: while preparing the migrations of namespace '<bright-yellow>%s</bright-yellow>'",
+				$namespace,
+			);
+			$this->io->stderr()->line('%s', $e->getMessage());
+
+			if ($showStacktrace) {
+				$this->io->stderr()->line('%s', $e->getTraceAsString());
+			}
+
+			return false;
+		}
 	}
 
 	private function begin(Database $db): void

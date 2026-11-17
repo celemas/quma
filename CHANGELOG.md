@@ -2,7 +2,9 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.11.0...HEAD)
 
-No notable changes since the last release.
+### Added
+
+- `Connection::beforeMigrations()` calls a function before the first pending migration of each namespace, inside the run's transaction, for example to create the schema the namespace's migrations write to. It is not recorded, does not depend on file names, and is not called by a plan.
 
 ## [0.11.0](https://codefloe.com/celema/quma/src/tag/0.11.0) (2026-11-17)
 
