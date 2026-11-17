@@ -25,6 +25,9 @@ class Connection
 	/** @var (Closure(Environment, string): void)|null */
 	public private(set) ?Closure $beforeMigrationsHook = null;
 
+	/** @var (Closure(Environment, list<string>): void)|null */
+	public private(set) ?Closure $afterMigrationsHook = null;
+
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(string $dsn, string|array $sql)
 	{
@@ -207,6 +210,23 @@ class Connection
 	public function beforeMigrations(Closure $hook): static
 	{
 		$this->beforeMigrationsHook = $hook;
+
+		return $this;
+	}
+
+	/**
+	 * Calls the hook with the run's environment and the ids of the
+	 * migrations the run applied, once per run after its last migration and
+	 * before the commit, for example to grant rights on new tables or to
+	 * refresh materialized views. A run that applied nothing or failed does
+	 * not call it. An exception it throws fails the run like a failing
+	 * migration.
+	 *
+	 * @param Closure(Environment, list<string>): void $hook
+	 */
+	public function afterMigrations(Closure $hook): static
+	{
+		$this->afterMigrationsHook = $hook;
 
 		return $this;
 	}

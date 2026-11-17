@@ -150,6 +150,22 @@ For MySQL:
 - `migrations --apply` applies migrations directly because there is no rollback path in the migration runner
 - successful migrations remain applied before a later error
 
+## Completing a run
+
+`Connection::afterMigrations()` registers a function that runs once per run, after the last migration and before the commit. It gets the ids of the migrations the run applied, for work that follows schema changes, such as granting rights on new tables or refreshing materialized views:
+
+```php
+$conn->afterMigrations(static function (Environment $env, array $applied): void {
+    $env->db->execute('GRANT SELECT ON ALL TABLES IN SCHEMA app TO reporting')->run();
+});
+```
+
+- It runs inside the run's transaction on SQLite and PostgreSQL, so `--test-run` rolls back its work too.
+- A run that applied nothing, failed, or only plans does not call it.
+- An exception it throws fails the run like a failing migration: on SQLite and PostgreSQL nothing of the run is applied.
+
+To prepare the migrations of one namespace instead, see [Preparing a namespace](namespaces.md#preparing-a-namespace).
+
 ## Empty migrations
 
 If a migration file exists but renders or contains only whitespace, Quma skips it and prints a warning.

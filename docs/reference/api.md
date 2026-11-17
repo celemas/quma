@@ -32,6 +32,7 @@ new Connection(string $dsn, string|array $sql)
 - `migrationNamespace(string $namespace, string|array $dirs): static` sets one namespaced migration entry
 - `migrationOrder(array $namespaces): static` names the namespaces `db:migrations` runs in order
 - `beforeMigrations(Closure $hook): static` calls the hook before the pending migrations of each namespace
+- `afterMigrations(Closure $hook): static` calls the hook with the applied migration ids once per run, before the commit
 - `migrationTable(string $table): static` sets the migration metadata table
 - `migrationColumns(string $migration, string $applied = 'applied'): static` sets migration metadata columns
 - `placeholders(Delimiters $delimiters, array $placeholders): static` sets static placeholder delimiters and replacements

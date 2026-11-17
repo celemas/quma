@@ -234,6 +234,10 @@ Names the namespaces `db:migrations` runs when no `--namespace` is given, in thi
 
 Calls the hook with the run's `Environment` and a namespace before the first pending migration of that namespace, inside the run's transaction. See [Preparing a namespace](../migrations/namespaces.md#preparing-a-namespace).
 
+### `afterMigrations(Closure $hook): static`
+
+Calls the hook with the run's `Environment` and the ids of the migrations the run applied, once per run before the commit. See [Completing a run](../migrations/overview.md#completing-a-run).
+
 ## Migration metadata naming
 
 ### `migrationTable(string $table): static`

@@ -1412,6 +1412,108 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testTheAfterHookRunsOnceWithTheMigrationsTheRunApplied(): void
+	{
+		$defaultDir = $this->createMigrationDir('after-default');
+		$featureDir = $this->createMigrationDir('after-feature');
+		file_put_contents($defaultDir . '/000001-core.sql', 'CREATE TABLE after_core (id integer);');
+		file_put_contents($defaultDir . '/000002-empty.sql', ' ');
+		file_put_contents($featureDir . '/000001-feature.sql', 'CREATE TABLE after_feature (id integer);');
+		$calls = [];
+		$conn = $this
+			->connection(migrations: ['default' => [$defaultDir], 'feature' => [$featureDir]])
+			->migrationOrder(['default', 'feature'])
+			->afterMigrations(static function (Environment $env, array $applied) use (&$calls): void {
+				$calls[] = [$applied, $env->db->getConn()->inTransaction()];
+				$env->db->execute('CREATE VIEW after_view AS SELECT id FROM after_core')->run();
+			});
+		$run = function (string ...$args) use ($conn): int {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', ...$args]);
+			ob_end_clean();
+
+			return $result;
+		};
+
+		try {
+			$this->assertSame(0, $run());
+			$this->assertSame([], $calls, 'A plan does not call the hook');
+
+			$this->assertSame(0, $run('--apply'));
+			$this->assertSame([[['000001-core.sql', 'feature:000001-feature.sql'], true]], $calls);
+			$view = new Database($conn)->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='view' AND name='after_view'",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$this->assertSame(1, (int) ($view['available'] ?? 0));
+
+			$this->assertSame(0, $run('--apply'));
+			$this->assertCount(1, $calls, 'A run without pending migrations does not call the hook');
+		} finally {
+			$this->removeMigrationDir($defaultDir);
+			$this->removeMigrationDir($featureDir);
+		}
+	}
+
+	public function testAFailingAfterHookFailsTheRunAndRollsItBack(): void
+	{
+		$dir = $this->createMigrationDir('after-failure');
+		file_put_contents($dir . '/000001-core.sql', 'CREATE TABLE after_failure (id integer);');
+		$conn = $this->connection(migrations: $dir)->afterMigrations(static function (): void {
+			throw new \RuntimeException('Grant failed');
+		});
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString("Error: while completing the migrations\nGrant failed\n", $output);
+			$this->assertStringNotContainsString('#0 ', $output);
+			$this->assertStringContainsString('Due to errors no migrations applied', $output);
+			$table = new Database($conn)->execute(
+				"SELECT count(*) AS available FROM sqlite_master WHERE type='table' AND name='after_failure'",
+			)->one(fetchMode: PDO::FETCH_ASSOC);
+			$this->assertSame(0, (int) ($table['available'] ?? 0));
+
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run([
+				'run',
+				'migrations',
+				'--apply',
+				'--stacktrace',
+			]);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertStringContainsString('#0 ', $output);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testAFailedRunDoesNotCallTheAfterHook(): void
+	{
+		$dir = $this->createMigrationDir('after-broken');
+		file_put_contents($dir . '/000001-core.sql', 'CREATE TABLE after_broken (id integer);');
+		file_put_contents($dir . '/000002-broken.sql', 'CREATE TABLE;');
+		$called = false;
+		$conn = $this->connection(migrations: $dir)->afterMigrations(static function () use (&$called): void {
+			$called = true;
+		});
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			ob_end_clean();
+
+			$this->assertSame(1, $result);
+			$this->assertFalse($called);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
 	private function mysqlDsn(): ?string
 	{
 		foreach (TestCase::getAvailableDsns() as $dsn) {

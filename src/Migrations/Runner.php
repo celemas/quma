@@ -48,7 +48,7 @@ final readonly class Runner
 
 		$appliedMigrations = $this->log->applied($db);
 		$result = Executor::STARTED;
-		$numApplied = 0;
+		$applied = [];
 
 		foreach ($namespaces as $namespace => $migrations) {
 			$prepared = false;
@@ -81,12 +81,16 @@ final readonly class Runner
 				}
 
 				if ($result === Executor::SUCCESS) {
-					$numApplied++;
+					$applied[] = $migrationId;
 				}
 			}
 		}
 
-		return $this->finish($db, $result, $options->apply, $numApplied);
+		if ($result !== Executor::ERROR && $applied !== [] && !$this->complete($applied, $options->showStacktrace)) {
+			$result = Executor::ERROR;
+		}
+
+		return $this->finish($db, $result, $options->apply, count($applied));
 	}
 
 	public function finish(
@@ -161,13 +165,39 @@ final readonly class Runner
 				"Error: while preparing the migrations of namespace '<bright-yellow>%s</bright-yellow>'",
 				$namespace,
 			);
-			$this->io->stderr()->line('%s', $e->getMessage());
-
-			if ($showStacktrace) {
-				$this->io->stderr()->line('%s', $e->getTraceAsString());
-			}
+			$this->hookFailed($e, $showStacktrace);
 
 			return false;
+		}
+	}
+
+	/** @param list<string> $applied */
+	private function complete(array $applied, bool $showStacktrace): bool
+	{
+		$hook = $this->env->conn->afterMigrationsHook;
+
+		if ($hook === null) {
+			return true;
+		}
+
+		try {
+			$hook($this->env, $applied);
+
+			return true;
+		} catch (Throwable $e) {
+			$this->io->error('Error: while completing the migrations');
+			$this->hookFailed($e, $showStacktrace);
+
+			return false;
+		}
+	}
+
+	private function hookFailed(Throwable $e, bool $showStacktrace): void
+	{
+		$this->io->stderr()->line('%s', $e->getMessage());
+
+		if ($showStacktrace) {
+			$this->io->stderr()->line('%s', $e->getTraceAsString());
 		}
 	}
 
