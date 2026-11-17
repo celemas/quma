@@ -84,6 +84,24 @@ final class MigrationLockTest extends TestCase
 		}
 	}
 
+	public function testAPostgresqlRunReadsCommittedDataWhateverTheDefault(): void
+	{
+		$conn = $this->connection(dsn: $this->dsn('pgsql'))->onConnect(static function (Database $db): void {
+			$db->execute("SET default_transaction_isolation = 'repeatable read'")->run();
+		});
+		$env = new Environment(['default' => $conn], []);
+		$db = $env->db;
+
+		new Lock($env)->begin($db);
+
+		try {
+			$this->assertSame(['read committed'], array_values($db->execute('SHOW transaction_isolation')->one()));
+		} finally {
+			$db->rollback();
+			$db->disconnect();
+		}
+	}
+
 	public function testRejectsAnUnsupportedDriver(): void
 	{
 		$conn = $this->connection();
