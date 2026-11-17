@@ -97,7 +97,7 @@ $conn->beforeMigrations(static function (Environment $env, string $namespace): v
 });
 ```
 
-It runs once per namespace and run, right before the first pending migration of that namespace, and inside the run's transaction on SQLite and PostgreSQL: a failing migration rolls back what it did, and so does `--test-run`. A namespace without pending migrations does not call it, and neither does a plan without `--apply` or `--test-run`. It is not recorded, so it has to do nothing once its work is done. An exception it throws fails the run like a failing migration.
+Each call adds a function, and they run in the order they were added. It runs once per namespace and run, right before the first pending migration of that namespace, and inside the run's transaction on SQLite and PostgreSQL: a failing migration rolls back what it did, and so does `--test-run`. A namespace without pending migrations does not call it, and neither does a plan without `--apply` or `--test-run`. It is not recorded, so it has to do nothing once its work is done. An exception it throws fails the run like a failing migration, and the functions added after it do not run.
 
 Unlike a migration placed first in the namespace, it does not depend on the order of file names.
 

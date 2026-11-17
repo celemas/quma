@@ -2,6 +2,10 @@
 
 ## [Unreleased](https://codefloe.com/celema/quma/compare/0.11.0...HEAD)
 
+### Breaking
+
+- `Connection::onExecute()` adds a hook instead of replacing the one added before, like the new hook methods below, so that a library and the application can each register their own. Hooks run in the order they were added. `Connection::$executionHook` is now `$executionHooks`, a list.
+
 ### Added
 
 - `Connection::onConnect()` calls a function with the `Database` after every connect, also when Quma replaces a broken or old connection, for example to set the search path, the time zone, or SQLite pragmas.

@@ -25,14 +25,14 @@ new Connection(string $dsn, string|array $sql)
 - `fetch(int $fetchMode): static` sets the default query fetch mode
 - `pingAfterIdle(int $seconds): static` pings a connection idle for at least this long before reuse (default 60, 0 disables it)
 - `maxConnectionAge(int $seconds): static` replaces connections older than this before reuse (default 0, never)
-- `onConnect(Closure $hook): static` calls the hook with the `Database` after every connect; see [Connection setup](connection.md#connection-setup)
-- `onExecute(Closure $hook): static` calls the hook with an `Execution` after every statement; see [Observe statements](../parameters-and-results.md#observe-statements)
+- `onConnect(Closure $hook): static` adds a hook called with the `Database` after every connect; see [Connection setup](connection.md#connection-setup)
+- `onExecute(Closure $hook): static` adds a hook called with an `Execution` after every statement; see [Observe statements](../parameters-and-results.md#observe-statements)
 - `migrations(string|array $migrations): static` sets migration directories
 - `addMigration(string $migrations): static` prepends one flat migration directory
 - `migrationNamespace(string $namespace, string|array $dirs): static` sets one namespaced migration entry
 - `migrationOrder(array $namespaces): static` names the namespaces `db:migrations` runs in order
-- `beforeMigrations(Closure $hook): static` calls the hook before the pending migrations of each namespace
-- `afterMigrations(Closure $hook): static` calls the hook with the applied migration ids once per run, before the commit
+- `beforeMigrations(Closure $hook): static` adds a hook called before the pending migrations of each namespace
+- `afterMigrations(Closure $hook): static` adds a hook called with the applied migration ids once per run, before the commit
 - `migrationTable(string $table): static` sets the migration metadata table
 - `migrationColumns(string $migration, string $applied = 'applied'): static` sets migration metadata columns
 - `placeholders(Delimiters $delimiters, array $placeholders): static` sets static placeholder delimiters and replacements

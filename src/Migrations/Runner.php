@@ -161,14 +161,10 @@ final readonly class Runner
 
 	private function prepare(string $namespace, bool $showStacktrace): bool
 	{
-		$hook = $this->env->conn->beforeMigrationsHook;
-
-		if ($hook === null) {
-			return true;
-		}
-
 		try {
-			$hook($this->env, $namespace);
+			foreach ($this->env->conn->beforeMigrationsHooks as $hook) {
+				$hook($this->env, $namespace);
+			}
 
 			return true;
 		} catch (Throwable $e) {
@@ -185,14 +181,10 @@ final readonly class Runner
 	/** @param list<string> $applied */
 	private function complete(array $applied, bool $showStacktrace): bool
 	{
-		$hook = $this->env->conn->afterMigrationsHook;
-
-		if ($hook === null) {
-			return true;
-		}
-
 		try {
-			$hook($this->env, $applied);
+			foreach ($this->env->conn->afterMigrationsHooks as $hook) {
+				$hook($this->env, $applied);
+			}
 
 			return true;
 		} catch (Throwable $e) {

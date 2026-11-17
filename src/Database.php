@@ -161,14 +161,10 @@ class Database
 
 	private function setUpConnection(): void
 	{
-		$hook = $this->conn->connectHook;
-
-		if ($hook === null) {
-			return;
-		}
-
 		try {
-			$hook($this);
+			foreach ($this->conn->connectHooks as $hook) {
+				$hook($this);
+			}
 		} catch (Throwable $e) {
 			$this->drop();
 
@@ -343,18 +339,18 @@ class Database
 	/** @internal */
 	public function report(Execution $execution): void
 	{
-		$hook = $this->conn->executionHook;
-
-		if ($hook === null || $this->reporting) {
+		if ($this->reporting) {
 			return;
 		}
 
 		$this->reporting = true;
 
-		try {
-			$hook($execution);
-		} catch (Throwable $e) {
-			error_log('Quma: the onExecute hook failed: ' . $e->getMessage());
+		foreach ($this->conn->executionHooks as $hook) {
+			try {
+				$hook($execution);
+			} catch (Throwable $e) {
+				error_log('Quma: an onExecute hook failed: ' . $e->getMessage());
+			}
 		}
 
 		$this->reporting = false;

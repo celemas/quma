@@ -142,7 +142,31 @@ final class OnExecuteTest extends TestCase
 		}
 
 		$this->assertSame(['v' => 1], $row);
-		$this->assertStringContainsString('Quma: the onExecute hook failed: broken hook', $output);
+		$this->assertStringContainsString('Quma: an onExecute hook failed: broken hook', $output);
+	}
+
+	public function testEveryHookIsCalledInOrderAndAFailingOneSkipsNoOther(): void
+	{
+		$calls = [];
+		$db = new Database($this
+			->connection()
+			->onExecute(static function () use (&$calls): void {
+				$calls[] = 'first';
+
+				throw new LogicException('broken hook');
+			})
+			->onExecute(static function () use (&$calls): void {
+				$calls[] = 'second';
+			}));
+		$log = self::startErrorLog();
+
+		try {
+			$db->execute('SELECT 1 AS v')->one();
+		} finally {
+			self::stopErrorLog($log);
+		}
+
+		$this->assertSame(['first', 'second'], $calls);
 	}
 
 	public function testReportingWorksAgainAfterAFailingHook(): void

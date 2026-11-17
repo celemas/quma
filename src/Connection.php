@@ -16,17 +16,17 @@ class Connection
 {
 	public readonly Config $config;
 
-	/** @var (Closure(Execution): void)|null */
-	public private(set) ?Closure $executionHook = null;
+	/** @var list<Closure(Execution): void> */
+	public private(set) array $executionHooks = [];
 
-	/** @var (Closure(Database): void)|null */
-	public private(set) ?Closure $connectHook = null;
+	/** @var list<Closure(Database): void> */
+	public private(set) array $connectHooks = [];
 
-	/** @var (Closure(Environment, string): void)|null */
-	public private(set) ?Closure $beforeMigrationsHook = null;
+	/** @var list<Closure(Environment, string): void> */
+	public private(set) array $beforeMigrationsHooks = [];
 
-	/** @var (Closure(Environment, list<string>): void)|null */
-	public private(set) ?Closure $afterMigrationsHook = null;
+	/** @var list<Closure(Environment, list<string>): void> */
+	public private(set) array $afterMigrationsHooks = [];
 
 	/** @psalm-param SqlConfig $sql */
 	public function __construct(string $dsn, string|array $sql)
@@ -82,30 +82,33 @@ class Connection
 	}
 
 	/**
-	 * Calls the hook after every statement, also a failed one, for example to
-	 * find slow scripts. An exception it throws is logged and does not affect
-	 * the statement. Statements it runs itself are not reported.
+	 * Adds a hook that is called after every statement, also a failed one,
+	 * for example to find slow scripts. Hooks run in the order they were
+	 * added. An exception one throws is logged and affects neither the
+	 * statement nor the other hooks. Statements a hook runs itself are not
+	 * reported.
 	 *
 	 * @param Closure(Execution): void $hook
 	 */
 	public function onExecute(Closure $hook): static
 	{
-		$this->executionHook = $hook;
+		$this->executionHooks[] = $hook;
 
 		return $this;
 	}
 
 	/**
-	 * Calls the hook with the database after every connect, also when Quma
-	 * replaces a broken or old connection, for example to set the search
-	 * path or SQLite pragmas. If it throws, the connection is dropped and
-	 * the exception reaches the statement that connected.
+	 * Adds a hook that is called with the database after every connect, also
+	 * when Quma replaces a broken or old connection, for example to set the
+	 * search path or SQLite pragmas. Hooks run in the order they were added.
+	 * If one throws, the later ones do not run, the connection is dropped,
+	 * and the exception reaches the statement that connected.
 	 *
 	 * @param Closure(Database): void $hook
 	 */
 	public function onConnect(Closure $hook): static
 	{
-		$this->connectHook = $hook;
+		$this->connectHooks[] = $hook;
 
 		return $this;
 	}
@@ -197,36 +200,37 @@ class Connection
 	}
 
 	/**
-	 * Calls the hook with the run's environment and a namespace before the
-	 * first pending migration of that namespace, inside the run's
+	 * Adds a hook that is called with the run's environment and a namespace
+	 * before the first pending migration of that namespace, inside the run's
 	 * transaction where the driver has one, for example to create the schema
-	 * the migrations write to. It is not recorded and runs again whenever
-	 * the namespace has pending migrations, so it must do nothing when its
-	 * work is done. A plan without `--apply` or `--test-run` does not call it.
-	 * An exception it throws fails the run like a failing migration.
+	 * the migrations write to. Hooks run in the order they were added. They
+	 * are not recorded and run again whenever the namespace has pending
+	 * migrations, so they must do nothing when their work is done. A plan
+	 * without `--apply` or `--test-run` does not call them. An exception one
+	 * throws fails the run like a failing migration.
 	 *
 	 * @param Closure(Environment, string): void $hook
 	 */
 	public function beforeMigrations(Closure $hook): static
 	{
-		$this->beforeMigrationsHook = $hook;
+		$this->beforeMigrationsHooks[] = $hook;
 
 		return $this;
 	}
 
 	/**
-	 * Calls the hook with the run's environment and the ids of the
-	 * migrations the run applied, once per run after its last migration and
-	 * before the commit, for example to grant rights on new tables or to
-	 * refresh materialized views. A run that applied nothing or failed does
-	 * not call it. An exception it throws fails the run like a failing
-	 * migration.
+	 * Adds a hook that is called with the run's environment and the ids of
+	 * the migrations the run applied, once per run after its last migration
+	 * and before the commit, for example to grant rights on new tables or to
+	 * refresh materialized views. Hooks run in the order they were added. A
+	 * run that applied nothing or failed does not call them. An exception
+	 * one throws fails the run like a failing migration.
 	 *
 	 * @param Closure(Environment, list<string>): void $hook
 	 */
 	public function afterMigrations(Closure $hook): static
 	{
-		$this->afterMigrationsHook = $hook;
+		$this->afterMigrationsHooks[] = $hook;
 
 		return $this;
 	}

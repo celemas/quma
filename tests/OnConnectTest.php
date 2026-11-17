@@ -91,6 +91,38 @@ final class OnConnectTest extends TestCase
 		$this->assertTrue($db->connected());
 	}
 
+	public function testEveryHookRunsInOrderUntilOneFails(): void
+	{
+		$calls = [];
+		$fail = false;
+		$db = new Database($this
+			->connection()
+			->onConnect(static function () use (&$calls, &$fail): void {
+				$calls[] = 'first';
+
+				if ($fail) {
+					throw new LogicException('Setup failed');
+				}
+			})
+			->onConnect(static function () use (&$calls): void {
+				$calls[] = 'second';
+			}));
+
+		$db->connect();
+		$this->assertSame(['first', 'second'], $calls);
+
+		$calls = [];
+		$fail = true;
+
+		try {
+			$db->reconnect();
+			$this->fail('Expected the exception of the first hook.');
+		} catch (LogicException) {
+			$this->assertSame(['first'], $calls);
+			$this->assertFalse($db->connected());
+		}
+	}
+
 	private function value(Database $db, string $sql): string
 	{
 		return (string) array_values($db->execute($sql)->one())[0];

@@ -418,7 +418,8 @@ $conn = new Connection($dsn, $sql)->onExecute(static function (Execution $execut
 ```
 
 - An `Execution` holds the script path, the SQL, the duration, the row count, and the error, but never the bound values. Values a `.tpql` template writes into the SQL are part of the SQL, and a driver's error message can quote values.
-- An exception the function throws goes to PHP's error log. The statement's result or error reaches your code as usual.
+- Each call adds a function, and they run in the order they were added.
+- An exception a function throws goes to PHP's error log, and the other functions still run. The statement's result or error reaches your code as usual.
 - Statements the function runs on the same `Database` are not reported.
 - Prepared and executed statements are reported, including the opening of a stream, whose row count is `null`. `begin()`, `commit()`, `rollback()`, savepoints, connection checks, and fetching rows are not.
 - On SQLite and in a stream, the database produces rows while they are fetched, so the duration only covers the start of a slow query.

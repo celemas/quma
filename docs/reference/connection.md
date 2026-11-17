@@ -116,11 +116,15 @@ The default is `PDO::FETCH_ASSOC`. Unmapped calls support `PDO::FETCH_ASSOC`, `P
 
 Mapped calls that hydrate rows into objects fetch associative rows by default and reject explicit non-associative fetch modes.
 
+## Hooks
+
+`onConnect()`, `onExecute()`, `beforeMigrations()`, and `afterMigrations()` each add a hook to those added before, so a library and the application can register their own. Hooks of one kind run in the order they were added.
+
 ## Connection setup
 
 ### `onConnect(Closure $hook): static`
 
-Calls the hook with the `Database` after every connect, for settings each session needs:
+Adds a hook that is called with the `Database` after every connect, for settings each session needs:
 
 ```php
 use Celema\Quma\Database;
@@ -138,7 +142,7 @@ $conn = new Connection('pgsql:host=localhost;dbname=app', __DIR__ . '/sql')
     });
 ```
 
-The hook runs whenever Quma opens a connection: also after `reconnect()`, after `reset()` dropped a broken connection, and when `pingAfterIdle` or `maxConnectionAge` replaces one, so a new connection never misses the settings. Migrations run with it too. If the hook throws, the connection is dropped and the exception reaches the statement that connected; the next statement connects and calls the hook again.
+The hook runs whenever Quma opens a connection: also after `reconnect()`, after `reset()` dropped a broken connection, and when `pingAfterIdle` or `maxConnectionAge` replaces one, so a new connection never misses the settings. Migrations run with it too. If a hook throws, the later ones do not run, the connection is dropped, and the exception reaches the statement that connected; the next statement connects and calls the hooks again.
 
 ## Connection reuse
 
@@ -156,7 +160,7 @@ See [Long-running processes](../long-running-processes.md).
 
 ### `onExecute(Closure $hook): static`
 
-Calls the hook with an `Execution` after every statement, also a failed one. See [Observe statements](../parameters-and-results.md#observe-statements).
+Adds a hook that is called with an `Execution` after every statement, also a failed one. See [Observe statements](../parameters-and-results.md#observe-statements).
 
 ## SQL directory methods
 
@@ -232,11 +236,11 @@ Names the namespaces `db:migrations` runs when no `--namespace` is given, in thi
 
 ### `beforeMigrations(Closure $hook): static`
 
-Calls the hook with the run's `Environment` and a namespace before the first pending migration of that namespace, inside the run's transaction. See [Preparing a namespace](../migrations/namespaces.md#preparing-a-namespace).
+Adds a hook that is called with the run's `Environment` and a namespace before the first pending migration of that namespace, inside the run's transaction. See [Preparing a namespace](../migrations/namespaces.md#preparing-a-namespace).
 
 ### `afterMigrations(Closure $hook): static`
 
-Calls the hook with the run's `Environment` and the ids of the migrations the run applied, once per run before the commit. See [Completing a run](../migrations/overview.md#completing-a-run).
+Adds a hook that is called with the run's `Environment` and the ids of the migrations the run applied, once per run before the commit. See [Completing a run](../migrations/overview.md#completing-a-run).
 
 ## Migration metadata naming
 

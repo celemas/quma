@@ -1547,6 +1547,88 @@ class MigrationsTest extends TestCase
 		}
 	}
 
+	public function testMigrationHooksRunInTheOrderTheyWereAdded(): void
+	{
+		$dir = $this->createMigrationDir('hooks-order');
+		file_put_contents($dir . '/000001-core.sql', 'CREATE TABLE hooks_order (id integer);');
+		$calls = [];
+		$record = static function (string $call) use (&$calls): \Closure {
+			return static function () use (&$calls, $call): void {
+				$calls[] = $call;
+			};
+		};
+		$conn = $this
+			->connection(migrations: $dir)
+			->beforeMigrations($record('before 1'))
+			->afterMigrations($record('after 1'))
+			->beforeMigrations($record('before 2'))
+			->afterMigrations($record('after 2'));
+
+		try {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			$output = (string) ob_get_clean();
+
+			$this->assertSame(0, $result, $output);
+			$this->assertSame(['before 1', 'before 2', 'after 1', 'after 2'], $calls);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
+	public function testAFailingMigrationHookSkipsTheLaterOnes(): void
+	{
+		$dir = $this->createMigrationDir('hooks-failure');
+		file_put_contents($dir . '/000001-core.sql', 'CREATE TABLE hooks_failure (id integer);');
+		$calls = [];
+		$fail = static function (string $call) use (&$calls): \Closure {
+			return static function () use (&$calls, $call): void {
+				$calls[] = $call;
+
+				throw new \RuntimeException("{$call} failed");
+			};
+		};
+		$record = static function (string $call) use (&$calls): \Closure {
+			return static function () use (&$calls, $call): void {
+				$calls[] = $call;
+			};
+		};
+		$run = function (\Celema\Quma\Connection $conn): int {
+			ob_start();
+			$result = $this->consoleRunner(\Celema\Quma\Commands::get($conn))->run(['run', 'migrations', '--apply']);
+			ob_end_clean();
+
+			return $result;
+		};
+
+		try {
+			$this->assertSame(
+				1,
+				$run(
+					$this
+						->connection(migrations: $dir)
+						->beforeMigrations($fail('before 1'))
+						->beforeMigrations($record('before 2')),
+				),
+			);
+			$this->assertSame(['before 1'], $calls);
+
+			$calls = [];
+			$this->assertSame(
+				1,
+				$run(
+					$this
+						->connection(migrations: $dir)
+						->afterMigrations($fail('after 1'))
+						->afterMigrations($record('after 2')),
+				),
+			);
+			$this->assertSame(['after 1'], $calls);
+		} finally {
+			$this->removeMigrationDir($dir);
+		}
+	}
+
 	private function mysqlDsn(): ?string
 	{
 		foreach (TestCase::getAvailableDsns() as $dsn) {

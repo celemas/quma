@@ -170,9 +170,10 @@ $conn->afterMigrations(static function (Environment $env, array $applied): void 
 });
 ```
 
+- Each call adds a function, and they run in the order they were added.
 - It runs inside the run's transaction on SQLite and PostgreSQL, so `--test-run` rolls back its work too.
 - A run that applied nothing, failed, or only plans does not call it.
-- An exception it throws fails the run like a failing migration: on SQLite and PostgreSQL nothing of the run is applied.
+- An exception it throws fails the run like a failing migration, and the functions added after it do not run: on SQLite and PostgreSQL nothing of the run is applied.
 
 To prepare the migrations of one namespace instead, see [Preparing a namespace](namespaces.md#preparing-a-namespace).
 
