@@ -113,6 +113,17 @@ final class MigrationLockTest extends TestCase
 		$lock->begin(new FakeDatabase($conn, 'odbc', 0));
 	}
 
+	public function testAMysqlRunStopsWhenItGetsNoLock(): void
+	{
+		$conn = $this->connection();
+		$lock = new Lock(new Environment(['default' => $conn], []));
+
+		$this->expectException(RuntimeException::class);
+		$this->expectExceptionMessage("Could not lock the migrations table 'migrations'");
+
+		$lock->begin(new FakeDatabase($conn, 'mysql', 0));
+	}
+
 	public function testAFailedBeginLeavesLaterTransactionsDeferred(): void
 	{
 		$env = new Environment(['default' => $this->connection()], []);

@@ -6,6 +6,7 @@ namespace Celema\Quma\Migrations;
 
 use Celema\Quma\Database;
 use Celema\Quma\Environment;
+use PDO;
 use Pdo\Sqlite;
 use RuntimeException;
 
@@ -28,7 +29,7 @@ final readonly class Lock
 		match ($db->getPdoDriver()) {
 			'sqlite' => $this->beginImmediately($db),
 			'pgsql' => $this->beginLocked($db),
-			'mysql' => $db->execute('SELECT GET_LOCK(' . self::MYSQL_NAME . ', -1)', $this->env->table)->run(),
+			'mysql' => $this->lockNamed($db),
 			default => throw new RuntimeException('Database driver not supported'),
 		};
 	}
@@ -55,6 +56,18 @@ final readonly class Lock
 			$db->begin();
 		} finally {
 			$pdo->setAttribute(Sqlite::ATTR_TRANSACTION_MODE, $mode);
+		}
+	}
+
+	/** GET_LOCK() returns NULL instead of throwing when it fails, for example if the session is killed. */
+	private function lockNamed(Database $db): void
+	{
+		$row = $db->execute('SELECT GET_LOCK(' . self::MYSQL_NAME . ', -1)', $this->env->table)->one(
+			fetchMode: PDO::FETCH_NUM,
+		);
+
+		if ((int) (array_values($row)[0] ?? 0) !== 1) {
+			throw new RuntimeException("Could not lock the migrations table '{$this->env->table}'");
 		}
 	}
 

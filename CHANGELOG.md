@@ -13,7 +13,7 @@
 - `Database::afterCommit()` calls a function once the open transaction is committed, for side effects such as mail or external queues. A rollback, or the failure of the nested block that registered it, discards it. Outside a transaction it runs at once.
 - `Connection::beforeMigrations()` calls a function before the first pending migration of each namespace, inside the run's transaction, for example to create the schema the namespace's migrations write to. It is not recorded, does not depend on file names, and is not called by a plan.
 - `Connection::afterMigrations()` calls a function with the ids of the applied migrations once per run, after the last migration and inside the run's transaction, for example to grant rights on new tables or to refresh materialized views. A run that applied nothing or failed does not call it, and an exception it throws fails the run.
-- Concurrent `db:migrations` runs on the same migrations table wait for each other, so containers that migrate when they start apply each migration once. PostgreSQL uses an advisory lock and runs the transaction at `READ COMMITTED`, so that a waiting run sees the migrations applied before, MySQL a named lock, and SQLite begins the run's transaction immediately.
+- Concurrent `db:migrations` runs on the same migrations table wait for each other, so containers that migrate when they start apply each migration once. PostgreSQL uses an advisory lock and runs the transaction at `READ COMMITTED`, so that a waiting run sees the migrations applied before, MySQL a named lock, and SQLite begins the run's transaction immediately. A MySQL run that cannot get the lock stops with an error.
 
 ### Changed
 

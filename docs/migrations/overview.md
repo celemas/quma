@@ -158,7 +158,7 @@ When several processes run `db:migrations --apply` or `--test-run` at once, for 
 - MySQL: a named lock, `GET_LOCK()`, for the database and the migrations table, released when the run ends
 - SQLite: the run's transaction begins with `BEGIN IMMEDIATE`, which takes the write lock at once. A waiting run gives up after the busy timeout, `PDO::ATTR_TIMEOUT`, 60 seconds by default, and fails with `database is locked`.
 
-Runs on different migrations tables do not wait for each other. A plan without `--apply` or `--test-run` takes no lock.
+Runs on different migrations tables do not wait for each other. The lock is keyed by the table name as configured, so every process has to name the table the same way: runs configured with `migrations` and with `public.migrations` do not wait for each other, even where both names mean the same table. On MySQL, a run that cannot get the lock stops with an error. A plan without `--apply` or `--test-run` takes no lock.
 
 ## Completing a run
 
