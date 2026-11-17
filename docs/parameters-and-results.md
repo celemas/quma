@@ -365,6 +365,32 @@ $db->transaction(function () use ($db, $mailer, $email): void {
 - On MySQL, a block that ended with an implicit commit runs its callbacks too.
 - `begin()`, `reset()`, and dropping the connection discard callbacks still waiting for a transaction that ended without Quma, such as one committed through the PDO instance from `getConn()`.
 
+### Tests that roll back their work
+
+A test that wraps its work in a transaction and rolls it back at the end cannot use `begin()` for it: the code under test would find a transaction open, its own `begin()` would fail, and its `afterCommit()` callbacks would wait for a commit that never comes. `Database::isolate()` opens such a transaction, and `discard()` rolls it back with all the work in it:
+
+```php
+protected function setUp(): void
+{
+    $this->db->isolate();
+}
+
+protected function tearDown(): void
+{
+    $this->db->discard();
+}
+```
+
+The code under test does not see the isolating transaction:
+
+- Its `begin()`, `commit()`, and `rollback()` work on a savepoint, so its commit makes the data visible to the test, and its rollback undoes only its own work. A second `begin()`, or `commit()` without a transaction, fails as it would without the test.
+- `transaction()` starts its outermost block on that savepoint, and nested blocks on further ones.
+- `afterCommit()` runs the callbacks once the code's own transaction commits, and at once outside one, as in production.
+- `reset()` and `disconnect()` roll back only the code's own transaction and keep the connection.
+- If the code commits after a statement failed on PostgreSQL, the savepoint is rolled back and the commit throws, so the test can go on.
+
+The isolation ends with `discard()`, and also when the connection is dropped or, on MySQL, when a statement such as `CREATE TABLE` commits implicitly: the work before it stays in the database. A database that is not isolated works as before.
+
 ## Handling failed queries
 
 A failing statement or transaction call throws an exception in the `Celema\Quma\Exception` namespace, so the same failure throws the same class on every driver:

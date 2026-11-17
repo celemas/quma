@@ -18,6 +18,8 @@ use Throwable;
  * @api
  * @psalm-no-seal-properties
  */
+// Each property is state of the one connection: its handle, use, statements, and transactions.
+// @mago-expect lint:too-many-properties
 class Database
 {
 	public readonly bool $debug;
@@ -28,8 +30,13 @@ class Database
 	protected bool $suspect = false;
 	/** @var array<string, LoadedScript> */
 	protected array $compiledScripts = [];
+
+	private const string OWN = 'quma_own';
+
 	/** How many transaction blocks are open. */
 	private int $blocks = 0;
+
+	private Isolation $isolation = Isolation::Off;
 
 	/**
 	 * Callbacks for the commit of the open transaction, with the number of
@@ -174,19 +181,30 @@ class Database
 
 	public function disconnect(): void
 	{
+		if ($this->isolation !== Isolation::Off) {
+			$this->reset();
+
+			return;
+		}
+
 		$this->closeStream();
 
 		if ($this->pdo !== null) {
-			try {
-				if ($this->pdo->inTransaction()) {
-					$this->pdo->rollBack();
-				}
-			} catch (Throwable) {
-				// @mago-expect lint:no-empty-catch-clause Rollback failures are intentionally ignored during teardown.
-			}
+			self::rollBackQuietly($this->pdo);
 		}
 
 		$this->drop();
+	}
+
+	private static function rollBackQuietly(PDO $pdo): void
+	{
+		try {
+			if ($pdo->inTransaction()) {
+				$pdo->rollBack();
+			}
+		} catch (Throwable) {
+			// @mago-expect lint:no-empty-catch-clause Rollback failures are intentionally ignored during teardown.
+		}
 	}
 
 	public function reconnect(): static
@@ -241,7 +259,25 @@ class Database
 			return false;
 		}
 
+		if ($this->isolation !== Isolation::Off) {
+			return $this->resetOwn();
+		}
+
 		if ($this->rollBackOpenTransaction($this->pdo) && $this->checkAfterFailure()) {
+			return true;
+		}
+
+		$this->drop();
+
+		return false;
+	}
+
+	/** Ends the code's transaction inside the isolating one, which stays open. */
+	private function resetOwn(): bool
+	{
+		$this->commitCallbacks = [];
+
+		if ($this->isolation === Isolation::On || $this->undoOwnQuietly()) {
 			return true;
 		}
 
@@ -380,7 +416,7 @@ class Database
 	public function transaction(callable $work): mixed
 	{
 		$pdo = $this->getConn();
-		$savepoint = $pdo->inTransaction() ? 'quma_block_' . $this->blocks : null;
+		$savepoint = $this->inOwnTransaction() ? 'quma_block_' . $this->blocks : null;
 
 		if ($savepoint === null) {
 			$this->begin();
@@ -426,7 +462,7 @@ class Database
 	 */
 	public function afterCommit(Closure $callback): void
 	{
-		if ($this->pdo?->inTransaction() === true) {
+		if ($this->inOwnTransaction()) {
 			$this->commitCallbacks[] = [$this->blocks, $callback];
 
 			return;
@@ -471,7 +507,10 @@ class Database
 		}
 
 		// A MySQL statement like CREATE TABLE already ended the transaction.
+		// It also ended an isolating transaction.
 		if (!$pdo->inTransaction()) {
+			$this->isolation = Isolation::Off;
+
 			return;
 		}
 
@@ -514,6 +553,22 @@ class Database
 
 	public function begin(): bool
 	{
+		if ($this->isolation !== Isolation::Off) {
+			if ($this->isolation === Isolation::Nested) {
+				$this->transactionCall(
+					static fn(): never => throw new PDOException(
+						'There is already an active transaction',
+					),
+				);
+			}
+
+			$this->savepointCall('SAVEPOINT ' . self::OWN);
+			$this->isolation = Isolation::Nested;
+			$this->commitCallbacks = [];
+
+			return true;
+		}
+
 		$begun = $this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
 		$this->commitCallbacks = [];
 
@@ -532,6 +587,12 @@ class Database
 	private function commitTransaction(): bool
 	{
 		try {
+			if ($this->isolation !== Isolation::Off) {
+				$this->commitOwn();
+
+				return true;
+			}
+
 			return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->commit());
 		} catch (Throwable $e) {
 			$this->commitCallbacks = [];
@@ -545,7 +606,94 @@ class Database
 		$this->assertOutsideBlock('roll back');
 		$this->commitCallbacks = [];
 
+		if ($this->isolation !== Isolation::Off) {
+			$this->endOwn();
+			$this->undoOwn();
+
+			return true;
+		}
+
 		return $this->transactionCall(static fn(PDO $pdo): bool => $pdo->rollBack());
+	}
+
+	/**
+	 * Opens a transaction for a test that the code under test does not see;
+	 * discard() rolls it back with all the work in it. Inside it, begin(),
+	 * commit(), and rollback() use a savepoint, transaction() starts its
+	 * outermost block on one, afterCommit() runs its callbacks once the
+	 * code's own transaction commits, and reset() and disconnect() end only
+	 * that transaction. A database that is not isolated works as before.
+	 */
+	public function isolate(): void
+	{
+		$this->transactionCall(static fn(PDO $pdo): bool => $pdo->beginTransaction());
+		$this->commitCallbacks = [];
+		$this->isolation = Isolation::On;
+	}
+
+	/** Rolls back the transaction isolate() opened, with all the work in it. */
+	public function discard(): void
+	{
+		$this->isolation = Isolation::Off;
+		$this->closeStream();
+
+		if ($this->pdo !== null && !$this->rollBackOpenTransaction($this->pdo)) {
+			$this->drop();
+		}
+	}
+
+	/** Whether the code using this database has a transaction open, not counting an isolating one. */
+	private function inOwnTransaction(): bool
+	{
+		return match ($this->isolation) {
+			Isolation::Off => $this->pdo?->inTransaction() === true,
+			Isolation::On => false,
+			Isolation::Nested => true,
+		};
+	}
+
+	private function commitOwn(): void
+	{
+		$this->endOwn();
+
+		try {
+			$this->savepointCall('RELEASE SAVEPOINT ' . self::OWN);
+		} catch (Throwable $e) {
+			// PostgreSQL refuses after a failed statement; the isolating transaction must stay usable.
+			$this->undoOwnQuietly();
+
+			throw $e;
+		}
+	}
+
+	/** Marks the code's own transaction ended, or fails as PDO does without one. */
+	private function endOwn(): void
+	{
+		if ($this->isolation !== Isolation::Nested) {
+			$this->transactionCall(static fn(): never => throw new PDOException('There is no active transaction'));
+		}
+
+		$this->isolation = Isolation::On;
+	}
+
+	/** Ends the code's own transaction with a rollback; returns false if that failed. */
+	private function undoOwnQuietly(): bool
+	{
+		$this->isolation = Isolation::On;
+
+		try {
+			$this->undoOwn();
+
+			return true;
+		} catch (Throwable) {
+			return false;
+		}
+	}
+
+	private function undoOwn(): void
+	{
+		$this->savepointCall('ROLLBACK TO SAVEPOINT ' . self::OWN);
+		$this->savepointCall('RELEASE SAVEPOINT ' . self::OWN);
 	}
 
 	private function assertOutsideBlock(string $action): void
@@ -632,6 +780,8 @@ class Database
 	protected function drop(): void
 	{
 		$this->pdo = null;
+		// The isolating transaction ends with its connection.
+		$this->isolation = Isolation::Off;
 		$this->commitCallbacks = [];
 		$this->connectedAt = null;
 		$this->lastUsedAt = null;

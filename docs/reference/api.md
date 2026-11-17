@@ -112,6 +112,7 @@ new Database(Connection $conn)
 - `commit(): bool` commits the current transaction
 - `rollback(): bool` rolls back the current transaction
 - `afterCommit(Closure $callback): void` calls the callback once the open transaction is committed, or at once outside a transaction; see [Work after the commit](../parameters-and-results.md#work-after-the-commit)
+- `isolate(): void` opens a transaction for a test that the code under test does not see, and `discard(): void` rolls it back; see [Tests that roll back their work](../parameters-and-results.md#tests-that-roll-back-their-work)
 - `execute(string $query, mixed ...$args): Query` runs ad-hoc SQL through the same query pipeline as file-based queries
 - `getFetchMode(): int` returns the configured default fetch mode
 - `getPdoDriver(): string` returns the active PDO driver name

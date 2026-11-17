@@ -180,7 +180,12 @@
 			ignore: ['Celema\\Quma\\Query::all'],
 		},
 		MethodCallRemoval: {
-			ignoreSourceCodeByRegex: ['\\$this->stmt->bindValue\\(\\$arg, \\$value, PDO::PARAM_NULL\\);'],
+			ignoreSourceCodeByRegex: [
+				'\\$this->stmt->bindValue\\(\\$arg, \\$value, PDO::PARAM_NULL\\);',
+				// An unreleased savepoint ends with the isolating transaction; a test
+				// sees the same data either way.
+				"\\$this->savepointCall\\('RELEASE SAVEPOINT ' \\. self::OWN\\);",
+			],
 		},
 	},
 }
