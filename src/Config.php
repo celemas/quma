@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Celema\Quma;
 
+use Closure;
 use PDO;
 use RuntimeException;
 use ValueError;
@@ -71,6 +72,12 @@ final class Config
 		?string $password = null,
 	): void {
 		$this->pdo = $this->pdo->credentials($username, $password);
+	}
+
+	/** @param Closure(): array{string, ?string} $resolver */
+	public function setCredentialResolver(Closure $resolver): void
+	{
+		$this->pdo = $this->pdo->credentialsFrom($resolver);
 	}
 
 	/** @param array<array-key, mixed> $options */

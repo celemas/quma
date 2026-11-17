@@ -19,6 +19,7 @@ new Connection(string $dsn, string|array $sql)
 ### Key methods
 
 - `credentials(string $username, ?string $password = null): static` sets PDO credentials
+- `credentialsFrom(Closure $resolver): static` resolves the username and password at every connect
 - `options(array $options): static` replaces PDO options
 - `option(int $attribute, mixed $value): static` sets one PDO option
 - `fetch(int $fetchMode): static` sets the default query fetch mode
@@ -66,9 +67,11 @@ Properties:
 - `password: ?string`
 - `options: array`
 - `fetchMode: int`
+- `credentialResolver: ?Closure`
 
 Methods:
 
+- `resolveCredentials(): array` returns the username and password for a new connection, from the resolver if one is set
 - `effectiveOptions(string $driver): array` returns PDO options with Quma's defaults for the driver and the required exception mode applied
 
 ## `Celema\Quma\Delimiters`

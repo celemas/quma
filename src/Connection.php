@@ -41,6 +41,21 @@ class Connection
 		return $this;
 	}
 
+	/**
+	 * Calls the resolver for the username and password at every connect,
+	 * for credentials that expire, such as cloud IAM tokens or dynamic
+	 * secrets. It replaces credentials set with credentials(), and the
+	 * other way round.
+	 *
+	 * @param Closure(): array{string, ?string} $resolver
+	 */
+	public function credentialsFrom(Closure $resolver): static
+	{
+		$this->config->setCredentialResolver($resolver);
+
+		return $this;
+	}
+
 	/** @param array<array-key, mixed> $options */
 	public function options(array $options): static
 	{

@@ -46,6 +46,33 @@ class ConnectionTest extends TestCase
 		$this->assertSame(PDO::FETCH_ASSOC, $conn->config->pdo->fetchMode);
 	}
 
+	public function testCredentialResolverAndStaticCredentialsReplaceEachOther(): void
+	{
+		$conn = new Connection($this->getDsn(), $this->getSqlDirs())
+			->credentials('quma', 'secret')
+			->credentialsFrom(static fn(): array => ['token-user', 'token']);
+
+		$this->assertNull($conn->config->pdo->username);
+		$this->assertNull($conn->config->pdo->password);
+		$this->assertSame(['token-user', 'token'], $conn->config->pdo->resolveCredentials());
+
+		$conn->credentials('quma', 'secret');
+
+		$this->assertNull($conn->config->pdo->credentialResolver);
+		$this->assertSame(['quma', 'secret'], $conn->config->pdo->resolveCredentials());
+	}
+
+	public function testOtherPdoSettingsKeepTheCredentialResolver(): void
+	{
+		$conn = new Connection($this->getDsn(), $this->getSqlDirs())
+			->credentialsFrom(static fn(): array => ['token-user', null])
+			->options([PDO::ATTR_TIMEOUT => 2])
+			->option(PDO::ATTR_PERSISTENT, false)
+			->fetch(PDO::FETCH_NUM);
+
+		$this->assertSame(['token-user', null], $conn->config->pdo->resolveCredentials());
+	}
+
 	public function testPdoEffectiveOptionsMergeDefaultsAndRequiredOptions(): void
 	{
 		$conn = new Connection($this->getDsn(), $this->getSqlDirs())

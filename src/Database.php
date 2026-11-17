@@ -131,12 +131,13 @@ class Database
 		}
 
 		$config = $this->conn->config;
+		[$username, $password] = $config->pdo->resolveCredentials();
 
 		try {
 			$pdo = new PDO(
 				$config->dsn,
-				$config->pdo->username,
-				$config->pdo->password,
+				$username,
+				$password,
 				$config->pdo->effectiveOptions($config->driver),
 			);
 		} catch (PDOException $e) {

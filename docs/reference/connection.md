@@ -78,6 +78,19 @@ Application code can read these values directly. Use `Connection` methods to mut
 
 Sets the username and password passed to PDO.
 
+### `credentialsFrom(Closure $resolver): static`
+
+Calls the resolver at every connect for the username and password, as a list. Use it for credentials that expire, such as IAM authentication tokens for Amazon RDS, Microsoft Entra tokens for Azure Database for PostgreSQL, or dynamic secrets from HashiCorp Vault:
+
+```php
+$conn = new Connection('pgsql:host=db.example.com;dbname=app', __DIR__ . '/sql')
+    ->credentialsFrom(static fn(): array => ['app', $tokens->current()]);
+```
+
+Every new connection gets fresh credentials, also one that replaces a dropped or old connection in a long-running process. Generating or caching the token is up to the resolver. An exception it throws reaches the statement that connected.
+
+The resolver and `credentials()` replace each other. With a resolver, `$conn->config->pdo->username` and `password` are `null`.
+
 ### `options(array $options): static`
 
 Replaces the PDO options array passed to PDO.
